@@ -8,6 +8,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogBlenderEditorControls, Log, All);
 
 #define LOCTEXT_NAMESPACE "FBlenderEditorControlsPluginModule"
 
+namespace BlenderControls
+{
+
 void FBlenderEditorControlsPluginModule::StartupModule()
 {
     UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: StartupModule"));
@@ -27,6 +30,8 @@ void FBlenderEditorControlsPluginModule::ShutdownModule()
     */
 }
 
+} // namespace BlenderControls
+
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FBlenderEditorControlsPluginModule, BlenderEditorControlsPlugin)
+IMPLEMENT_MODULE(BlenderControls::FBlenderEditorControlsPluginModule, BlenderEditorControlsPlugin)

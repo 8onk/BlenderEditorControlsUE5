@@ -7,26 +7,25 @@
 
 namespace BlenderControls
 {
-class FBlenderEditorControlsPluginModule : public IModuleInterface
-{
-public:
+	class FBlenderEditorControlsPluginModule : public IModuleInterface
+	{
+	public:
+		/** IModuleInterface implementation */
+		virtual void StartupModule() override;
+		virtual void ShutdownModule() override;
 
-	/** IModuleInterface implementation */
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
+		/** Lightweight accessor so other plugins can query whether BC is active */
+		static bool IsEnabled();
 
-	/** Lightweight accessor so other plugins can query whether BC is active */
-	static bool IsEnabled();
+	private:
+		void RegisterStyles();
+		void RegisterSettings();
+		void RegisterCommands();
+		void RegisterInputProcessor();
+		void UnregisterInputProcessor();
 
-private:
-	void RegisterStyles();
-    void RegisterSettings();
-    void RegisterCommands();
-    void RegisterInputProcessor();
-    void UnregisterInputProcessor();
-
-	/** Persistent objects */
-    TSharedPtr<class FBlenderControlsInputProcessor> InputProcessor;
-    TSharedPtr<class FUICommandList>                 CommandList;
-};
+		/** Persistent objects */
+		TSharedPtr<class FBlenderControlsInputProcessor> InputProcessor;
+		TSharedPtr<class FUICommandList> CommandList;
+	};
 } // namespace BlenderControls
