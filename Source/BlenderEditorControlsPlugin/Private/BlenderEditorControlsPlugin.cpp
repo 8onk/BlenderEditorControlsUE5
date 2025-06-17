@@ -3,6 +3,7 @@
 #include "BlenderEditorControlsPlugin.h"
 #include "Modules/ModuleManager.h"
 #include "Logging/LogMacros.h"
+#include "Commands/BlenderEditorControlsPluginCommands.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlenderEditorControls, Log, All);
 
@@ -11,24 +12,27 @@ DEFINE_LOG_CATEGORY_STATIC(LogBlenderEditorControls, Log, All);
 namespace BlenderControls
 {
 
-void FBlenderEditorControlsPluginModule::StartupModule()
-{
-    UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: StartupModule"));
-
-    // GrabProcessor = MakeShared<FGrabInputProcessor>();
-    // FSlateApplication::Get().RegisterInputPreProcessor(GrabProcessor);
-}
-
-void FBlenderEditorControlsPluginModule::ShutdownModule()
-{
-    UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: ShutdownModule"));
-    /*if (FSlateApplication::IsInitialized())
+    void FBlenderEditorControlsPluginModule::StartupModule()
     {
-        FSlateApplication::Get().UnregisterInputPreProcessor(GrabProcessor);
+        UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: StartupModule"));
+
+        FBlenderEditorControlsPluginCommands::Register();
+        // GrabProcessor = MakeShared<FGrabInputProcessor>();
+        // FSlateApplication::Get().RegisterInputPreProcessor(GrabProcessor);
     }
-    GrabProcessor.Reset();
-    */
-}
+
+    void FBlenderEditorControlsPluginModule::ShutdownModule()
+    {
+        UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: ShutdownModule"));
+
+        FBlenderEditorControlsPluginCommands::Unregister();
+        /*if (FSlateApplication::IsInitialized())
+        {
+            FSlateApplication::Get().UnregisterInputPreProcessor(GrabProcessor);
+        }
+        GrabProcessor.Reset();
+        */
+    }
 
 } // namespace BlenderControls
 
