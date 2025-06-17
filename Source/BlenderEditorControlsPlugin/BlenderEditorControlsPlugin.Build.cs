@@ -39,6 +39,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"Slate",
 				"SlateCore",
 				"InputCore",
+				"DeveloperSettings",
 			}
 			);
 		
