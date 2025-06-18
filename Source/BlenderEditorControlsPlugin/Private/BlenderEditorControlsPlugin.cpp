@@ -36,7 +36,9 @@ namespace BlenderControls
 
     void FBlenderEditorControlsPluginModule::RegisterStyles()
     {
+    
     }
+    
     void FBlenderEditorControlsPluginModule::UnregisterStyles()
     {
     }

@@ -31,13 +31,16 @@ namespace BlenderControls
         // Getter for DisplayName
         const FString &GetDisplayName() const { return DisplayName; }
 
+    private:
+        FLinearColor   CachedSelectionColor;
+
     protected:
         /** Child tools call this to populate Selected & prepare undo */
         void CaptureSelection();
 
         /** Implemented in derived classes */
-        virtual void OnBegin() = 0;
-        virtual void OnEnd(bool bApply) = 0;
+        virtual void OnBegin();
+        virtual void OnEnd(bool bApply);
         virtual void HandleDelta(const FVector2D &MouseDelta) = 0;
 
         /* Transaction utilities */

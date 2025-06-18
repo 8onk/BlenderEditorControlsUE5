@@ -61,7 +61,6 @@ namespace BlenderControls
     {
         if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
         {
-            UE_LOG(LogBlenderEditorControls, Log, TEXT("Key pressed: %s"), *KeyEvent.GetKey().ToString());
             if (CurrentTool.IsValid())
             {
                 UE_LOG(LogBlenderEditorControls, Log, TEXT("Current tool: %s"), *CurrentTool->GetDisplayName());
@@ -133,6 +132,10 @@ namespace BlenderControls
 
     void FBlenderControlsInputProcessor::BeginTool(ETransformMode Mode)
     {
+        if (GEditor->GetSelectedActorCount() == 0){
+            return;
+        }
+
         const ETransformAxis InitialAxis = ETransformAxis::All;
 
         switch (Mode)

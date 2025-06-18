@@ -9,7 +9,10 @@ namespace BlenderControls
 
     void FMoveTool::Tick(const FVector2D &MouseDelta) {}
     void FMoveTool::ApplyNumeric(float Value) {}
-    void FMoveTool::OnBegin() {}
+    void FMoveTool::OnBegin()
+    {
+        FBlenderToolBase::OnBegin();
+    }
     void FMoveTool::OnEnd(bool bApply) {}
     void FMoveTool::HandleDelta(const FVector2D &MouseDelta) {}
 } // namespace BlenderControls
