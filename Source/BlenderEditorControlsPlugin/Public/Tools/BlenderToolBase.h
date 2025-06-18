@@ -28,6 +28,9 @@ namespace BlenderControls
         /** Numeric entry apply */
         virtual void ApplyNumeric(float Value);
 
+        // Getter for DisplayName
+        const FString &GetDisplayName() const { return DisplayName; }
+
     protected:
         /** Child tools call this to populate Selected & prepare undo */
         void CaptureSelection();

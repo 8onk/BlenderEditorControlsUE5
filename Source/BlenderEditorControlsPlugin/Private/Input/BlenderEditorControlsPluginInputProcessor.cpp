@@ -41,8 +41,20 @@ namespace BlenderControls
             FCanExecuteAction());
     }
 
-    void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &, TSharedRef<ICursor>)
+    void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &App, TSharedRef<ICursor>)
     {
+        if (!bActive || !CurrentTool.IsValid())
+            return;
+
+        // Example: live-precision check (Shift)
+        const bool bShift = App.GetModifierKeys().IsShiftDown();
+        //CurrentTool->SetPrecisionMode(bShift); // if your tool exposes it
+
+        // Overlay may want to animate a fade, so pass DeltaTime
+        /*if (Overlay.IsValid())
+        {
+            Overlay->Tick(DeltaTime);
+        }*/
     }
 
     bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
@@ -50,6 +62,10 @@ namespace BlenderControls
         if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
         {
             UE_LOG(LogBlenderEditorControls, Log, TEXT("Key pressed: %s"), *KeyEvent.GetKey().ToString());
+            if (CurrentTool.IsValid())
+            {
+                UE_LOG(LogBlenderEditorControls, Log, TEXT("Current tool: %s"), *CurrentTool->GetDisplayName());
+            }
             return true; // G/R/S (or remapped key) handled
         }
 
@@ -64,17 +80,49 @@ namespace BlenderControls
 
     bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
     {
-        // UE_LOG(LogBlenderEditorControls, Log, TEXT("KeyUp: %s"), *KeyEvent.GetKey().ToString());
         return false;
     }
 
-    bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &)
+    bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
     {
+        if (!bActive || !CurrentTool.IsValid() || bNumericInput)
+        {
+            return false; // plugin disabled or numeric typing
+        }
+
+        /* Compute screen-space delta */
+        const FVector2D CurrPos = MouseEvent.GetScreenSpacePosition();
+        const FVector2D Delta = CurrPos - LastMousePos;
+        LastMousePos = CurrPos;
+
+        if (!Delta.IsNearlyZero())
+        {
+            CurrentTool->Tick(Delta);
+            return true; // we consumed it
+        }
+
         return false;
     }
 
-    bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &)
+    bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
     {
+        if (!bActive || !CurrentTool.IsValid())
+        {
+            return false;
+        }
+
+        /* LMB = accept  —  RMB = cancel  */
+        if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+        {
+            EndTool(/*bApply=*/true);
+            return true;
+        }
+        if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+        {
+            EndTool(/*bApply=*/false);
+            return true;
+        }
+
         return false;
     }
 
@@ -85,11 +133,6 @@ namespace BlenderControls
 
     void FBlenderControlsInputProcessor::BeginTool(ETransformMode Mode)
     {
-        if (CurrentTool.IsValid())
-        {
-            return;
-        }
-
         const ETransformAxis InitialAxis = ETransformAxis::All;
 
         switch (Mode)
@@ -112,6 +155,7 @@ namespace BlenderControls
         ActiveMode = Mode;
         bNumericInput = false;
         NumericBuffer.Reset();
+        LastMousePos = FSlateApplication::Get().GetCursorPos();
 
         // Tell overlay to start drawing guides for this tool (Axis lines in level)
         if (Overlay.IsValid())
