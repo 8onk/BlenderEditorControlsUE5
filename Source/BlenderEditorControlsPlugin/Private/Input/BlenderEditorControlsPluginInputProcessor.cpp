@@ -46,9 +46,7 @@ namespace BlenderControls
     void FBlenderControlsInputProcessor::BeginTool(ETransformMode Mode)
     {
         if (CurrentTool.IsValid())
-        {
             return;
-        }
 
         const ETransformAxis InitialAxis = ETransformAxis::All;
 
@@ -63,6 +61,8 @@ namespace BlenderControls
         case ETransformMode::Scale:
             CurrentTool = MakeShared<FScaleTool>(InitialAxis);
             break;
+        case ETransformMode::None:
+            return;
         default:
             return;
         }
@@ -71,15 +71,34 @@ namespace BlenderControls
         bNumericInput = false;
         NumericBuffer.Reset();
 
-        // Tell overlay to start drawing guides for this tool
+        // Tell overlay to start drawing guides for this tool (Axis lines in level)
         if (Overlay.IsValid())
-        {
             Overlay->SetContext(CurrentTool);
-        }
     }
 
     void FBlenderControlsInputProcessor::EndTool(bool bApply)
     {
+        if (!CurrentTool.IsValid())
+            return;
+
+        if (bApply)
+            CurrentTool->Accept();
+        else
+            CurrentTool->Cancel();
+
+        CurrentTool.Reset();
+
+        // Reset state
+        ActiveMode = ETransformMode::None;
+        bNumericInput = false;
+        NumericBuffer.Reset();
+        LastMousePos = FVector2D::ZeroVector;
+
+        // stop drawing
+        if (Overlay.IsValid())
+        {
+            Overlay->SetContext(nullptr);
+        }
     }
 
 } // namespace BlenderControls
