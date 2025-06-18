@@ -1,26 +1,11 @@
 #pragma once
 
 #include "Framework/Application/IInputProcessor.h"
+#include "BlenderEditorControlsEnums.h"
+#include "UI/BlenderOverlay.h"
 
 namespace BlenderControls
 {
-    /** High-level mode enumeration */
-    enum class ETransformMode : uint8
-    {
-        None,
-        Translate,
-        Rotate,
-        Scale
-    };
-    enum class ETransformAxis : uint8
-    {
-        None,
-        X,
-        Y,
-        Z,
-        All
-    };
-
     class FBlenderControlsInputProcessor : public IInputProcessor, public TSharedFromThis<FBlenderControlsInputProcessor>
     {
     public:
@@ -28,7 +13,7 @@ namespace BlenderControls
         ~FBlenderControlsInputProcessor();
 
         /* Public toggle – called by toolbar button / settings */
-        void SetActive(bool bEnable);
+        void SetActive(bool bEnable) { bActive = bEnable; }
 
         /** IInputProcessor overrides */
         virtual void Tick(const float DeltaTime, FSlateApplication &, TSharedRef<ICursor>) override;
@@ -52,6 +37,8 @@ namespace BlenderControls
         FString NumericBuffer;
         FVector2D LastMousePos = FVector2D::ZeroVector;
         TSharedPtr<class FBlenderToolBase> CurrentTool;
+        ETransformMode ActiveMode;
         TWeakPtr<FUICommandList> CommandList;
+        TSharedPtr<FBlenderOverlay> Overlay;
     };
 } // namespace BlenderControls

@@ -1,10 +1,10 @@
 #pragma once
 #include "Tools/BlenderToolBase.h"
 #include "Math/Quat.h"
+#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
 namespace BlenderControls
 {
-
     /**
      * Rotation tool – spawned when the input-processor enters ETransformMode::Rotate.
      * Handles axis-locked rotation, track-ball rotation, numeric entry, and

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "UObject/WeakObjectPtr.h"
+#include "Input/BlenderEditorControlsPluginInputProcessor.h"
+#include "BlenderEditorControlsEnums.h"
+#include "ScopedTransaction.h"
 
 namespace BlenderControls
 {
@@ -13,7 +16,7 @@ namespace BlenderControls
         virtual ~FBlenderToolBase();
 
         /** Per-frame update from input-processor */
-        virtual void Tick(const FVector2D &MouseDelta) {}
+        virtual void Tick(const FVector2D &MouseDelta);
 
         virtual void Accept();
         virtual void Cancel();
@@ -23,7 +26,7 @@ namespace BlenderControls
         ETransformAxis GetAxis() const { return Axis; }
 
         /** Numeric entry apply */
-        virtual void ApplyNumeric(float Value) {}
+        virtual void ApplyNumeric(float Value);
 
     protected:
         /** Child tools call this to populate Selected & prepare undo */
@@ -35,7 +38,7 @@ namespace BlenderControls
         virtual void HandleDelta(const FVector2D &MouseDelta) = 0;
 
         /* Transaction utilities */
-        TUniquePtr<struct FScopedTransaction> ParentTxn;
+        TUniquePtr<class FScopedTransaction> ParentTxn;
 
         /* Common data */
         ETransformMode Mode;

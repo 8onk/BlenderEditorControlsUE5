@@ -40,6 +40,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"SlateCore",
 				"InputCore",
 				"DeveloperSettings",
+				"UnrealEd"
 			}
 			);
 		

@@ -1,5 +1,6 @@
 #pragma once
 #include "Tools/BlenderToolBase.h"
+#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
 namespace BlenderControls
 {
