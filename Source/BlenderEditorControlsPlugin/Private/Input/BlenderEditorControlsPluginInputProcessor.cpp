@@ -1,8 +1,12 @@
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
+#include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Tools/BlenderToolBase.h"
 #include "Tools/MoveTool.h"
 #include "Tools/RotateTool.h"
 #include "Tools/ScaleTool.h"
+#include "LevelEditor.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SWidget.h"
 
 namespace BlenderControls
 {
@@ -14,17 +18,53 @@ namespace BlenderControls
     {
     }
 
+    void FBlenderControlsInputProcessor::BindCommands()
+    {
+        const auto &Commands = FBlenderEditorControlsPluginCommands::Get();
+
+        // G  – Translate
+        CommandList->MapAction(
+            Commands.CommandTranslate,
+            FExecuteAction::CreateSP(SharedThis(this), &FBlenderControlsInputProcessor::TranslatePressed),
+            FCanExecuteAction());
+
+        // R – Rotate
+        CommandList->MapAction(
+            Commands.CommandRotate,
+            FExecuteAction::CreateSP(SharedThis(this), &FBlenderControlsInputProcessor::RotatePressed),
+            FCanExecuteAction());
+
+        // S – Scale
+        CommandList->MapAction(
+            Commands.CommandScale,
+            FExecuteAction::CreateSP(SharedThis(this), &FBlenderControlsInputProcessor::ScalePressed),
+            FCanExecuteAction());
+    }
+
     void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &, TSharedRef<ICursor>)
     {
     }
 
-    bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &, const FKeyEvent &)
+    bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
     {
+        if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
+        {
+            UE_LOG(LogBlenderEditorControls, Log, TEXT("Key pressed: %s"), *KeyEvent.GetKey().ToString());
+            return true; // G/R/S (or remapped key) handled
+        }
+
+        /* --- no command matched --- */
+        if (CurrentTool.IsValid())
+        {
+            // Axis keys, numeric buffer etc. handled here …
+        }
+
         return false;
     }
 
-    bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &)
+    bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
     {
+        // UE_LOG(LogBlenderEditorControls, Log, TEXT("KeyUp: %s"), *KeyEvent.GetKey().ToString());
         return false;
     }
 
@@ -46,7 +86,9 @@ namespace BlenderControls
     void FBlenderControlsInputProcessor::BeginTool(ETransformMode Mode)
     {
         if (CurrentTool.IsValid())
+        {
             return;
+        }
 
         const ETransformAxis InitialAxis = ETransformAxis::All;
 
@@ -73,18 +115,26 @@ namespace BlenderControls
 
         // Tell overlay to start drawing guides for this tool (Axis lines in level)
         if (Overlay.IsValid())
+        {
             Overlay->SetContext(CurrentTool);
+        }
     }
 
     void FBlenderControlsInputProcessor::EndTool(bool bApply)
     {
         if (!CurrentTool.IsValid())
+        {
             return;
+        }
 
         if (bApply)
+        {
             CurrentTool->Accept();
+        }
         else
+        {
             CurrentTool->Cancel();
+        }
 
         CurrentTool.Reset();
 

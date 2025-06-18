@@ -8,7 +8,7 @@ namespace BlenderControls
         : TCommands<FBlenderEditorControlsPluginCommands>(
               TEXT("BlenderEditorControlsPlugin"),                                                    // Plugin context name
               NSLOCTEXT("Contexts", "BlenderEditorControlsPlugin", "Blender Editor Controls Plugin"), // Display name in keybindings UI
-              NAME_None,                                                                              // No Parent context name
+              FName("LevelEditor"),                                                                              // No Parent context name
               FName(TEXT("DefaultStyle"))                                                             // Icon Style Set
           )
     {

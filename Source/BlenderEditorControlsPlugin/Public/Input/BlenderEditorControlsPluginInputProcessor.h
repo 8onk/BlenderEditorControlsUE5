@@ -1,16 +1,22 @@
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Framework/Application/IInputProcessor.h"
 #include "BlenderEditorControlsEnums.h"
 #include "UI/BlenderOverlay.h"
+#include "BlenderEditorControlsPlugin.h"
 
 namespace BlenderControls
 {
+
     class FBlenderControlsInputProcessor : public IInputProcessor, public TSharedFromThis<FBlenderControlsInputProcessor>
     {
     public:
         explicit FBlenderControlsInputProcessor(TSharedPtr<FUICommandList> InCommandList);
         ~FBlenderControlsInputProcessor();
+
+        void BindCommands();
+        void AttachToLevelViewport();
 
         /* Public toggle – called by toolbar button / settings */
         void SetActive(bool bEnable) { bActive = bEnable; }
@@ -31,6 +37,13 @@ namespace BlenderControls
         void FeedNumeric(const TCHAR Digit);
         void FlushNumeric();
 
+        bool IsLevelViewportFocused(FSlateApplication &SlateApp) const;
+
+        /* Input handlers for activating transform tools */
+        void TranslatePressed() { BeginTool(ETransformMode::Translate); }
+        void RotatePressed() { BeginTool(ETransformMode::Rotate); }
+        void ScalePressed() { BeginTool(ETransformMode::Scale); }
+
         /* State */
         bool bActive = false;
         bool bNumericInput = false;
@@ -38,7 +51,7 @@ namespace BlenderControls
         FVector2D LastMousePos = FVector2D::ZeroVector;
         TSharedPtr<class FBlenderToolBase> CurrentTool;
         ETransformMode ActiveMode;
-        TWeakPtr<FUICommandList> CommandList;
+        TSharedPtr<FUICommandList> CommandList;
         TSharedPtr<FBlenderOverlay> Overlay;
     };
 } // namespace BlenderControls

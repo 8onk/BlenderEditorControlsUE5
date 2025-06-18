@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogBlenderEditorControls, Log, All);
+
 namespace BlenderControls
 {
 	class FBlenderEditorControlsPluginModule : public IModuleInterface
@@ -18,14 +20,29 @@ namespace BlenderControls
 		static bool IsEnabled();
 
 	private:
+		/* ----- internal registration helpers ----- */
 		void RegisterStyles();
-		void RegisterSettings();
+		void UnregisterStyles();
+
 		void RegisterCommands();
+		void UnregisterCommands();
+
+		void RegisterSettings();
+		void UnregisterSettings();
+
+		void RegisterMenus();
+		void UnregisterMenus();
+
 		void RegisterInputProcessor();
 		void UnregisterInputProcessor();
 
-		/** Persistent objects */
+		/* Toolbar delegate */
+		void OnTogglePlugin();
+
+		/* Persistent state */
+		static inline bool                           bPluginActive = false;
+		TSharedPtr<class FUICommandList>             CommandList;
 		TSharedPtr<class FBlenderControlsInputProcessor> InputProcessor;
-		TSharedPtr<class FUICommandList> CommandList;
+		FDelegateHandle                              ToolMenuOwnerHandle;
 	};
 } // namespace BlenderControls
