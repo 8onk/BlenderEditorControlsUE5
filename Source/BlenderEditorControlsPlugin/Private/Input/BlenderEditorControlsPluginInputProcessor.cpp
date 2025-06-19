@@ -97,7 +97,7 @@ namespace BlenderControls
         if (!Delta.IsNearlyZero())
         {
             CurrentTool->Tick(Delta);
-            return true; // we consumed it
+            return true; // consume it
         }
 
         return false;

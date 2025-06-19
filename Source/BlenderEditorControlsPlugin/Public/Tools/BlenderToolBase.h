@@ -3,6 +3,7 @@
 #include "UObject/WeakObjectPtr.h"
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
 #include "BlenderEditorControlsEnums.h"
+#include "SharedPivot.h"
 #include "ScopedTransaction.h"
 
 namespace BlenderControls
@@ -32,7 +33,7 @@ namespace BlenderControls
         const FString &GetDisplayName() const { return DisplayName; }
 
     private:
-        FLinearColor   CachedSelectionColor;
+        FLinearColor CachedSelectionColor;
 
     protected:
         /** Child tools call this to populate Selected & prepare undo */
@@ -52,5 +53,7 @@ namespace BlenderControls
         FString DisplayName;
         TArray<TWeakObjectPtr<AActor>> SelectedActors;
         TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
+
+        TSharedPtr<class FSharedPivot> Group;
     };
 } // namespace BlenderControls

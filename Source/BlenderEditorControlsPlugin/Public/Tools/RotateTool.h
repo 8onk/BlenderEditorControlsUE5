@@ -32,7 +32,6 @@ namespace BlenderControls
         FQuat BuildAxisQuat(float Radians) const;
 
         /* ——— state ——— */
-        TSharedPtr<class FGroupTransform> Group;
         FVector PivotWS = FVector::ZeroVector;      // cached centre
         FVector LastVectorWS = FVector::ZeroVector; // for track-ball
         bool bTrackballMode = false;

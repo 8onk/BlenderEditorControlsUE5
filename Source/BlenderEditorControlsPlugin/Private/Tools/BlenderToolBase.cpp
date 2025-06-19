@@ -23,6 +23,14 @@ namespace BlenderControls
         }
 
         CaptureSelection();
+        Group = MakeShared<FSharedPivot>(SelectedActors);
+
+        // Start transaction for undo
+        ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
+        for (auto Actor : SelectedActors)
+        {
+            Actor->Modify();
+        }
     }
 
     void FBlenderToolBase::OnEnd(bool bApply)
@@ -31,6 +39,7 @@ namespace BlenderControls
         {
             GEditor->SetSelectionOutlineColor(CachedSelectionColor);
         }
+        SelectedActors.Empty();
     }
 
     void FBlenderToolBase::Tick(const FVector2D &MouseDelta)
@@ -39,6 +48,30 @@ namespace BlenderControls
     }
 
     void FBlenderToolBase::Accept()
+    {
+        OnEnd(/*bApply=*/true);
+        ParentTxn.Reset();
+    }
+
+    void FBlenderToolBase::Cancel()
+    {
+        OnEnd(/*bApply=*/false);
+        if (GEditor)
+        {
+            GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+        }
+
+        // Abort undo-tracking
+        if (ParentTxn)
+        {
+            ParentTxn->Cancel();
+            ParentTxn.Reset();
+        }
+
+        SelectedActors.Empty();
+    }
+
+    void FBlenderToolBase::ApplyNumeric(float Value)
     {
         // Base implementation does nothing
     }
@@ -59,15 +92,5 @@ namespace BlenderControls
                 }
             }
         }
-    }
-
-    void FBlenderToolBase::Cancel()
-    {
-        // Base implementation does nothing
-    }
-
-    void FBlenderToolBase::ApplyNumeric(float Value)
-    {
-        // Base implementation does nothing
     }
 } // namespace BlenderControls

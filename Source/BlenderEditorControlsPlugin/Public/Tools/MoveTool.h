@@ -22,7 +22,6 @@ namespace BlenderControls
 
     private:
         /* Cached pivot + helpers */
-        TSharedPtr<class FGroupTransform> Group;
         FVector PrevIntersection = FVector::ZeroVector;
     };
 } // namespace BlenderControls
