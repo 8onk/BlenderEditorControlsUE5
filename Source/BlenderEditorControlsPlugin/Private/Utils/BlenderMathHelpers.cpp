@@ -54,7 +54,16 @@ namespace BlenderControls::Math
     FVector LinePlaneIntersection(const FVector &RayStart, const FVector &RayDir,
                                   const FVector &PlaneOrigin, const FVector &PlaneNormal)
     {
-        return FVector::ZeroVector; // tmp stub
+        const FVector N = PlaneNormal.GetSafeNormal();
+        const float Den = FVector::DotProduct(RayDir, N);
+
+        if (FMath::IsNearlyZero(Den))
+        {
+            return RayStart; // parallel → give back start
+        }
+
+        const float T = FVector::DotProduct(PlaneOrigin - RayStart, N) / Den;
+        return RayStart + RayDir * T;
     }
 
     FQuat AlignAxisToNormal(const FQuat &CurrentRot, const FVector &LocalAxis, const FVector &TargetNormal)
