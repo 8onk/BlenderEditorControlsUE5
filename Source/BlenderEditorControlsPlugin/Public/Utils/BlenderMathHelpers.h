@@ -1,6 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Tools/SharedPivot.h"
+#include "Misc/Optional.h"
+#include "Math/Plane.h"
 
 namespace BlenderControls::Math
 {
@@ -20,4 +23,5 @@ namespace BlenderControls::Math
                         float Thickness = 2.f, float DashLength = 10.f,
                         const FLinearColor & = FLinearColor::White);
 
+    TOptional<FPlane> MakeDragPlaneFromSelection(TSharedPtr<class BlenderControls::FSharedPivot> Group);
 } // namespace BlenderControls::Math

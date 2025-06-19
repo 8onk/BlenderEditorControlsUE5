@@ -5,6 +5,9 @@
 #include "CanvasTypes.h"
 #include "Engine/Engine.h"
 #include "Components/LineBatchComponent.h"
+#include "Editor.h"
+#include "Kismet/GameplayStatics.h"
+#include "LevelEditorViewport.h"
 
 namespace BlenderControls::Math
 {
@@ -33,5 +36,22 @@ namespace BlenderControls::Math
                         float Thickness, float DashLength, const FLinearColor &)
     {
         // tmp stub
+    }
+
+    TOptional<FPlane> MakeDragPlaneFromSelection(TSharedPtr<BlenderControls::FSharedPivot> Group)
+    {
+        FVector Pivot = Group->GetPivot();
+
+        // 2 – camera basis
+        FLevelEditorViewportClient *VC = GCurrentLevelEditingViewportClient;
+        if (!VC)
+        {
+            return TOptional<FPlane>();
+        }
+
+        const FVector CamFwd = VC->GetViewRotation().Vector();
+
+        // 3 – plane (point, normal)
+        return FPlane(/*point=*/Pivot, /*normal=*/CamFwd);
     }
 }

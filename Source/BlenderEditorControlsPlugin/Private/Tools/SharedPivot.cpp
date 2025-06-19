@@ -4,14 +4,21 @@ namespace BlenderControls
 {
     FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &Selection)
     {
-        for (TWeakObjectPtr<AActor> A : Selection)
+        for (auto &APtr : Selection)
         {
-            if (A.IsValid())
+            if (APtr.IsValid())
             {
-                Children.Add({A.Get(), A->GetActorTransform(), FVector::ZeroVector});
-                Pivot += A->GetActorLocation();
+                AActor *A = APtr.Get();
+
+                // Uses bounding box centre for now only, maybe expand to be able to choose.
+                FVector Origin, Extent;
+                A->GetActorBounds(false, Origin, Extent);
+
+                Children.Add({A, A->GetActorTransform(), FVector::ZeroVector});
+                Pivot += Origin; // use bounds center
             }
         }
+
         if (Children.Num())
         {
             Pivot /= Children.Num();
