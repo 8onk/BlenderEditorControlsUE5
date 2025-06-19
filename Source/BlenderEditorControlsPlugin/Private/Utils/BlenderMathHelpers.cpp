@@ -11,9 +11,44 @@
 
 namespace BlenderControls::Math
 {
-    FVector ScreenDeltaToWorld(const FVector2D &ScreenDelta, const FViewportCameraTransform &CamXForm)
+    FVector ScreenDeltaToWorld(const FVector2D &DeltaPx, float DepthUU)
     {
-        return FVector::ZeroVector; // tmp stub
+        FViewport *Viewport = GEditor ? GEditor->GetActiveViewport() : nullptr;
+        if (!Viewport)
+        {
+            return FVector::ZeroVector;
+        }
+
+        FEditorViewportClient *VC =
+            static_cast<FEditorViewportClient *>(Viewport->GetClient());
+        if (!VC)
+        {
+            return FVector::ZeroVector;
+        }
+
+        const FIntPoint Size = Viewport->GetSizeXY();
+        if (Size.X == 0 || Size.Y == 0)
+        {
+            return FVector::ZeroVector;
+        }
+
+        float UnitsPerPixel = 0.f;
+
+        if (VC->IsOrtho())
+        {
+            float OrthoWidth = ComputeOrthoWidth(VC);
+            UnitsPerPixel = OrthoWidth / static_cast<float>(Size.X);
+        }
+        else
+        {
+            const float FovRad = FMath::DegreesToRadians(VC->ViewFOV);
+            UnitsPerPixel = 2.f * FMath::Tan(FovRad * 0.5f) * DepthUU / static_cast<float>(Size.Y);
+        }
+
+        FVector Right = VC->GetViewRotation().RotateVector(FVector::RightVector);
+        FVector Up = VC->GetViewRotation().RotateVector(FVector::UpVector);
+
+        return (Right * DeltaPx.X + Up * -DeltaPx.Y) * UnitsPerPixel;
     }
 
     FVector LinePlaneIntersection(const FVector &RayStart, const FVector &RayDir,
@@ -53,5 +88,19 @@ namespace BlenderControls::Math
 
         // 3 – plane (point, normal)
         return FPlane(/*point=*/Pivot, /*normal=*/CamFwd);
+    }
+
+    float ComputeOrthoWidth(const FEditorViewportClient *VC)
+    {
+        if (VC->GetViewMode() == LVT_OrthoXY ||
+            VC->GetViewMode() == LVT_OrthoXZ ||
+            VC->GetViewMode() == LVT_OrthoYZ)
+        {
+            const float HalfWidth = VC->GetOrthoZoom();
+            const float FullWidth = HalfWidth * 2.0f;
+            UE_LOG(LogBlenderEditorControls, Log, TEXT("Ortho Viewport Width: %f"), FullWidth);
+        }
+
+        return 0.f;
     }
 }

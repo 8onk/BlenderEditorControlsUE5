@@ -4,11 +4,12 @@
 #include "Tools/SharedPivot.h"
 #include "Misc/Optional.h"
 #include "Math/Plane.h"
+#include "BlenderEditorControlsPlugin.h"
 
 namespace BlenderControls::Math
 {
     /** Converts screen Δ to a world-space translation based on camera vectors */
-    FVector ScreenDeltaToWorld(const FVector2D &ScreenDelta, const FViewportCameraTransform &CamXForm);
+    FVector ScreenDeltaToWorld(const FVector2D &DeltaPx, float DepthUU);
 
     /** Ray-plane intersection used by Move & Rotate */
     FVector LinePlaneIntersection(const FVector &RayStart, const FVector &RayDir,
@@ -24,4 +25,6 @@ namespace BlenderControls::Math
                         const FLinearColor & = FLinearColor::White);
 
     TOptional<FPlane> MakeDragPlaneFromSelection(TSharedPtr<class BlenderControls::FSharedPivot> Group);
+
+    float ComputeOrthoWidth(const FEditorViewportClient *VC);
 } // namespace BlenderControls::Math

@@ -1,6 +1,7 @@
 #include "Tools/BlenderToolBase.h"
 #include "Editor.h"
 #include "Engine/Selection.h"
+#include "Utils/BlenderMathHelpers.h"
 
 namespace BlenderControls
 {
@@ -24,6 +25,14 @@ namespace BlenderControls
 
         CaptureSelection();
         Group = MakeShared<FSharedPivot>(SelectedActors);
+
+        // Get the current viewport client
+        FEditorViewportClient *VC = GEditor ? static_cast<FEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient()) : nullptr;
+        if (VC)
+        {
+            float OrthoWidth = BlenderControls::Math::ComputeOrthoWidth(VC);
+            // You can use OrthoWidth as needed here
+        }
 
         // Start transaction for undo
         ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
