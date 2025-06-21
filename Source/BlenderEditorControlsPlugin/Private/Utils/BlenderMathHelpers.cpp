@@ -19,8 +19,7 @@ namespace BlenderControls::Math
             return FVector::ZeroVector;
         }
 
-        FEditorViewportClient *VC =
-            static_cast<FEditorViewportClient *>(Viewport->GetClient());
+        FEditorViewportClient *VC = static_cast<FEditorViewportClient *>(Viewport->GetClient());
         if (!VC)
         {
             return FVector::ZeroVector;
