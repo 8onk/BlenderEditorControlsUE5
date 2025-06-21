@@ -35,7 +35,7 @@ namespace BlenderControls
         for (FChildInfo &Child : Children)
         {
             Child.Actor->Modify(); // undo safety
-            Child.Actor->SetActorLocation(Pivot + Child.Offset + Delta, false, nullptr, ETeleportType::None);
+            Child.Actor->SetActorLocation(Pivot + Child.Offset + Delta, false, nullptr, ETeleportType::TeleportPhysics);
         }
     }
 } // namespace BlenderControls
