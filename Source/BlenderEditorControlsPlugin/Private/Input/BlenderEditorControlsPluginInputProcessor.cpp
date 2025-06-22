@@ -9,8 +9,6 @@
 #include "BlenderEditorControlsPlugin.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Containers/Ticker.h"
-#include "LevelEditorViewport.h"
-#include "Tools/EdModeInteractiveToolsContext.h"
 
 namespace BlenderControls
 {
@@ -25,7 +23,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BindCommands()
 	{
-		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
+		const auto &Commands = FBlenderEditorControlsPluginCommands::Get();
 
 		// G  – Translate
 		CommandList->MapAction(
@@ -46,7 +44,7 @@ namespace BlenderControls
 			FCanExecuteAction());
 	}
 
-	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
+	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &App, TSharedRef<ICursor>)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -64,13 +62,15 @@ namespace BlenderControls
 		}*/
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
 			if (CurrentTool.IsValid())
 			{
-				UE_LOG(LogBlenderEditorControls, Log, TEXT("Current tool: %s"), *CurrentTool->GetDisplayName());
+				UE_LOG(LogBlenderEditorControls, Log,
+					   TEXT("FBlenderControlsInputProcessor::HandleKeyDownEvent:		Current tool: %s"),
+					   *CurrentTool->GetDisplayName());
 			}
 			return true; // G/R/S (or remapped key) handled
 		}
@@ -84,12 +84,12 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
 	{
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid() || bNumericInput)
 		{
@@ -110,7 +110,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -132,14 +132,14 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication &, const FPointerEvent &)
 	{
 		return false;
 	}
 
 	void FBlenderControlsInputProcessor::BeginTool(ETransformMode Mode)
 	{
-		if (GEditor->GetSelectedActorCount() == 0)
+		if (GEditor->GetSelectedActorCount() == 0 || CurrentTool.IsValid())
 		{
 			return;
 		}
@@ -173,6 +173,11 @@ namespace BlenderControls
 		{
 			Overlay->SetContext(CurrentTool);
 		}
+
+		if (CurrentTool.IsValid())
+		{
+			CurrentTool->OnBegin();
+		}
 	}
 
 	void FBlenderControlsInputProcessor::EndTool(bool bApply)
@@ -181,6 +186,8 @@ namespace BlenderControls
 		{
 			return;
 		}
+
+		CurrentTool->OnEnd(bApply);
 
 		if (bApply)
 		{

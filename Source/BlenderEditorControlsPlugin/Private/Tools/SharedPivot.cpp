@@ -1,4 +1,6 @@
 #include "Tools/SharedPivot.h"
+
+#include "BlenderEditorControlsPlugin.h"
 #include "LevelEditorViewport.h"
 
 namespace BlenderControls
@@ -6,8 +8,9 @@ namespace BlenderControls
     FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &Selection)
     {
         TransformProxy = NewObject<UTransformProxy>();
-        
-        if(!TransformProxy){
+
+        if (!TransformProxy)
+        {
             return;
         }
 
@@ -23,67 +26,30 @@ namespace BlenderControls
 
                 Children.Add({A, A->GetActorTransform(), FVector::ZeroVector});
                 TransformProxy->AddComponent(A->GetRootComponent(), true);
-                Pivot += Origin; // use bounds center
+                Pivot.GetLocation() += Origin; // use bounds center
             }
         }
 
         if (Children.Num())
         {
-            Pivot /= Children.Num();
+            Pivot.GetLocation() /= Children.Num();
         }
         for (FChildInfo &Child : Children)
         {
-            Child.Offset = Child.Actor->GetActorLocation() - Pivot;
-        } 
+            Child.Offset = Child.Actor->GetActorLocation() - Pivot.GetLocation();
+        }
     }
 
     void FSharedPivot::MoveBy(const FVector &Delta)
     {
-        if(!TransformProxy){
-            return;
-        }
-
-        // Access the active editor viewport client
-        auto LevelEditorViewportClient = GCurrentLevelEditingViewportClient;
-        if (!LevelEditorViewportClient)
+        if (!TransformProxy)
         {
             return;
         }
 
-        FViewport* Viewport = GEditor->GetActiveViewport();
-        if (!Viewport)
-        {
-            return;
-        }
-
-        FViewportClient* ViewportClient = Viewport->GetClient();
-        if (!ViewportClient)
-        {
-            return;
-        }
-
-        FEditorViewportClient* EditorViewportClient = static_cast<FEditorViewportClient*>(ViewportClient);
-        if (!EditorViewportClient)
-        {
-            return;
-        }
-
-        EditorViewportClient->SetCurrentWidgetAxis(EAxisList::X);
-
-        // Apply movement using InputWidgetDelta
-        FVector DragDelta = Delta;
-        FRotator RotDelta = FRotator::ZeroRotator;
-        FVector ScaleDelta = FVector::ZeroVector;
-
-        LevelEditorViewportClient->InputWidgetDelta(
-            GEditor->GetActiveViewport(),
-            EAxisList::X,  
-            DragDelta,
-            RotDelta,
-            ScaleDelta
-        );
-        
         // Update internal pivot state (if needed for your custom logic)
-        Pivot += Delta;
+        Pivot.AddToTranslation(Delta);
+        TransformProxy->SetTransform(Pivot);
+        // Pivot.GetLocation() += Delta;
     }
 } // namespace BlenderControls

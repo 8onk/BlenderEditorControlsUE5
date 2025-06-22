@@ -45,7 +45,7 @@ namespace BlenderControls
         void ScalePressed() { BeginTool(ETransformMode::Scale); }
 
         /* State */
-        bool bActive = false;
+        bool bActive = true;
         bool bNumericInput = false;
         FString NumericBuffer;
         FVector2D LastMousePos = FVector2D::ZeroVector;

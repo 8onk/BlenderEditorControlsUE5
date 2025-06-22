@@ -1,5 +1,6 @@
 #include "Tools/BlenderToolBase.h"
 #include "Editor.h"
+#include "EditorModeManager.h"
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 
@@ -8,7 +9,6 @@ namespace BlenderControls
     FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString &InDisplayName)
         : Mode(InMode), Axis(InAxis), DisplayName(InDisplayName)
     {
-        OnBegin();
     }
 
     FBlenderToolBase::~FBlenderToolBase()
@@ -25,14 +25,8 @@ namespace BlenderControls
 
         CaptureSelection();
         Group = MakeShared<FSharedPivot>(SelectedActors);
-
-        // Get the current viewport client
-        FEditorViewportClient *VC = GEditor ? static_cast<FEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient()) : nullptr;
-        if (VC)
-        {
-            float OrthoWidth = BlenderControls::Math::ComputeOrthoWidth(VC);
-            // You can use OrthoWidth as needed here
-        }
+        InitialWidgetMode = GLevelEditorModeTools().GetWidgetMode();
+        GLevelEditorModeTools().SetWidgetMode(UE::Widget::WM_None);
 
         // Start transaction for undo
         ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
@@ -40,6 +34,8 @@ namespace BlenderControls
         {
             Actor->Modify();
         }
+
+        Group->GetTransformProxy()->BeginTransformEditSequence();
     }
 
     void FBlenderToolBase::OnEnd(bool bApply)
@@ -49,12 +45,15 @@ namespace BlenderControls
             GEditor->SetSelectionOutlineColor(CachedSelectionColor);
         }
         SelectedActors.Empty();
+
+        Group->GetTransformProxy()->EndTransformEditSequence();
+        GLevelEditorModeTools().SetWidgetMode(InitialWidgetMode);
     }
 
-    void FBlenderToolBase::Tick(const FVector2D &MouseDelta)
-    {
-        // Base implementation does nothing
-    }
+    // void FBlenderToolBase::Tick(const FVector2D &MouseDelta)
+    // {
+    //     // Base implementation does nothing
+    // }
 
     void FBlenderToolBase::Accept()
     {
@@ -97,7 +96,6 @@ namespace BlenderControls
                 if (AActor *Actor = Cast<AActor>(*It))
                 {
                     SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
-                    UE_LOG(LogBlenderEditorControls, Log, TEXT("Selected Actor: %s"), *Actor->GetActorLabel());
                 }
             }
         }

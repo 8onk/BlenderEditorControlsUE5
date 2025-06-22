@@ -19,7 +19,9 @@ namespace BlenderControls
     public:
         explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &InSelection);
 
-        const FVector &GetPivot() const { return Pivot; }
+        const FTransform &GetPivot() const { return Pivot; }
+        UTransformProxy* GetTransformProxy() const { return TransformProxy; }
+        
         void MoveBy(const FVector &Delta);
         void RotateBy(const FQuat &Delta);
         void ScaleBy(const FVector &Scale, bool bUniform);
@@ -27,7 +29,7 @@ namespace BlenderControls
     private:
         void RecalcPivot();
 
-        FVector Pivot = FVector::ZeroVector;
+        FTransform Pivot;
         TArray<FChildInfo> Children;
         UTransformGizmo *Gizmo = nullptr;
         UTransformProxy *TransformProxy = nullptr;

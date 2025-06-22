@@ -8,52 +8,51 @@
 
 namespace BlenderControls
 {
-    class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
-    {
-    public:
-        FBlenderToolBase(ETransformMode InMode,
-                         ETransformAxis InAxis,
-                         const FString &InDisplayName);
-        virtual ~FBlenderToolBase();
+	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
+	{
+	public:
+		FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString &InDisplayName);
+		virtual ~FBlenderToolBase();
 
-        /** Per-frame update from input-processor */
-        virtual void Tick(const FVector2D &MouseDelta);
+		/** Per-frame update from input-processor */
+		virtual void Tick(const FVector2D &MouseDelta) = 0;
 
-        virtual void Accept();
-        virtual void Cancel();
+		virtual void Accept();
+		virtual void Cancel();
 
-        /** Axis helpers */
-        void SetAxis(ETransformAxis NewAxis) { Axis = NewAxis; }
-        ETransformAxis GetAxis() const { return Axis; }
+		/** Axis helpers */
+		void SetAxis(ETransformAxis NewAxis) { Axis = NewAxis; }
+		ETransformAxis GetAxis() const { return Axis; }
 
-        /** Numeric entry apply */
-        virtual void ApplyNumeric(float Value);
+		/** Numeric entry apply */
+		virtual void ApplyNumeric(float Value);
 
-        // Getter for DisplayName
-        const FString &GetDisplayName() const { return DisplayName; }
+		// Getter for DisplayName
+		const FString &GetDisplayName() const { return DisplayName; }
 
-    private:
-        FLinearColor CachedSelectionColor;
+		virtual void OnBegin();
+		virtual void OnEnd(bool bApply);
 
-    protected:
-        /** Child tools call this to populate Selected & prepare undo */
-        void CaptureSelection();
+	private:
+		FLinearColor CachedSelectionColor;
+		UE::Widget::EWidgetMode InitialWidgetMode;
 
-        /** Implemented in derived classes */
-        virtual void OnBegin();
-        virtual void OnEnd(bool bApply);
-        virtual void HandleDelta(const FVector2D &MouseDelta) = 0;
+	protected:
+		/** Child tools call this to populate Selected & prepare undo */
+		void CaptureSelection();
 
-        /* Transaction utilities */
-        TUniquePtr<class FScopedTransaction> ParentTxn;
+		virtual void HandleDelta(const FVector2D &MouseDelta) = 0;
 
-        /* Common data */
-        ETransformMode Mode;
-        ETransformAxis Axis;
-        FString DisplayName;
-        TArray<TWeakObjectPtr<AActor>> SelectedActors;
-        TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
+		/* Transaction utilities */
+		TUniquePtr<class FScopedTransaction> ParentTxn;
 
-        TSharedPtr<class FSharedPivot> Group;
-    };
+		/* Common data */
+		ETransformMode Mode;
+		ETransformAxis Axis;
+		FString DisplayName;
+		TArray<TWeakObjectPtr<AActor>> SelectedActors;
+		TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
+
+		TSharedPtr<class FSharedPivot> Group;
+	};
 } // namespace BlenderControls

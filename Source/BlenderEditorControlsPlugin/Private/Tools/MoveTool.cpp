@@ -21,7 +21,10 @@ namespace BlenderControls
         FBlenderToolBase::OnBegin();
     }
 
-    void FMoveTool::OnEnd(bool bApply) {}
+    void FMoveTool::OnEnd(bool bApply)
+    {
+        FBlenderToolBase::OnEnd(bApply);
+    }
 
     void FMoveTool::HandleDelta(const FVector2D &MouseDelta)
     {
@@ -43,8 +46,8 @@ namespace BlenderControls
         {
             return;
         }
-        float Depth = FVector::Dist(Group->GetPivot(), ViewClient->GetViewLocation());
+        float Depth = FVector::Dist(Group->GetPivot().GetLocation(), ViewClient->GetViewLocation());
         const FVector DeltaWS = Math::ScreenDeltaToWorld(MouseDelta, Depth);
         Group->MoveBy(DeltaWS);
     }
-} // namespace BlenderControls
+} // namespace BlenderControls|

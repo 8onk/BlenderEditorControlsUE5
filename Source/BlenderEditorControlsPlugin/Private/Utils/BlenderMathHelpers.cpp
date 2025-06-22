@@ -83,7 +83,7 @@ namespace BlenderControls::Math
 
     TOptional<FPlane> MakeDragPlaneFromSelection(TSharedPtr<BlenderControls::FSharedPivot> Group)
     {
-        FVector Pivot = Group->GetPivot();
+        FVector Pivot = Group->GetPivot().GetLocation();
 
         // 2 – camera basis
         FLevelEditorViewportClient *VC = GCurrentLevelEditingViewportClient;

@@ -15,9 +15,10 @@ namespace BlenderControls
         virtual void Tick(const FVector2D &MouseDelta) override;
         virtual void ApplyNumeric(float Value) override;
 
-    protected:
         virtual void OnBegin() override;
         virtual void OnEnd(bool bApply) override;
+
+    protected:
         virtual void HandleDelta(const FVector2D &MouseDelta) override;
 
     private:
