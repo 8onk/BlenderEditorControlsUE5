@@ -19,10 +19,12 @@ namespace BlenderControls
         virtual void OnEnd(bool bApply) override;
 
     protected:
-        virtual void HandleDelta(const FVector2D &MouseDelta) override;
+        virtual void HandleDelta(const FVector2D &CurrentMousePos) override;
 
     private:
         /* Cached pivot + helpers */
-        FVector PrevIntersection = FVector::ZeroVector;
+        FVector LastIntersectionPoint = FVector::ZeroVector;
+        FVector CurrentIntersectionPoint = FVector::ZeroVector;
+        FViewport *Viewport = nullptr;
     };
 } // namespace BlenderControls

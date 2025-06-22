@@ -1,7 +1,6 @@
 #pragma once
 
 #include "UObject/WeakObjectPtr.h"
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 #include "BlenderEditorControlsEnums.h"
 #include "SharedPivot.h"
 #include "ScopedTransaction.h"
@@ -45,8 +44,7 @@ namespace BlenderControls
 
 		/* Transaction utilities */
 		TUniquePtr<class FScopedTransaction> ParentTxn;
-
-		/* Common data */
+		
 		ETransformMode Mode;
 		ETransformAxis Axis;
 		FString DisplayName;
@@ -54,5 +52,7 @@ namespace BlenderControls
 		TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
 
 		TSharedPtr<class FSharedPivot> Group;
+		FSceneView *SceneView = nullptr;
+		FPlane DragPlane; 
 	};
 } // namespace BlenderControls

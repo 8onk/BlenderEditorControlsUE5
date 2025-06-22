@@ -6,81 +6,99 @@
 
 namespace BlenderControls
 {
-    FMoveTool::FMoveTool(ETransformAxis InAxis)
-        : FBlenderToolBase(ETransformMode::Translate, InAxis, TEXT("Move"))
-    {
-    }
-    
-    void FMoveTool::OnBegin()
-    {
-        FBlenderToolBase::OnBegin();
+	FMoveTool::FMoveTool(ETransformAxis InAxis)
+		: FBlenderToolBase(ETransformMode::Translate, InAxis, TEXT("Move"))
+	{
+	}
 
-        auto *ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
-        if (!ViewportClient)
-            return;
+	void FMoveTool::OnBegin()
+	{
+		FBlenderToolBase::OnBegin();
 
-        FSceneViewFamilyContext ViewFamily(
-            FSceneViewFamily::ConstructionValues(
-                ViewportClient->Viewport,
-                ViewportClient->GetScene(),
-                ViewportClient->EngineShowFlags));
+		auto* ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+		if (!ViewportClient)
+			return;
 
-        FSceneView *View = ViewportClient->CalcSceneView(&ViewFamily);
-        FVector2D StartMousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GEditor->GetEditorWorldContext().World());
-        UE_LOG(LogBlenderEditorControls, Log, TEXT("Mouse Position - X: %f, Y: %f"), StartMousePos.X, StartMousePos.Y);
-        FVector WorldOrigin, WorldDirection;
-        View->DeprojectFVector2D(StartMousePos, WorldOrigin, WorldDirection);
+		FSceneViewFamilyContext ViewFamily(
+			FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags));
 
-        float TraceDistance = BIG_NUMBER;
-        FVector Intersection = FMath::LinePlaneIntersection(WorldOrigin,
-                                                            WorldOrigin + (WorldDirection * BIG_NUMBER),
-                                                            Group->GetPivot().GetLocation(),
-                                                            -ViewportClient->GetViewRotation().Vector());
-    }
+		SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+		if (!SceneView)
+		{
+			return;
+		}
 
-    void FMoveTool::Tick(const FPointerEvent &MouseEvent)
-    {
-        const FVector2D CurrPos = MouseEvent.GetScreenSpacePosition();
-        static FVector2D LastPos = CurrPos;
-        FVector2D MouseDelta = CurrPos - LastPos;
-        LastPos = CurrPos;
-        HandleDelta(MouseDelta);
-    }
+		Viewport = ViewportClient->Viewport;
+		if (!Viewport)
+		{
+			return;
+		}
+		FIntPoint MousePosInt;
+		Viewport->GetMousePos(MousePosInt);
+		FVector2D MousePos = FVector2D(MousePosInt);
 
-    void FMoveTool::ApplyNumeric(float Value)
-    {
-    }
+		FVector WorldOrigin, WorldDirection;
+		SceneView->DeprojectFVector2D(MousePos, WorldOrigin, WorldDirection);
+		const FVector PlaneOrigin = Group->GetPivot().GetLocation();
+		const FVector PlaneNormal = -SceneView->ViewRotation.Vector();
 
+		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
 
-    void FMoveTool::OnEnd(bool bApply)
-    {
-        FBlenderToolBase::OnEnd(bApply);
-    }
+		LastIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
+		                                                     WorldOrigin + (WorldDirection *
+			                                                     BIG_NUMBER),
+		                                                     DragPlane);
+	}
 
-    void FMoveTool::HandleDelta(const FVector2D &MouseDelta)
-    {
-        auto *VC = GEditor->GetActiveViewport()->GetClient();
+	void FMoveTool::Tick(const FPointerEvent& MouseEvent)
+	{
+		if (!Viewport)
+		{
+			return;
+		}
+		FIntPoint CurrentMousePosInt;
+		Viewport->GetMousePos(CurrentMousePosInt);
+		FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
 
-        if (!VC)
-        {
-            return;
-        }
+		HandleDelta(CurrentMousePos);
+	}
 
-        FEditorViewportClient *ViewClient = static_cast<FEditorViewportClient *>(VC);
+	void FMoveTool::ApplyNumeric(float Value)
+	{
+	}
 
-        if (!ViewClient)
-        {
-            return;
-        }
+	void FMoveTool::OnEnd(bool bApply)
+	{
+		FBlenderToolBase::OnEnd(bApply);
+	}
 
-        if (!Group)
-        {
-            return;
-        }
-        /*
-        float Depth = FVector::Dist(Group->GetPivot().GetLocation(), ViewClient->GetViewLocation());
-        const FVector DeltaWS = Math::ScreenDeltaToWorld(MouseDelta, Depth);
-        Group->MoveBy(DeltaWS);
-        */
-    }
-} // namespace BlenderControls|
+	void FMoveTool::HandleDelta(const FVector2D& CurrentMousePos)
+	{
+		auto* ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+		if (!ViewportClient || !Group || !SceneView)
+		{
+			return;
+		}
+
+		FVector WorldOrigin, WorldDirection;
+		FSceneViewFamilyContext TempViewFamily(
+			FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags));
+		SceneView = ViewportClient->CalcSceneView(&TempViewFamily);
+		SceneView->DeprojectFVector2D(CurrentMousePos, WorldOrigin, WorldDirection);
+		CurrentIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
+		                                                        WorldOrigin + (WorldDirection * BIG_NUMBER), DragPlane);
+
+		FVector Delta = CurrentIntersectionPoint - LastIntersectionPoint;
+		Group->MoveBy(Delta);
+		LastIntersectionPoint = CurrentIntersectionPoint;
+		UE_LOG(LogTemp, Log, TEXT("World Delta: %s"), *Delta.ToString());
+		UE_LOG(LogTemp, Log, TEXT("Current Intersection: %s"), *CurrentIntersectionPoint.ToString());
+		UE_LOG(LogTemp, Log, TEXT("Last Intersection: %s"), *LastIntersectionPoint.ToString());
+	}
+}

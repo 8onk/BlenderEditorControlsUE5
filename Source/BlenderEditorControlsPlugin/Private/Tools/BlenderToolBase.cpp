@@ -40,19 +40,23 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnEnd(bool bApply)
 	{
-		if (!GEditor || Group)
+		if (!GEditor || !Group)
 		{
 			return;
 		}
 
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 		SelectedActors.Empty();
-
 		Group->GetTransformProxy()->EndTransformEditSequence();
 
 		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
+		}
+
+		if (GEditor)
+		{
+			GEditor->SetPivot(Group->GetPivot().GetLocation(), false, true, false);
 		}
 	}
 

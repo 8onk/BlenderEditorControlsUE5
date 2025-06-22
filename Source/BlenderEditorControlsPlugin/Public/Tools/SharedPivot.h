@@ -7,31 +7,31 @@
 
 namespace BlenderControls
 {
-    struct FChildInfo
-    {
-        AActor *Actor;
-        FTransform Original;
-        FVector Offset;
-    };
+	struct FChildInfo
+	{
+		AActor* Actor;
+		FTransform Original;
+		FVector Offset;
+	};
 
-    class FSharedPivot
-    {
-    public:
-        explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &InSelection);
+	class FSharedPivot
+	{
+	public:
+		explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>>& InSelection);
 
-        const FTransform &GetPivot() const { return Pivot; }
-        UTransformProxy* GetTransformProxy() const { return TransformProxy; }
-        
-        void MoveBy(const FVector &Delta);
-        void RotateBy(const FQuat &Delta);
-        void ScaleBy(const FVector &Scale, bool bUniform);
+		const FTransform& GetPivot() const { return Pivot; }
+		UTransformProxy* GetTransformProxy() const { return TransformProxy; }
 
-    private:
-        void RecalcPivot();
+		void MoveBy(const FVector& Delta);
+		void RotateBy(const FQuat& Delta);
+		void ScaleBy(const FVector& Scale, bool bUniform);
 
-        FTransform Pivot;
-        TArray<FChildInfo> Children;
-        UTransformGizmo *Gizmo = nullptr;
-        UTransformProxy *TransformProxy = nullptr;
-    };
+	private:
+		void RecalcPivot();
+
+		FTransform Pivot;
+		TArray<FChildInfo> Children;
+		UTransformGizmo* Gizmo = nullptr;
+		UTransformProxy* TransformProxy = nullptr;
+	};
 } // namespace BlenderControls
