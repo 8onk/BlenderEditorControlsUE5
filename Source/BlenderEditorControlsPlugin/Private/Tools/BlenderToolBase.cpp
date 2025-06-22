@@ -6,98 +6,99 @@
 
 namespace BlenderControls
 {
-    FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString &InDisplayName)
-        : Mode(InMode), Axis(InAxis), DisplayName(InDisplayName)
-    {
-    }
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString& InDisplayName)
+		: Mode(InMode), Axis(InAxis), DisplayName(InDisplayName)
+	{
+	}
 
-    FBlenderToolBase::~FBlenderToolBase()
-    {
-    }
+	FBlenderToolBase::~FBlenderToolBase()
+	{
+	}
 
-    void FBlenderToolBase::OnBegin()
-    {
-        if (GEditor)
-        {
-            CachedSelectionColor = GEditor->GetSelectionOutlineColor();
-            GEditor->SetSelectionOutlineColor(FLinearColor::White);
-        }
+	void FBlenderToolBase::OnBegin()
+	{
+		if (GEditor)
+		{
+			CachedSelectionColor = GEditor->GetSelectionOutlineColor();
+			GEditor->SetSelectionOutlineColor(FLinearColor::White);
+		}
 
-        CaptureSelection();
-        Group = MakeShared<FSharedPivot>(SelectedActors);
-        InitialWidgetMode = GLevelEditorModeTools().GetWidgetMode();
-        GLevelEditorModeTools().SetWidgetMode(UE::Widget::WM_None);
+		CaptureSelection();
+		Group = MakeShared<FSharedPivot>(SelectedActors);
+		InitialWidgetMode = GLevelEditorModeTools().GetWidgetMode();
+		GLevelEditorModeTools().SetWidgetMode(UE::Widget::WM_None);
 
-        // Start transaction for undo
-        ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
-        for (auto Actor : SelectedActors)
-        {
-            Actor->Modify();
-        }
+		// Start transaction for undo
+		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
+		for (auto Actor : SelectedActors)
+		{
+			Actor->Modify();
+		}
 
-        Group->GetTransformProxy()->BeginTransformEditSequence();
-    }
+		Group->GetTransformProxy()->BeginTransformEditSequence();
+	}
 
-    void FBlenderToolBase::OnEnd(bool bApply)
-    {
-        if (GEditor)
-        {
-            GEditor->SetSelectionOutlineColor(CachedSelectionColor);
-        }
-        SelectedActors.Empty();
+	void FBlenderToolBase::OnEnd(bool bApply)
+	{
+		if (!GEditor || Group)
+		{
+			return;
+		}
 
-        Group->GetTransformProxy()->EndTransformEditSequence();
-        GLevelEditorModeTools().SetWidgetMode(InitialWidgetMode);
-    }
+		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+		SelectedActors.Empty();
 
-    // void FBlenderToolBase::Tick(const FVector2D &MouseDelta)
-    // {
-    //     // Base implementation does nothing
-    // }
+		Group->GetTransformProxy()->EndTransformEditSequence();
 
-    void FBlenderToolBase::Accept()
-    {
-        OnEnd(/*bApply=*/true);
-        ParentTxn.Reset();
-    }
+		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
+		{
+			ModeTools->SetWidgetMode(InitialWidgetMode);
+		}
+	}
 
-    void FBlenderToolBase::Cancel()
-    {
-        OnEnd(/*bApply=*/false);
-        if (GEditor)
-        {
-            GEditor->SetSelectionOutlineColor(CachedSelectionColor);
-        }
+	void FBlenderToolBase::Accept()
+	{
+		OnEnd(/*bApply=*/true);
+		ParentTxn.Reset();
+	}
 
-        // Abort undo-tracking
-        if (ParentTxn)
-        {
-            ParentTxn->Cancel();
-            ParentTxn.Reset();
-        }
+	void FBlenderToolBase::Cancel()
+	{
+		OnEnd(/*bApply=*/false);
+		if (GEditor)
+		{
+			GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+		}
 
-        SelectedActors.Empty();
-    }
+		// Abort undo-tracking
+		if (ParentTxn)
+		{
+			ParentTxn->Cancel();
+			ParentTxn.Reset();
+		}
 
-    void FBlenderToolBase::ApplyNumeric(float Value)
-    {
-        // Base implementation does nothing
-    }
+		SelectedActors.Empty();
+	}
 
-    void FBlenderToolBase::CaptureSelection()
-    {
-        SelectedActors.Empty();
+	void FBlenderToolBase::ApplyNumeric(float Value)
+	{
+		// Base implementation does nothing
+	}
 
-        if (GEditor)
-        {
-            USelection *ActorSelection = GEditor->GetSelectedActors();
-            for (FSelectionIterator It(*ActorSelection); It; ++It)
-            {
-                if (AActor *Actor = Cast<AActor>(*It))
-                {
-                    SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
-                }
-            }
-        }
-    }
+	void FBlenderToolBase::CaptureSelection()
+	{
+		SelectedActors.Empty();
+
+		if (GEditor)
+		{
+			USelection* ActorSelection = GEditor->GetSelectedActors();
+			for (FSelectionIterator It(*ActorSelection); It; ++It)
+			{
+				if (AActor* Actor = Cast<AActor>(*It))
+				{
+					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
+				}
+			}
+		}
+	}
 } // namespace BlenderControls

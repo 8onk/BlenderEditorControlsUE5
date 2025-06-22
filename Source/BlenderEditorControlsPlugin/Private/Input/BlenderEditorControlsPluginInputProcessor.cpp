@@ -23,7 +23,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BindCommands()
 	{
-		const auto &Commands = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
 
 		// G  – Translate
 		CommandList->MapAction(
@@ -44,7 +44,7 @@ namespace BlenderControls
 			FCanExecuteAction());
 	}
 
-	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &App, TSharedRef<ICursor>)
+	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -62,15 +62,15 @@ namespace BlenderControls
 		}*/
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
 			if (CurrentTool.IsValid())
 			{
 				UE_LOG(LogBlenderEditorControls, Log,
-					   TEXT("FBlenderControlsInputProcessor::HandleKeyDownEvent:		Current tool: %s"),
-					   *CurrentTool->GetDisplayName());
+				       TEXT("FBlenderControlsInputProcessor::HandleKeyDownEvent:		Current tool: %s"),
+				       *CurrentTool->GetDisplayName());
 			}
 			return true; // G/R/S (or remapped key) handled
 		}
@@ -84,33 +84,23 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
 	{
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid() || bNumericInput)
 		{
 			return false; // plugin disabled or numeric typing
 		}
 
-		/* Compute screen-space delta */
-		const FVector2D CurrPos = MouseEvent.GetScreenSpacePosition();
-		const FVector2D Delta = CurrPos - LastMousePos;
-		LastMousePos = CurrPos;
-
-		if (!Delta.IsNearlyZero())
-		{
-			CurrentTool->Tick(Delta);
-			return true; // consume it
-		}
-
-		return false;
+		CurrentTool->Tick(MouseEvent);
+		return true;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -132,7 +122,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication &, const FPointerEvent &)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&)
 	{
 		return false;
 	}

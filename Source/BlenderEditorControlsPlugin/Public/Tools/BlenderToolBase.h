@@ -15,7 +15,7 @@ namespace BlenderControls
 		virtual ~FBlenderToolBase();
 
 		/** Per-frame update from input-processor */
-		virtual void Tick(const FVector2D &MouseDelta) = 0;
+		virtual void Tick(const FPointerEvent &MouseEvent) = 0;
 
 		virtual void Accept();
 		virtual void Cancel();

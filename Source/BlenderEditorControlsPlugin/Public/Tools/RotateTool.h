@@ -17,7 +17,7 @@ namespace BlenderControls
         explicit FRotateTool(ETransformAxis InAxis = ETransformAxis::All);
 
         /* ---------- FBlenderToolBase overrides ---------- */
-        virtual void Tick(const FVector2D &MouseDelta) override;
+        virtual void Tick(const FPointerEvent &MouseEvent) override;
         virtual void ApplyNumeric(float Value) override;
         virtual void OnBegin() override;
         virtual void OnEnd(bool bApply) override;

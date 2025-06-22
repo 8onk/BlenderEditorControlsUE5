@@ -7,7 +7,7 @@ namespace BlenderControls
     {
     }
 
-    void FRotateTool::Tick(const FVector2D &MouseDelta) {}
+    void FRotateTool::Tick(const FPointerEvent &MouseEvent) {}
     void FRotateTool::ApplyNumeric(float Value) {}
     void FRotateTool::OnBegin() {}
     void FRotateTool::OnEnd(bool bApply) {}

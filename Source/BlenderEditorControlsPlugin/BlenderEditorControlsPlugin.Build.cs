@@ -25,7 +25,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "EditorInteractiveToolsFramework", "InteractiveToolsFramework",
+				"Core", "EditorInteractiveToolsFramework", "InteractiveToolsFramework", "UMG"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -42,7 +42,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"DeveloperSettings",
 				"UnrealEd",
 				"InteractiveToolsFramework",
-				"EditorInteractiveToolsFramework"
+				"EditorInteractiveToolsFramework",
 			}
 			);
 
