@@ -1,6 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EditorGizmos/TransformGizmo.h"
+#include "BaseGizmos/TransformProxy.h"
+//#include "InputState.h"
 
 namespace BlenderControls
 {
@@ -26,5 +29,7 @@ namespace BlenderControls
 
         FVector Pivot = FVector::ZeroVector;
         TArray<FChildInfo> Children;
+        UTransformGizmo *Gizmo = nullptr;
+        UTransformProxy *TransformProxy = nullptr;
     };
 } // namespace BlenderControls
