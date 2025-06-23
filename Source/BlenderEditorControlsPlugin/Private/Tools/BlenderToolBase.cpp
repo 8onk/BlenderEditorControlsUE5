@@ -6,7 +6,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString& InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString &InDisplayName)
 		: Mode(InMode), Axis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -49,7 +49,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Group->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -63,16 +63,25 @@ namespace BlenderControls
 	void FBlenderToolBase::Accept()
 	{
 		OnEnd(/*bApply=*/true);
-		ParentTxn.Reset();
+
+		if (ParentTxn)
+		{
+			ParentTxn.Reset();
+		}
 	}
 
 	void FBlenderToolBase::Cancel()
 	{
-		OnEnd(/*bApply=*/false);
-		if (GEditor)
+		if (!GEditor || !Group)
 		{
-			GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+			return;
 		}
+
+		OnEnd(/*bApply=*/false);
+		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+
+		// Reset pivot to start location
+		Group->GetTransformProxy()->SetTransform(Group->GetStartLocation());
 
 		// Abort undo-tracking
 		if (ParentTxn)
@@ -95,10 +104,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection* ActorSelection = GEditor->GetSelectedActors();
+			USelection *ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor* Actor = Cast<AActor>(*It))
+				if (AActor *Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}

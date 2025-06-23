@@ -66,12 +66,6 @@ namespace BlenderControls
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
-			if (CurrentTool.IsValid())
-			{
-				UE_LOG(LogBlenderEditorControls, Log,
-				       TEXT("FBlenderControlsInputProcessor::HandleKeyDownEvent:		Current tool: %s"),
-				       *CurrentTool->GetDisplayName());
-			}
 			return true; // G/R/S (or remapped key) handled
 		}
 
@@ -79,6 +73,11 @@ namespace BlenderControls
 		if (CurrentTool.IsValid())
 		{
 			// Axis keys, numeric buffer etc. handled here …
+			if (KeyEvent.GetKey() == EKeys::Escape)
+			{
+				CurrentTool->Cancel();
+				return true;
+			}
 		}
 
 		return false;
@@ -107,7 +106,7 @@ namespace BlenderControls
 			return false;
 		}
 
-		/* LMB = accept  —  RMB = cancel  */
+		/* LMB = accept  —  RMB/Escape = cancel  */
 		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 		{
 			EndTool(/*bApply=*/true);

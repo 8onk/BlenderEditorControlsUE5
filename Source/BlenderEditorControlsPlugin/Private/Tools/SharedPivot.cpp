@@ -5,46 +5,46 @@
 
 namespace BlenderControls
 {
-	FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>>& Selection)
+	FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &Selection)
 	{
 		TransformProxy = NewObject<UTransformProxy>();
-
 		if (!TransformProxy)
 		{
 			return;
 		}
 
-		for (auto& APtr : Selection)
+		FVector AverageLocation = FVector::ZeroVector;
+		for (auto &APtr : Selection)
 		{
 			if (APtr.IsValid())
 			{
-				AActor* A = APtr.Get();
+				AActor *A = APtr.Get();
 
 				// Uses bounding box centre for now only, maybe expand to be able to choose.
 				FVector Origin, Extent;
 				A->GetActorBounds(false, Origin, Extent);
-				UE_LOG(LogTemp, Log, TEXT("Actor: %s | Location: %s | Bounds Origin: %s"),
-				       *A->GetName(),
-				       *A->GetActorLocation().ToString(),
-				       *Origin.ToString());
 
 				Children.Add({A, A->GetActorTransform(), FVector::ZeroVector});
 				TransformProxy->AddComponent(A->GetRootComponent(), true);
-				Pivot.GetLocation() += Origin; // use bounds center
+				AverageLocation += Origin; // use bounds center
 			}
 		}
 
 		if (Children.Num())
 		{
-			Pivot.GetLocation() /= Children.Num();
+			AverageLocation /= Children.Num();
 		}
-		for (FChildInfo& Child : Children)
+		
+		Pivot.SetLocation(AverageLocation);
+		StartLocation = Pivot;
+		
+		for (FChildInfo &Child : Children)
 		{
 			Child.Offset = Child.Actor->GetActorLocation() - Pivot.GetLocation();
 		}
 	}
 
-	void FSharedPivot::MoveBy(const FVector& Delta)
+	void FSharedPivot::MoveBy(const FVector &Delta)
 	{
 		if (!TransformProxy)
 		{

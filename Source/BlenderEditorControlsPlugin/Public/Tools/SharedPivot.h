@@ -3,13 +3,13 @@
 #include "CoreMinimal.h"
 #include "EditorGizmos/TransformGizmo.h"
 #include "BaseGizmos/TransformProxy.h"
-//#include "InputState.h"
+// #include "InputState.h"
 
 namespace BlenderControls
 {
 	struct FChildInfo
 	{
-		AActor* Actor;
+		AActor *Actor;
 		FTransform Original;
 		FVector Offset;
 	};
@@ -17,21 +17,23 @@ namespace BlenderControls
 	class FSharedPivot
 	{
 	public:
-		explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>>& InSelection);
+		explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &InSelection);
 
-		const FTransform& GetPivot() const { return Pivot; }
-		UTransformProxy* GetTransformProxy() const { return TransformProxy; }
+		const FTransform &GetPivot() const { return Pivot; }
+		UTransformProxy *GetTransformProxy() const { return TransformProxy; }
+		const FTransform &GetStartLocation() const { return StartLocation; }
 
-		void MoveBy(const FVector& Delta);
-		void RotateBy(const FQuat& Delta);
-		void ScaleBy(const FVector& Scale, bool bUniform);
+		void MoveBy(const FVector &Delta);
+		void RotateBy(const FQuat &Delta);
+		void ScaleBy(const FVector &Scale, bool bUniform);
 
 	private:
 		void RecalcPivot();
 
 		FTransform Pivot;
+		FTransform StartLocation;
 		TArray<FChildInfo> Children;
-		UTransformGizmo* Gizmo = nullptr;
-		UTransformProxy* TransformProxy = nullptr;
+		UTransformGizmo *Gizmo = nullptr;
+		UTransformProxy *TransformProxy = nullptr;
 	};
 } // namespace BlenderControls
