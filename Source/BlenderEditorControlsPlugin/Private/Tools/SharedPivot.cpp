@@ -8,7 +8,7 @@ namespace BlenderControls
 	FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &Selection)
 	{
 		TransformProxy = NewObject<UTransformProxy>();
-		if (!TransformProxy)
+		if (!IsValid(TransformProxy))
 		{
 			return;
 		}
@@ -46,7 +46,7 @@ namespace BlenderControls
 
 	void FSharedPivot::MoveBy(const FVector &Delta)
 	{
-		if (!TransformProxy)
+		if (!IsValid(TransformProxy))
 		{
 			return;
 		}

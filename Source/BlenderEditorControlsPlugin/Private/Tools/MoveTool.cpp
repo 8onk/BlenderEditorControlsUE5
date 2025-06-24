@@ -47,41 +47,21 @@ namespace BlenderControls
 
 		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
 
-		// Debug logging for drag plane
-		UE_LOG(LogTemp, Log, TEXT("[MoveTool] DragPlane Origin: %s"), *PlaneOrigin.ToString());
-		UE_LOG(LogTemp, Log, TEXT("[MoveTool] DragPlane Normal: %s"), *PlaneNormal.ToString());
-		UE_LOG(LogTemp, Log, TEXT("[MoveTool] DragPlane Equation: %s"), *DragPlane.ToString());
-
 		LastIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
 															 WorldOrigin + (WorldDirection *
 																			BIG_NUMBER),
 															 DragPlane);
 	}
 
-	void FMoveTool::Tick(const FPointerEvent &MouseEvent)
+	void FMoveTool::OnActive(const FVector2D &CurrentViewportMousePosition)
 	{
 		if (!Viewport)
 		{
 			return;
 		}
-		FIntPoint CurrentMousePosInt;
-		Viewport->GetMousePos(CurrentMousePosInt);
+		FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
 		FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
 
-		HandleDelta(CurrentMousePos);
-	}
-
-	void FMoveTool::ApplyNumeric(float Value)
-	{
-	}
-
-	void FMoveTool::OnEnd(bool bApply)
-	{
-		FBlenderToolBase::OnEnd(bApply);
-	}
-
-	void FMoveTool::HandleDelta(const FVector2D &CurrentMousePos)
-	{
 		auto *ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient || !Group)
 		{
@@ -106,5 +86,14 @@ namespace BlenderControls
 		FVector Delta = CurrentIntersectionPoint - LastIntersectionPoint;
 		Group->MoveBy(Delta);
 		LastIntersectionPoint = CurrentIntersectionPoint;
+	}
+
+	void FMoveTool::ApplyNumeric(float Value)
+	{
+	}
+
+	void FMoveTool::OnEnd(bool bApply)
+	{
+		FBlenderToolBase::OnEnd(bApply);
 	}
 }

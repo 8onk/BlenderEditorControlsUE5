@@ -14,7 +14,7 @@ namespace BlenderControls
 		virtual ~FBlenderToolBase();
 
 		/** Per-frame update from input-processor */
-		virtual void Tick(const FPointerEvent &MouseEvent) = 0;
+		virtual void OnActive(const FVector2D &CurrentViewportMousePosition) = 0;
 
 		virtual void Accept();
 		virtual void Cancel();
@@ -40,11 +40,9 @@ namespace BlenderControls
 		/** Child tools call this to populate Selected & prepare undo */
 		void CaptureSelection();
 
-		virtual void HandleDelta(const FVector2D &MouseDelta) = 0;
-
 		/* Transaction utilities */
 		TUniquePtr<class FScopedTransaction> ParentTxn;
-		
+
 		ETransformMode Mode;
 		ETransformAxis Axis;
 		FString DisplayName;
@@ -53,6 +51,6 @@ namespace BlenderControls
 
 		TSharedPtr<class FSharedPivot> Group;
 		FSceneView *SceneView = nullptr;
-		FPlane DragPlane; 
+		FPlane DragPlane;
 	};
 } // namespace BlenderControls

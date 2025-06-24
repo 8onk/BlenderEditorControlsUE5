@@ -11,5 +11,16 @@
 
 namespace BlenderControls::Math
 {
-    
+	void GetMousePosToViewportPos(const FVector2D &DesktopPos, FVector2D &OutViewportPos)
+	{
+		FViewport *Viewport = GEditor->GetActiveViewport();
+		if (!Viewport)
+			return;
+
+		const FIntPoint DesktopInt(static_cast<int32>(DesktopPos.X),
+								   static_cast<int32>(DesktopPos.Y));
+
+		const FVector2D Normalized = Viewport->VirtualDesktopPixelToViewport(DesktopInt);
+		OutViewportPos = Normalized * FVector2D(Viewport->GetSizeXY());
+	}
 }

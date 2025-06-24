@@ -15,15 +15,12 @@ namespace BlenderControls
         explicit FScaleTool(ETransformAxis InAxis = ETransformAxis::All);
 
         /* ---------- FBlenderToolBase overrides ---------- */
-        virtual void Tick(const FPointerEvent &MouseEvent) override;
+        virtual void OnActive(const FVector2D &CurrentViewportMousePosition) override;
         virtual void ApplyNumeric(float Value) override;
         virtual void OnBegin() override;
         virtual void OnEnd(bool bApply) override;
 
     protected:
-        virtual void HandleDelta(const FVector2D &MouseDelta) override;
-
-    private:
         /* ——— helpers ——— */
         float ComputeScaleDelta(const FVector2D &MouseDelta) const;
         FVector BuildScaleVector(float Scalar) const;

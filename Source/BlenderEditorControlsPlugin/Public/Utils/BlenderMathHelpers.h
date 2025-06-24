@@ -8,5 +8,5 @@
 
 namespace BlenderControls::Math
 {
-    /** Converts screen Δ to a world-space translation based on camera vectors */
+	void GetMousePosToViewportPos(const FVector2D& DesktopPos, FVector2D& OutViewportPos);
 } // namespace BlenderControls::Math

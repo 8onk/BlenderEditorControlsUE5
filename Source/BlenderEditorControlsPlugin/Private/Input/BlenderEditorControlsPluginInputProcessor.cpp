@@ -9,6 +9,8 @@
 #include "BlenderEditorControlsPlugin.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Containers/Ticker.h"
+#include "Utils/BlenderMathHelpers.h"
+#include "Logging/Log.h"
 
 namespace BlenderControls
 {
@@ -23,7 +25,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BindCommands()
 	{
-		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
+		const auto &Commands = FBlenderEditorControlsPluginCommands::Get();
 
 		// G  – Translate
 		CommandList->MapAction(
@@ -44,7 +46,7 @@ namespace BlenderControls
 			FCanExecuteAction());
 	}
 
-	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
+	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &App, TSharedRef<ICursor>)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -62,7 +64,7 @@ namespace BlenderControls
 		}*/
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
@@ -83,23 +85,27 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
 	{
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid() || bNumericInput)
 		{
 			return false; // plugin disabled or numeric typing
 		}
 
-		CurrentTool->Tick(MouseEvent);
+		FVector2D CurrentViewportMousePosition;
+
+		BlenderControls::Math::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(), CurrentViewportMousePosition);
+		UE_LOG(LogTemp, Log, TEXT("[BlenderControls] CurrentViewportMousePosition: X=%f, Y=%f"), CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
+		CurrentTool->OnActive(CurrentViewportMousePosition);
 		return true;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -121,7 +127,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication &, const FPointerEvent &)
 	{
 		return false;
 	}

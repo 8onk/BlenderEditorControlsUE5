@@ -7,9 +7,8 @@ namespace BlenderControls
     {
     }
 
-    void FScaleTool::Tick(const FPointerEvent &MouseEvent) {}
+    void FScaleTool::OnActive(const FVector2D &CurrentViewportMousePosition) {}
     void FScaleTool::ApplyNumeric(float Value) {}
     void FScaleTool::OnBegin() {}
     void FScaleTool::OnEnd(bool bApply) {}
-    void FScaleTool::HandleDelta(const FVector2D &MouseDelta) {}
 } // namespace BlenderControls
