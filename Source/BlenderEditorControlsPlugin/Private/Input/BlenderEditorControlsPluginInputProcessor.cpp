@@ -11,6 +11,7 @@
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Containers/Ticker.h"
 #include "Utils/BlenderMathHelpers.h"
+#include "Editor/UnrealEd/Classes/Settings/LevelEditorViewportSettings.h"
 
 class SLevelViewport;
 
@@ -58,6 +59,12 @@ namespace BlenderControls
 		// Update precision mode based on Shift key state
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
 		CurrentTool->SetPrecisionModeActive(bShift);
+		
+		bool bIsGridSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
+
+		// If Ctrl is pressed, invert the grid snap setting
+		const bool bCtrl = App.GetModifierKeys().IsControlDown();
+		CurrentTool->SetSnappingEnabled(bCtrl ? !bIsGridSnapEnabled : bIsGridSnapEnabled);
 
 		// Overlay may want to animate a fade, so pass DeltaTime
 		/*if (Overlay.IsValid())
@@ -70,16 +77,6 @@ namespace BlenderControls
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
-			// if (GEditor && GEditor->GetActiveViewport())
-			// {
-			// 	FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
-			// 	if (ViewportClient)
-			// 	{
-			// 		// Hide the hardware cursor and show a software cursor with the "GrabHand" visual.
-			// 		ViewportClient->SetRequiredCursorOverride(true, EMouseCursor::GrabHand);
-			// 		ViewportClient->Invalidate();
-			// 	}
-			// }
 			return true; // G/R/S (or remapped key) handled
 		}
 

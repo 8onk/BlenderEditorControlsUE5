@@ -8,5 +8,8 @@
 
 namespace BlenderControls::Math
 {
-	void GetMousePosToViewportPos(const FVector2D& DesktopPos, FVector2D& OutViewportPos);
+	void GetMousePosToViewportPos(const FVector2D &DesktopPos, FVector2D &OutViewportPos);
+
+	/** Rounds all components of a vector to their nearest integer values */
+	FVector RoundVectorToInt(const FVector &InVector);
 } // namespace BlenderControls::Math

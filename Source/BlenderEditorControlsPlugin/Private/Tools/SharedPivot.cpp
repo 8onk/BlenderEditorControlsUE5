@@ -52,4 +52,13 @@ namespace BlenderControls
 			TransformProxy->SetTransform(Pivot);
 		}
 	}
+
+	void FSharedPivot::SetPosition(const FVector& NewPosition)
+	{
+		if (IsValid(TransformProxy))
+		{
+			Pivot.SetLocation(NewPosition);
+			TransformProxy->SetTransform(Pivot);
+		}
+	}
 } // namespace BlenderControls

@@ -10,11 +10,11 @@ namespace BlenderControls
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
 	{
 	public:
-		FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString &InDisplayName);
+		FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString& InDisplayName);
 		virtual ~FBlenderToolBase();
 
 		/** Per-frame update from input-processor */
-		virtual void OnActive(const FVector2D &CurrentViewportMousePosition) = 0;
+		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;
 
 		virtual void Accept();
 		virtual void Cancel();
@@ -27,13 +27,12 @@ namespace BlenderControls
 		virtual void ApplyNumeric(float Value);
 
 		// Getter for DisplayName
-		const FString &GetDisplayName() const { return DisplayName; }
+		const FString& GetDisplayName() const { return DisplayName; }
 
 		virtual void OnBegin();
 		virtual void OnEnd(bool bApply);
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive) { bPrecisionModeActive = bNewPrecisionModeActive; }
-
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
 
 	private:
@@ -47,6 +46,9 @@ namespace BlenderControls
 		/* Transaction utilities */
 		TUniquePtr<class FScopedTransaction> ParentTxn;
 
+		/** Returns snap offset for the given offset from start position */
+		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
+
 		ETransformMode Mode;
 		ETransformAxis Axis;
 		FString DisplayName;
@@ -54,10 +56,12 @@ namespace BlenderControls
 		TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
 
 		TSharedPtr<class FSharedPivot> Group;
-		FSceneView *SceneView = nullptr;
+		FSceneView* SceneView = nullptr;
 		FPlane DragPlane;
 		float PrecisionFactor = 0.1f;
 		bool bPrecisionModeActive = false;
 		bool bSnappingEnabled = false;
+		FVector GrabStartIntersectionPoint;
+		FVector FloatingOrigin;
 	};
 } // namespace BlenderControls

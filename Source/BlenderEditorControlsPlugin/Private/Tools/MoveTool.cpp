@@ -42,7 +42,7 @@ namespace BlenderControls
 
 		FVector WorldOrigin, WorldDirection;
 		SceneView->DeprojectFVector2D(MousePos, WorldOrigin, WorldDirection);
-		const FVector PlaneOrigin = Group->GetStartLocation().GetLocation();
+		const FVector PlaneOrigin = Group->GetStartTransform().GetLocation();
 		const FVector PlaneNormal = -SceneView->ViewRotation.Vector();
 
 		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
@@ -51,6 +51,8 @@ namespace BlenderControls
 		                                                         WorldOrigin + (WorldDirection *
 			                                                         BIG_NUMBER),
 		                                                         DragPlane);
+		FloatingOrigin = Group->GetStartTransform().GetLocation();
+		GrabStartIntersectionPoint = PreviousIntersectionPoint;
 	}
 
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -83,10 +85,25 @@ namespace BlenderControls
 
 		CurrentIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
 		                                                        WorldOrigin + (WorldDirection * BIG_NUMBER), DragPlane);
-		const FVector Delta = bPrecisionModeActive
-			                      ? (CurrentIntersectionPoint - PreviousIntersectionPoint) * PrecisionFactor
-			                      : CurrentIntersectionPoint - PreviousIntersectionPoint;
-		Group->MoveBy(Delta);
+
+		const FVector FrameDelta = bPrecisionModeActive
+			                           ? (CurrentIntersectionPoint - PreviousIntersectionPoint) * PrecisionFactor
+			                           : CurrentIntersectionPoint - PreviousIntersectionPoint;
+
+		FloatingOrigin += FrameDelta;
+		FVector TargetPosition;
+		if (bSnappingEnabled)
+		{
+			const FVector TotalUnsnappedOffset = FloatingOrigin - Group->GetStartTransform().GetLocation();
+			const FVector SnappedTotalOffset = GetSnapOffset(TotalUnsnappedOffset);
+			TargetPosition = Group->GetStartTransform().GetLocation() + SnappedTotalOffset;
+		}
+		else
+		{
+			TargetPosition = FloatingOrigin;
+		}
+
+		Group->SetPosition(TargetPosition);
 		PreviousIntersectionPoint = CurrentIntersectionPoint;
 	}
 

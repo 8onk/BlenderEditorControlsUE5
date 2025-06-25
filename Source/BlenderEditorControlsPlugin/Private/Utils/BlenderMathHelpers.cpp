@@ -23,4 +23,12 @@ namespace BlenderControls::Math
 		const FVector2D Normalized = Viewport->VirtualDesktopPixelToViewport(DesktopInt);
 		OutViewportPos = Normalized * FVector2D(Viewport->GetSizeXY());
 	}
+
+	FVector RoundVectorToInt(const FVector &InVector)
+	{
+		return FVector(
+			FMath::RoundToInt(InVector.X),
+			FMath::RoundToInt(InVector.Y),
+			FMath::RoundToInt(InVector.Z));
+	}
 }

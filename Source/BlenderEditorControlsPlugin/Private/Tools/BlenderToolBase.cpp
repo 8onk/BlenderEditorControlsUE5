@@ -6,7 +6,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString &InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString& InDisplayName)
 		: Mode(InMode), Axis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -49,7 +49,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Group->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -81,7 +81,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 
 		// Reset pivot to start location
-		Group->GetTransformProxy()->SetTransform(Group->GetStartLocation());
+		Group->GetTransformProxy()->SetTransform(Group->GetStartTransform());
 
 		// Abort undo-tracking
 		if (ParentTxn)
@@ -104,14 +104,29 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection *ActorSelection = GEditor->GetSelectedActors();
+			USelection* ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor *Actor = Cast<AActor>(*It))
+				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}
 			}
 		}
+	}
+
+	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
+	{
+		if (!GEditor)
+		{
+			return FVector::ZeroVector;
+		}
+		
+		float GridSize = GEditor->GetGridSize();
+		FVector SnapOffset = OffsetFromStart / GridSize;
+		SnapOffset = BlenderControls::Math::RoundVectorToInt(SnapOffset);
+		SnapOffset *= GridSize;
+		
+		return SnapOffset;
 	}
 } // namespace BlenderControls
