@@ -7,10 +7,12 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SWidget.h"
 #include "BlenderEditorControlsPlugin.h"
+#include "SEditorViewport.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Containers/Ticker.h"
 #include "Utils/BlenderMathHelpers.h"
-#include "Logging/Log.h"
+
+class SLevelViewport;
 
 namespace BlenderControls
 {
@@ -53,9 +55,9 @@ namespace BlenderControls
 			return;
 		}
 
-		// Example: live-precision check (Shift)
+		// Update precision mode based on Shift key state
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
-		// CurrentTool->SetPrecisionMode(bShift); // if your tool exposes it
+		CurrentTool->SetPrecisionModeActive(bShift);
 
 		// Overlay may want to animate a fade, so pass DeltaTime
 		/*if (Overlay.IsValid())
@@ -68,6 +70,16 @@ namespace BlenderControls
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
+			// if (GEditor && GEditor->GetActiveViewport())
+			// {
+			// 	FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+			// 	if (ViewportClient)
+			// 	{
+			// 		// Hide the hardware cursor and show a software cursor with the "GrabHand" visual.
+			// 		ViewportClient->SetRequiredCursorOverride(true, EMouseCursor::GrabHand);
+			// 		ViewportClient->Invalidate();
+			// 	}
+			// }
 			return true; // G/R/S (or remapped key) handled
 		}
 
@@ -99,8 +111,8 @@ namespace BlenderControls
 
 		FVector2D CurrentViewportMousePosition;
 
-		BlenderControls::Math::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(), CurrentViewportMousePosition);
-		UE_LOG(LogTemp, Log, TEXT("[BlenderControls] CurrentViewportMousePosition: X=%f, Y=%f"), CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
+		BlenderControls::Math::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
+														CurrentViewportMousePosition);
 		CurrentTool->OnActive(CurrentViewportMousePosition);
 		return true;
 	}
@@ -206,5 +218,39 @@ namespace BlenderControls
 		{
 			Overlay->SetContext(nullptr);
 		}
+
+		FSlateApplication::Get().GetPlatformCursor()->Show(true);
 	}
+
+	// void FBlenderControlsInputProcessor::ShowSoftwareGrabCursor()
+	// {
+	// 	if (!GEditor || !GEditor->GetActiveViewport())
+	// 	{
+	// 		return;
+	// 	}
+	//
+	// 	FEditorViewportClient *ViewportClient = static_cast<FEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
+	// 	SLevelViewport* LevelViewportWidget = GEditor->LevelViewpo
+	// 	TSharedPtr<SEditorViewport> ViewportWidget = ViewportClient->GetEditorViewportWidget();
+	// 	if (ViewportClient && ViewportWidget.IsValid())
+	// 	{
+	// 		// 1. Hide the actual hardware cursor by setting it to "None"
+	// 		// This is a better approach than hiding it globally.
+	// 		ViewportWidget->SetCursor(EMouseCursor::None);
+	//
+	// 		// 2. Get the mouse position within the viewport
+	// 		const FVector2D MousePosition = ViewportWidget->GetMousePosition();
+	//
+	// 		// 3. Create the software cursor widget
+	// 		SoftwareCursorWidget = SNew(SImage)
+	// 								   .Image(FAppStyle::GetBrush("GrabHand")); // Use the standard "GrabHand" icon
+	//
+	// 		// 4. Add the widget to the viewport's overlay
+	// 		ViewportWidget->AddOverlayWidget(SoftwareCursorWidget.ToSharedRef());
+	//
+	// 		// 5. Position the widget. We'll handle continuous updates in a Tick function.
+	// 		// For the initial position:
+	// 		SoftwareCursorWidget->SetRenderTransform(FSlateRenderTransform(MousePosition));
+	// 	}
+	//}
 } // namespace BlenderControls

@@ -36,6 +36,7 @@ namespace BlenderControls
         void UpdateAxis(ETransformAxis Axis);
         void FeedNumeric(const TCHAR Digit);
         void FlushNumeric();
+        //void ShowSoftwareGrabCursor();
 
         bool IsLevelViewportFocused(FSlateApplication &SlateApp) const;
 
@@ -53,5 +54,6 @@ namespace BlenderControls
         ETransformMode ActiveMode;
         TSharedPtr<FUICommandList> CommandList;
         TSharedPtr<FBlenderOverlay> Overlay;
+        TSharedPtr<SWidget> SoftwareCursorWidget;
     };
 } // namespace BlenderControls

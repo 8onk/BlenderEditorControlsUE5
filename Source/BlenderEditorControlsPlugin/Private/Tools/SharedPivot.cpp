@@ -46,13 +46,10 @@ namespace BlenderControls
 
 	void FSharedPivot::MoveBy(const FVector &Delta)
 	{
-		if (!IsValid(TransformProxy))
+		if (IsValid(TransformProxy))
 		{
-			return;
+			Pivot.AddToTranslation(Delta);
+			TransformProxy->SetTransform(Pivot);
 		}
-
-		// Update internal pivot state (if needed for your custom logic)
-		Pivot.AddToTranslation(Delta);
-		TransformProxy->SetTransform(Pivot);
 	}
 } // namespace BlenderControls

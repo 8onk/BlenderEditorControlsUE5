@@ -32,6 +32,10 @@ namespace BlenderControls
 		virtual void OnBegin();
 		virtual void OnEnd(bool bApply);
 
+		void SetPrecisionModeActive(bool bNewPrecisionModeActive) { bPrecisionModeActive = bNewPrecisionModeActive; }
+
+		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
+
 	private:
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
@@ -52,5 +56,8 @@ namespace BlenderControls
 		TSharedPtr<class FSharedPivot> Group;
 		FSceneView *SceneView = nullptr;
 		FPlane DragPlane;
+		float PrecisionFactor = 0.1f;
+		bool bPrecisionModeActive = false;
+		bool bSnappingEnabled = false;
 	};
 } // namespace BlenderControls

@@ -15,7 +15,7 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnBegin();
 
-		auto *ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
+		auto* ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 			return;
 
@@ -47,22 +47,22 @@ namespace BlenderControls
 
 		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
 
-		LastIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-															 WorldOrigin + (WorldDirection *
-																			BIG_NUMBER),
-															 DragPlane);
+		PreviousIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
+		                                                         WorldOrigin + (WorldDirection *
+			                                                         BIG_NUMBER),
+		                                                         DragPlane);
 	}
 
-	void FMoveTool::OnActive(const FVector2D &CurrentViewportMousePosition)
+	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		if (!Viewport)
 		{
 			return;
 		}
-		FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
-		FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
+		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
+		const FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
 
-		auto *ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
+		auto* ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient || !Group)
 		{
 			return;
@@ -82,10 +82,12 @@ namespace BlenderControls
 		}
 
 		CurrentIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-																WorldOrigin + (WorldDirection * BIG_NUMBER), DragPlane);
-		FVector Delta = CurrentIntersectionPoint - LastIntersectionPoint;
+		                                                        WorldOrigin + (WorldDirection * BIG_NUMBER), DragPlane);
+		const FVector Delta = bPrecisionModeActive
+			                      ? (CurrentIntersectionPoint - PreviousIntersectionPoint) * PrecisionFactor
+			                      : CurrentIntersectionPoint - PreviousIntersectionPoint;
 		Group->MoveBy(Delta);
-		LastIntersectionPoint = CurrentIntersectionPoint;
+		PreviousIntersectionPoint = CurrentIntersectionPoint;
 	}
 
 	void FMoveTool::ApplyNumeric(float Value)

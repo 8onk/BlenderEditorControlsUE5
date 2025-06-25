@@ -20,7 +20,7 @@ namespace BlenderControls
 
     protected:
         /* Cached pivot + helpers */
-        FVector LastIntersectionPoint = FVector::ZeroVector;
+        FVector PreviousIntersectionPoint = FVector::ZeroVector;
         FVector CurrentIntersectionPoint = FVector::ZeroVector;
         FViewport *Viewport = nullptr;
     };
