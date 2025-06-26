@@ -22,8 +22,7 @@ namespace BlenderControls
 		const FTransform &GetPivot() const { return Pivot; }
 		UTransformProxy *GetTransformProxy() const { return TransformProxy; }
 		const FTransform &GetStartTransform() const { return StartLocation; }
-
-		void MoveBy(const FVector &Delta);
+		
 		void SetPosition(const FVector& NewPosition);
 		void RotateBy(const FQuat &Delta);
 		void ScaleBy(const FVector &Scale, bool bUniform);

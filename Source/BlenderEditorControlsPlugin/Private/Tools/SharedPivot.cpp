@@ -34,26 +34,17 @@ namespace BlenderControls
 		{
 			AverageLocation /= Children.Num();
 		}
-		
+
 		Pivot.SetLocation(AverageLocation);
 		StartLocation = Pivot;
-		
+
 		for (FChildInfo &Child : Children)
 		{
 			Child.Offset = Child.Actor->GetActorLocation() - Pivot.GetLocation();
 		}
 	}
 
-	void FSharedPivot::MoveBy(const FVector &Delta)
-	{
-		if (IsValid(TransformProxy))
-		{
-			Pivot.AddToTranslation(Delta);
-			TransformProxy->SetTransform(Pivot);
-		}
-	}
-
-	void FSharedPivot::SetPosition(const FVector& NewPosition)
+	void FSharedPivot::SetPosition(const FVector &NewPosition)
 	{
 		if (IsValid(TransformProxy))
 		{

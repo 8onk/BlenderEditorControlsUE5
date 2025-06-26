@@ -28,7 +28,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BindCommands()
 	{
-		const auto &Commands = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
 
 		// G  – Translate
 		CommandList->MapAction(
@@ -49,7 +49,7 @@ namespace BlenderControls
 			FCanExecuteAction());
 	}
 
-	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &App, TSharedRef<ICursor>)
+	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -59,7 +59,7 @@ namespace BlenderControls
 		// Update precision mode based on Shift key state
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
 		CurrentTool->SetPrecisionModeActive(bShift);
-		
+
 		bool bIsGridSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
 
 		// If Ctrl is pressed, invert the grid snap setting
@@ -73,17 +73,34 @@ namespace BlenderControls
 		}*/
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
 			return true; // G/R/S (or remapped key) handled
 		}
 
-		/* --- no command matched --- */
 		if (CurrentTool.IsValid())
 		{
-			// Axis keys, numeric buffer etc. handled here …
+			const FKey Key = KeyEvent.GetKey();
+			const bool bShift = KeyEvent.IsShiftDown();
+
+			if (Key == EKeys::X)
+			{
+				CurrentTool->HandleAxisLock(bShift ? (ETransformAxis::Y | ETransformAxis::Z) : ETransformAxis::X);
+				return true;
+			}
+			if (Key == EKeys::Y)
+			{
+				CurrentTool->HandleAxisLock(bShift ? (ETransformAxis::X | ETransformAxis::Z) : ETransformAxis::Y);
+				return true;
+			}
+			if (Key == EKeys::Z)
+			{
+				CurrentTool->HandleAxisLock(bShift ? (ETransformAxis::X | ETransformAxis::Y) : ETransformAxis::Z);
+				return true;
+			}
+
 			if (KeyEvent.GetKey() == EKeys::Escape)
 			{
 				CurrentTool->Cancel();
@@ -94,12 +111,12 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
 	{
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid() || bNumericInput)
 		{
@@ -109,12 +126,12 @@ namespace BlenderControls
 		FVector2D CurrentViewportMousePosition;
 
 		BlenderControls::Math::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
-														CurrentViewportMousePosition);
+		                                                CurrentViewportMousePosition);
 		CurrentTool->OnActive(CurrentViewportMousePosition);
 		return true;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -136,7 +153,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication &, const FPointerEvent &)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&)
 	{
 		return false;
 	}
@@ -148,7 +165,7 @@ namespace BlenderControls
 			return;
 		}
 
-		const ETransformAxis InitialAxis = ETransformAxis::All;
+		constexpr ETransformAxis InitialAxis = ETransformAxis::All;
 
 		switch (Mode)
 		{

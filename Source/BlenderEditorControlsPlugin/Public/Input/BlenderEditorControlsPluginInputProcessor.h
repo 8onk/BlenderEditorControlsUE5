@@ -16,7 +16,6 @@ namespace BlenderControls
         ~FBlenderControlsInputProcessor();
 
         void BindCommands();
-        void AttachToLevelViewport();
 
         /* Public toggle – called by toolbar button / settings */
         void SetActive(bool bEnable) { bActive = bEnable; }
@@ -36,9 +35,7 @@ namespace BlenderControls
         void UpdateAxis(ETransformAxis Axis);
         void FeedNumeric(const TCHAR Digit);
         void FlushNumeric();
-        //void ShowSoftwareGrabCursor();
-
-        bool IsLevelViewportFocused(FSlateApplication &SlateApp) const;
+        // void ShowSoftwareGrabCursor();
 
         /* Input handlers for activating transform tools */
         void TranslatePressed() { BeginTool(ETransformMode::Translate); }

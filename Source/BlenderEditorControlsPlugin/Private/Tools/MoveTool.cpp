@@ -1,8 +1,5 @@
 #include "Tools/MoveTool.h"
 #include "Utils/BlenderMathHelpers.h"
-#include "BlenderEditorControlsPlugin.h"
-#include "LevelEditorViewport.h"
-#include "Blueprint/WidgetLayoutLibrary.h"
 
 namespace BlenderControls
 {
@@ -14,77 +11,11 @@ namespace BlenderControls
 	void FMoveTool::OnBegin()
 	{
 		FBlenderToolBase::OnBegin();
-
-		auto* ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
-		if (!ViewportClient)
-			return;
-
-		FSceneViewFamilyContext ViewFamily(
-			FSceneViewFamily::ConstructionValues(
-				ViewportClient->Viewport,
-				ViewportClient->GetScene(),
-				ViewportClient->EngineShowFlags));
-
-		SceneView = ViewportClient->CalcSceneView(&ViewFamily);
-		if (!SceneView)
-		{
-			return;
-		}
-
-		Viewport = ViewportClient->Viewport;
-		if (!Viewport)
-		{
-			return;
-		}
-		FIntPoint MousePosInt;
-		Viewport->GetMousePos(MousePosInt);
-		FVector2D MousePos = FVector2D(MousePosInt);
-
-		FVector WorldOrigin, WorldDirection;
-		SceneView->DeprojectFVector2D(MousePos, WorldOrigin, WorldDirection);
-		const FVector PlaneOrigin = Group->GetStartTransform().GetLocation();
-		const FVector PlaneNormal = -SceneView->ViewRotation.Vector();
-
-		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
-
-		PreviousIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-		                                                         WorldOrigin + (WorldDirection *
-			                                                         BIG_NUMBER),
-		                                                         DragPlane);
-		FloatingOrigin = Group->GetStartTransform().GetLocation();
-		GrabStartIntersectionPoint = PreviousIntersectionPoint;
 	}
 
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		if (!Viewport)
-		{
-			return;
-		}
-		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
-		const FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
-
-		auto* ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
-		if (!ViewportClient || !Group)
-		{
-			return;
-		}
-
-		FVector WorldOrigin, WorldDirection;
-		FSceneViewFamilyContext TempViewFamily(
-			FSceneViewFamily::ConstructionValues(
-				ViewportClient->Viewport,
-				ViewportClient->GetScene(),
-				ViewportClient->EngineShowFlags));
-
-		SceneView = ViewportClient->CalcSceneView(&TempViewFamily);
-		if (SceneView)
-		{
-			SceneView->DeprojectFVector2D(CurrentMousePos, WorldOrigin, WorldDirection);
-		}
-
-		CurrentIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-		                                                        WorldOrigin + (WorldDirection * BIG_NUMBER), DragPlane);
+		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
 		const FVector FrameDelta = bPrecisionModeActive
 			                           ? (CurrentIntersectionPoint - PreviousIntersectionPoint) * PrecisionFactor
@@ -101,6 +32,14 @@ namespace BlenderControls
 		else
 		{
 			TargetPosition = FloatingOrigin;
+		}
+		
+		const uint8 AxisBits = static_cast<uint8>(Axis);
+		// is number of set bits 1 => single axis lock
+		if (FMath::CountBits(AxisBits) == 1)
+		{
+			FVector AxisVector = GetAxisVector(Axis);
+			TargetPosition = FVector::DotProduct(TargetPosition, AxisVector) * AxisVector;
 		}
 
 		Group->SetPosition(TargetPosition);

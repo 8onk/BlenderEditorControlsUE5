@@ -17,11 +17,5 @@ namespace BlenderControls
 
         virtual void OnBegin() override;
         virtual void OnEnd(bool bApply) override;
-
-    protected:
-        /* Cached pivot + helpers */
-        FVector PreviousIntersectionPoint = FVector::ZeroVector;
-        FVector CurrentIntersectionPoint = FVector::ZeroVector;
-        FViewport *Viewport = nullptr;
     };
 } // namespace BlenderControls

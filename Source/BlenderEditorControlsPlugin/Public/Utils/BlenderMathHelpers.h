@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BlenderEditorControlsEnums.h"
 #include "Tools/SharedPivot.h"
 #include "Misc/Optional.h"
 #include "Math/Plane.h"
@@ -12,4 +13,5 @@ namespace BlenderControls::Math
 
 	/** Rounds all components of a vector to their nearest integer values */
 	FVector RoundVectorToInt(const FVector &InVector);
+	FVector GetAxisVector(ETransformAxis InAxis); 
 } // namespace BlenderControls::Math

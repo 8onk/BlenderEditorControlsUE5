@@ -20,7 +20,6 @@ namespace BlenderControls
 		virtual void Cancel();
 
 		/** Axis helpers */
-		void SetAxis(ETransformAxis NewAxis) { Axis = NewAxis; }
 		ETransformAxis GetAxis() const { return Axis; }
 
 		/** Numeric entry apply */
@@ -34,14 +33,18 @@ namespace BlenderControls
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive) { bPrecisionModeActive = bNewPrecisionModeActive; }
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
+		void HandleAxisLock(ETransformAxis AxisPressed);
 
 	private:
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
+		void StartNewLock(ETransformAxis NewAxis);
+		void UpdateDragPlane();
 
 	protected:
 		/** Child tools call this to populate Selected & prepare undo */
 		void CaptureSelection();
+		FVector GetAxisVector(ETransformAxis InAxis) const;
 
 		/* Transaction utilities */
 		TUniquePtr<class FScopedTransaction> ParentTxn;
@@ -54,7 +57,9 @@ namespace BlenderControls
 		FString DisplayName;
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
 		TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
-
+		FVector PreviousIntersectionPoint = FVector::ZeroVector;
+		FVector CurrentIntersectionPoint = FVector::ZeroVector;
+		FViewport* Viewport = nullptr;
 		TSharedPtr<class FSharedPivot> Group;
 		FSceneView* SceneView = nullptr;
 		FPlane DragPlane;
@@ -63,5 +68,9 @@ namespace BlenderControls
 		bool bSnappingEnabled = false;
 		FVector GrabStartIntersectionPoint;
 		FVector FloatingOrigin;
+		FLevelEditorViewportClient* ViewportClient = nullptr;
+		bool bIsAxisLockActive = false;
+		bool bIsUsingLocalSpace = false;
+		bool bLocalSpaceDefault;
 	};
 } // namespace BlenderControls
