@@ -43,6 +43,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"UnrealEd",
 				"InteractiveToolsFramework",
 				"EditorInteractiveToolsFramework",
+				"ComponentVisualizers"
 			}
 			);
 

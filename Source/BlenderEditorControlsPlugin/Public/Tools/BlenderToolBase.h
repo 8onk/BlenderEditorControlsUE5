@@ -35,16 +35,28 @@ namespace BlenderControls
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
 		void HandleAxisLock(ETransformAxis AxisPressed);
 
+		void OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition);
+
 	private:
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
 		void StartNewLock(ETransformAxis NewAxis);
 		void UpdateDragPlane();
+		static FLinearColor GetAxisColor(ETransformAxis InAxis);
+		void DrawAxisLine(const ETransformAxis InAxis) const;
+		void FlushDrawnAxisLines() const;
+		float CalculateDynamicThickness(const FVector& Origin) const;
+		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
+		float FallbackLineThickness = 2.0f;
+		const float MinLineThickness = 1.0f;
+		const float MaxLineThickness = 6.0f;
+		const float ReferenceDistance = 500.0f;
 
 	protected:
 		/** Child tools call this to populate Selected & prepare undo */
 		void CaptureSelection();
 		FVector GetAxisVector(ETransformAxis InAxis) const;
+		FVector2D CurrentViewportMousePos;
 
 		/* Transaction utilities */
 		TUniquePtr<class FScopedTransaction> ParentTxn;

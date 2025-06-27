@@ -33,7 +33,7 @@ namespace BlenderControls
 		{
 			TargetPosition = FloatingOrigin;
 		}
-		
+
 		const uint8 AxisBits = static_cast<uint8>(Axis);
 		// is number of set bits 1 => single axis lock
 		if (FMath::CountBits(AxisBits) == 1)
@@ -42,7 +42,10 @@ namespace BlenderControls
 			TargetPosition = FVector::DotProduct(TargetPosition, AxisVector) * AxisVector;
 		}
 
-		Group->SetPosition(TargetPosition);
+		if (Group.IsValid())
+		{
+			Group->SetPosition(TargetPosition);
+		}
 		PreviousIntersectionPoint = CurrentIntersectionPoint;
 	}
 

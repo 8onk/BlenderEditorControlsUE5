@@ -6,8 +6,6 @@
 #include "Tools/ScaleTool.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SWidget.h"
-#include "BlenderEditorControlsPlugin.h"
-#include "SEditorViewport.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Containers/Ticker.h"
 #include "Utils/BlenderMathHelpers.h"
@@ -187,7 +185,7 @@ namespace BlenderControls
 		ActiveMode = Mode;
 		bNumericInput = false;
 		NumericBuffer.Reset();
-		LastMousePos = FSlateApplication::Get().GetCursorPos();
+		StartMousePos = FSlateApplication::Get().GetCursorPos();
 
 		// Tell overlay to start drawing guides for this tool (Axis lines in level)
 		if (Overlay.IsValid())
@@ -225,7 +223,7 @@ namespace BlenderControls
 		ActiveMode = ETransformMode::None;
 		bNumericInput = false;
 		NumericBuffer.Reset();
-		LastMousePos = FVector2D::ZeroVector;
+		StartMousePos = FVector2D::ZeroVector;
 
 		// stop drawing
 		if (Overlay.IsValid())
@@ -235,36 +233,4 @@ namespace BlenderControls
 
 		FSlateApplication::Get().GetPlatformCursor()->Show(true);
 	}
-
-	// void FBlenderControlsInputProcessor::ShowSoftwareGrabCursor()
-	// {
-	// 	if (!GEditor || !GEditor->GetActiveViewport())
-	// 	{
-	// 		return;
-	// 	}
-	//
-	// 	FEditorViewportClient *ViewportClient = static_cast<FEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
-	// 	SLevelViewport* LevelViewportWidget = GEditor->LevelViewpo
-	// 	TSharedPtr<SEditorViewport> ViewportWidget = ViewportClient->GetEditorViewportWidget();
-	// 	if (ViewportClient && ViewportWidget.IsValid())
-	// 	{
-	// 		// 1. Hide the actual hardware cursor by setting it to "None"
-	// 		// This is a better approach than hiding it globally.
-	// 		ViewportWidget->SetCursor(EMouseCursor::None);
-	//
-	// 		// 2. Get the mouse position within the viewport
-	// 		const FVector2D MousePosition = ViewportWidget->GetMousePosition();
-	//
-	// 		// 3. Create the software cursor widget
-	// 		SoftwareCursorWidget = SNew(SImage)
-	// 								   .Image(FAppStyle::GetBrush("GrabHand")); // Use the standard "GrabHand" icon
-	//
-	// 		// 4. Add the widget to the viewport's overlay
-	// 		ViewportWidget->AddOverlayWidget(SoftwareCursorWidget.ToSharedRef());
-	//
-	// 		// 5. Position the widget. We'll handle continuous updates in a Tick function.
-	// 		// For the initial position:
-	// 		SoftwareCursorWidget->SetRenderTransform(FSlateRenderTransform(MousePosition));
-	// 	}
-	//}
 } // namespace BlenderControls

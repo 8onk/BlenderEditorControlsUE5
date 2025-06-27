@@ -18,7 +18,7 @@
 		{
 			"Name": "BlenderEditorControlsPlugin",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PostEngineInit"
 		}
 	]
 }

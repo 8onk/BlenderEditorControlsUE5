@@ -2,6 +2,7 @@
 #include "Editor.h"
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
+#include "Components/LineBatchComponent.h"
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 
@@ -23,7 +24,8 @@ namespace BlenderControls
 			return;
 		}
 
-		const FVector PlaneOrigin = Group->GetPivot().GetLocation();
+		FlushDrawnAxisLines();
+
 		FVector PlaneNormal = FVector::ZeroVector;
 
 		FSceneViewFamilyContext ViewFamily(
@@ -37,36 +39,44 @@ namespace BlenderControls
 		if (!bIsAxisLockActive || EnumHasAllFlags(Axis, ETransformAxis::All))
 		{
 			PlaneNormal = -SceneView->ViewRotation.Vector();
-			UE_LOG(LogTemp, Log, TEXT("No axis locked - Free Transform"));
 		}
 		else if (EnumHasAllFlags(Axis, ETransformAxis::X | ETransformAxis::Y))
 		{
+			DrawAxisLine(ETransformAxis::X);
+			DrawAxisLine(ETransformAxis::Y);
 			PlaneNormal = GetAxisVector(ETransformAxis::Z);
 		}
 		else if (EnumHasAllFlags(Axis, ETransformAxis::X | ETransformAxis::Z))
 		{
+			DrawAxisLine(ETransformAxis::X);
+			DrawAxisLine(ETransformAxis::Z);
 			PlaneNormal = GetAxisVector(ETransformAxis::Y);
 		}
 		else if (EnumHasAllFlags(Axis, ETransformAxis::Y | ETransformAxis::Z))
 		{
+			DrawAxisLine(ETransformAxis::Y);
+			DrawAxisLine(ETransformAxis::Z);
 			PlaneNormal = GetAxisVector(ETransformAxis::X);
 		}
 		else if (EnumHasAnyFlags(Axis, ETransformAxis::X))
 		{
 			FVector AxisDir = GetAxisVector(ETransformAxis::X);
 			FVector ViewDir = SceneView->GetViewDirection().GetSafeNormal();
+			DrawAxisLine(ETransformAxis::X);
 			PlaneNormal = FVector::CrossProduct(AxisDir, ViewDir).GetSafeNormal();
 		}
 		else if (EnumHasAnyFlags(Axis, ETransformAxis::Y))
 		{
 			FVector AxisDir = GetAxisVector(ETransformAxis::Y);
 			FVector ViewDir = SceneView->GetViewDirection().GetSafeNormal();
+			DrawAxisLine(ETransformAxis::Y);
 			PlaneNormal = FVector::CrossProduct(AxisDir, ViewDir).GetSafeNormal();
 		}
 		else if (EnumHasAnyFlags(Axis, ETransformAxis::Z))
 		{
 			FVector AxisDir = GetAxisVector(ETransformAxis::Z);
 			FVector ViewDir = SceneView->GetViewDirection().GetSafeNormal();
+			DrawAxisLine(ETransformAxis::Z);
 			PlaneNormal = FVector::CrossProduct(AxisDir, ViewDir).GetSafeNormal();
 		}
 		else
@@ -74,7 +84,70 @@ namespace BlenderControls
 			PlaneNormal = -SceneView->ViewRotation.Vector();
 		}
 
+		const FVector PlaneOrigin = Group->GetStartTransform().GetLocation();
 		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
+		//OnAxisLockRecalculated(CurrentViewportMousePos);
+	}
+
+	void FBlenderToolBase::FlushDrawnAxisLines() const
+	{
+		if (CachedBatcher.IsValid())
+		{
+			CachedBatcher->Flush(); // Removes all current batched lines
+			CachedBatcher->MarkRenderStateDirty();
+		}
+	}
+
+	FLinearColor FBlenderToolBase::GetAxisColor(ETransformAxis InAxis)
+	{
+		switch (InAxis)
+		{
+		case ETransformAxis::X:
+			return FLinearColor::Red;
+		case ETransformAxis::Y:
+			return FLinearColor::Green;
+		case ETransformAxis::Z:
+			return FLinearColor::Blue;
+		default:
+			return FLinearColor::White;
+		}
+	}
+
+	void FBlenderToolBase::DrawAxisLine(ETransformAxis InAxis) const
+	{
+		if (CachedBatcher.IsValid())
+		{
+			const FVector AxisDir = GetAxisVector(InAxis);
+			const FVector Origin = Group->GetStartTransform().GetLocation();
+			const float LineLength = 10000;
+
+			const FVector LineStart = Origin - AxisDir * LineLength;
+			const FVector LineEnd = Origin + AxisDir * LineLength;
+
+			const float Lifetime = 0.f; // persistent
+			const FLinearColor Color = GetAxisColor(InAxis);
+			const float Thickness = CalculateDynamicThickness(Origin);
+
+			CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, Thickness, Lifetime);
+			CachedBatcher->MarkRenderStateDirty();
+		}
+	}
+
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
+	{
+		if (!SceneView)
+		{
+			return FallbackLineThickness;
+		}
+
+		const FVector CameraLocation = SceneView->ViewLocation;
+		const float Distance = FVector::Dist(CameraLocation, Origin);
+
+		// Linear scaling: thickness grows with distance
+		float Scaled = FallbackLineThickness * (Distance / ReferenceDistance);
+
+		// Clamp to reasonable bounds
+		return FMath::Clamp(Scaled, MinLineThickness, MaxLineThickness);
 	}
 
 	FVector FBlenderToolBase::GetAxisVector(ETransformAxis InAxis) const
@@ -110,6 +183,11 @@ namespace BlenderControls
 		CachedSelectionColor = GEditor->GetSelectionOutlineColor();
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
+
+		if (UWorld* World = GEditor->GetEditorWorldContext().World())
+		{
+			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
+		}
 
 		CaptureSelection();
 		Group = MakeShared<FSharedPivot>(SelectedActors);
@@ -161,6 +239,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
+		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Group)
 		{
 			return;
@@ -211,6 +290,8 @@ namespace BlenderControls
 			FVector NewPivot = bApply ? Group->GetPivot().GetLocation() : Group->GetStartTransform().GetLocation();
 			GEditor->SetPivot(NewPivot, false, true, false);
 		}
+
+		FlushDrawnAxisLines();
 	}
 
 	void FBlenderToolBase::StartNewLock(const ETransformAxis NewAxis)
@@ -277,6 +358,11 @@ namespace BlenderControls
 		}
 
 		SelectedActors.Empty();
+	}
+
+	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition)
+	{
+		OnActive(CurrentViewportMousePosition);
 	}
 
 	void FBlenderToolBase::ApplyNumeric(float Value)

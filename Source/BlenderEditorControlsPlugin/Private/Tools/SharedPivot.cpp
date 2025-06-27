@@ -1,8 +1,5 @@
 #include "Tools/SharedPivot.h"
 
-#include "BlenderEditorControlsPlugin.h"
-#include "LevelEditorViewport.h"
-
 namespace BlenderControls
 {
 	FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &Selection)

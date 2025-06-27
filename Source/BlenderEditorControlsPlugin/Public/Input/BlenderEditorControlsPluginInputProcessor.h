@@ -46,7 +46,7 @@ namespace BlenderControls
         bool bActive = true;
         bool bNumericInput = false;
         FString NumericBuffer;
-        FVector2D LastMousePos = FVector2D::ZeroVector;
+        FVector2D StartMousePos = FVector2D::ZeroVector;
         TSharedPtr<class FBlenderToolBase> CurrentTool;
         ETransformMode ActiveMode;
         TSharedPtr<FUICommandList> CommandList;
