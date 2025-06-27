@@ -17,11 +17,17 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		const FVector MousePosDelta3D = bPrecisionModeActive
-			                           ? (CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint) * PrecisionFactor
-			                           : CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint;
+		FVector MousePosDelta3D = bPrecisionModeActive
+			                          ? (CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint) *
+			                          PrecisionFactor
+			                          : CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint;
 
+		if (NormalToRemove != FVector::ZeroVector)
+		{
+			MousePosDelta3D -= NormalToRemove * FVector::DotProduct(MousePosDelta3D, NormalToRemove);
+		}
 		NewPivotPosition += MousePosDelta3D;
+
 		FVector TargetPivotPosition;
 		if (bSnappingEnabled)
 		{
@@ -31,14 +37,6 @@ namespace BlenderControls
 		else
 		{
 			TargetPivotPosition = NewPivotPosition;
-		}
-
-		const uint8 AxisBits = static_cast<uint8>(Axis);
-		// is number of set bits 1 => single axis lock
-		if (FMath::CountBits(AxisBits) == 1)
-		{
-			FVector AxisVector = GetAxisVector(Axis);
-			TargetPivotPosition = FVector::DotProduct(TargetPivotPosition, AxisVector) * AxisVector;
 		}
 
 		if (Pivot.IsValid())

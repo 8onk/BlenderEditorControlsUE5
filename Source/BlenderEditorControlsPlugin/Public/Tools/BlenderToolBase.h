@@ -57,6 +57,7 @@ namespace BlenderControls
 		void CaptureSelection();
 		FVector GetAxisVector(ETransformAxis InAxis) const;
 		FVector2D CurrentViewportMousePos;
+		FVector NormalToRemove;
 
 		/* Transaction utilities */
 		TUniquePtr<class FScopedTransaction> ParentTxn;
