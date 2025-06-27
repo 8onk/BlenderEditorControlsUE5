@@ -25,9 +25,8 @@ namespace BlenderControls
 		FVector TargetPosition;
 		if (bSnappingEnabled)
 		{
-			const FVector TotalUnsnappedOffset = FloatingOrigin - Group->GetStartTransform().GetLocation();
-			const FVector SnappedTotalOffset = GetSnapOffset(TotalUnsnappedOffset);
-			TargetPosition = Group->GetStartTransform().GetLocation() + SnappedTotalOffset;
+			const FVector SnappedTotalOffset = GetSnapOffset(FloatingOrigin);
+			TargetPosition = SnappedTotalOffset;
 		}
 		else
 		{

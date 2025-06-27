@@ -86,7 +86,8 @@ namespace BlenderControls
 
 		const FVector PlaneOrigin = Group->GetStartTransform().GetLocation();
 		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
-		//OnAxisLockRecalculated(CurrentViewportMousePos);
+
+		// OnAxisLockRecalculated(CurrentViewportMousePos);
 	}
 
 	void FBlenderToolBase::FlushDrawnAxisLines() const
@@ -262,11 +263,6 @@ namespace BlenderControls
 
 		CurrentIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
 		                                                        WorldOrigin + (WorldDirection * BIG_NUMBER), DragPlane);
-
-		// UE_LOG(LogTemp, Log, TEXT("Previous Intersection: X=%.2f Y=%.2f Z=%.2f"), PreviousIntersectionPoint.X,
-		//        PreviousIntersectionPoint.Y, PreviousIntersectionPoint.Z);
-		// UE_LOG(LogTemp, Log, TEXT("Current Intersection: X=%.2f Y=%.2f Z=%.2f"), CurrentIntersectionPoint.X,
-		//        CurrentIntersectionPoint.Y, CurrentIntersectionPoint.Z);
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
@@ -324,7 +320,7 @@ namespace BlenderControls
 		}
 
 		UpdateDragPlane();
-		UE_LOG(LogTemp, Log, TEXT("Current Axis: %d"), static_cast<uint8>(Axis));
+		OnActive(CurrentViewportMousePos);
 	}
 
 	void FBlenderToolBase::Accept()
