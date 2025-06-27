@@ -19,7 +19,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::UpdateDragPlane()
 	{
-		if (!Group.IsValid() || !SceneView)
+		if (!Pivot.IsValid() || !SceneView)
 		{
 			return;
 		}
@@ -84,7 +84,7 @@ namespace BlenderControls
 			PlaneNormal = -SceneView->ViewRotation.Vector();
 		}
 
-		const FVector PlaneOrigin = Group->GetStartTransform().GetLocation();
+		const FVector PlaneOrigin = Pivot->GetStartTransform().GetLocation();
 		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
 
 		// OnAxisLockRecalculated(CurrentViewportMousePos);
@@ -119,7 +119,7 @@ namespace BlenderControls
 		if (CachedBatcher.IsValid())
 		{
 			const FVector AxisDir = GetAxisVector(InAxis);
-			const FVector Origin = Group->GetStartTransform().GetLocation();
+			const FVector Origin = Pivot->GetStartTransform().GetLocation();
 			const float LineLength = 10000;
 
 			const FVector LineStart = Origin - AxisDir * LineLength;
@@ -164,7 +164,7 @@ namespace BlenderControls
 
 		if (bIsUsingLocalSpace)
 		{
-			AxisVector = Group->GetPivot().TransformVectorNoScale(AxisVector);
+			AxisVector = Pivot->GetPivot().TransformVectorNoScale(AxisVector);
 		}
 		return AxisVector.GetSafeNormal();
 	}
@@ -191,7 +191,7 @@ namespace BlenderControls
 		}
 
 		CaptureSelection();
-		Group = MakeShared<FSharedPivot>(SelectedActors);
+		Pivot = MakeShared<FSharedPivot>(SelectedActors);
 		InitialWidgetMode = GLevelEditorModeTools().GetWidgetMode();
 		GLevelEditorModeTools().SetWidgetMode(UE::Widget::WM_None);
 
@@ -201,7 +201,7 @@ namespace BlenderControls
 		{
 			Actor->Modify();
 		}
-		Group->GetTransformProxy()->BeginTransformEditSequence();
+		Pivot->GetTransformProxy()->BeginTransformEditSequence();
 
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -230,18 +230,17 @@ namespace BlenderControls
 
 		UpdateDragPlane();
 
-		PreviousIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
+		PreviousPlaneIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
 		                                                         WorldOrigin + (WorldDirection *
 			                                                         BIG_NUMBER),
 		                                                         DragPlane);
-		FloatingOrigin = Group->GetStartTransform().GetLocation();
-		GrabStartIntersectionPoint = PreviousIntersectionPoint;
+		NewPivotPosition = Pivot->GetStartTransform().GetLocation();
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
-		if (!Viewport || !ViewportClient || !Group)
+		if (!Viewport || !ViewportClient || !Pivot)
 		{
 			return;
 		}
@@ -261,20 +260,20 @@ namespace BlenderControls
 			SceneView->DeprojectFVector2D(CurrentMousePos, WorldOrigin, WorldDirection);
 		}
 
-		CurrentIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
+		CurrentPlaneIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
 		                                                        WorldOrigin + (WorldDirection * BIG_NUMBER), DragPlane);
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
 	{
-		if (!GEditor || !Group)
+		if (!GEditor || !Pivot)
 		{
 			return;
 		}
 
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 		SelectedActors.Empty();
-		Group->GetTransformProxy()->EndTransformEditSequence();
+		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
 		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
 		{
@@ -283,7 +282,7 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			FVector NewPivot = bApply ? Group->GetPivot().GetLocation() : Group->GetStartTransform().GetLocation();
+			FVector NewPivot = bApply ? Pivot->GetPivot().GetLocation() : Pivot->GetStartTransform().GetLocation();
 			GEditor->SetPivot(NewPivot, false, true, false);
 		}
 
@@ -335,7 +334,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::Cancel()
 	{
-		if (!GEditor || !Group)
+		if (!GEditor || !Pivot)
 		{
 			return;
 		}
@@ -344,7 +343,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 
 		// Reset pivot to start location
-		Group->GetTransformProxy()->SetTransform(Group->GetStartTransform());
+		Pivot->GetTransformProxy()->SetTransform(Pivot->GetStartTransform());
 
 		// Abort undo-tracking
 		if (ParentTxn)

@@ -17,20 +17,20 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		const FVector FrameDelta = bPrecisionModeActive
-			                           ? (CurrentIntersectionPoint - PreviousIntersectionPoint) * PrecisionFactor
-			                           : CurrentIntersectionPoint - PreviousIntersectionPoint;
+		const FVector MousePosDelta3D = bPrecisionModeActive
+			                           ? (CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint) * PrecisionFactor
+			                           : CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint;
 
-		FloatingOrigin += FrameDelta;
-		FVector TargetPosition;
+		NewPivotPosition += MousePosDelta3D;
+		FVector TargetPivotPosition;
 		if (bSnappingEnabled)
 		{
-			const FVector SnappedTotalOffset = GetSnapOffset(FloatingOrigin);
-			TargetPosition = SnappedTotalOffset;
+			const FVector SnappedNewPivotPosition = GetSnapOffset(NewPivotPosition);
+			TargetPivotPosition = SnappedNewPivotPosition;
 		}
 		else
 		{
-			TargetPosition = FloatingOrigin;
+			TargetPivotPosition = NewPivotPosition;
 		}
 
 		const uint8 AxisBits = static_cast<uint8>(Axis);
@@ -38,14 +38,14 @@ namespace BlenderControls
 		if (FMath::CountBits(AxisBits) == 1)
 		{
 			FVector AxisVector = GetAxisVector(Axis);
-			TargetPosition = FVector::DotProduct(TargetPosition, AxisVector) * AxisVector;
+			TargetPivotPosition = FVector::DotProduct(TargetPivotPosition, AxisVector) * AxisVector;
 		}
 
-		if (Group.IsValid())
+		if (Pivot.IsValid())
 		{
-			Group->SetPosition(TargetPosition);
+			Pivot->SetPosition(TargetPivotPosition);
 		}
-		PreviousIntersectionPoint = CurrentIntersectionPoint;
+		PreviousPlaneIntersectionPoint = CurrentPlaneIntersectionPoint;
 	}
 
 	void FMoveTool::ApplyNumeric(float Value)
