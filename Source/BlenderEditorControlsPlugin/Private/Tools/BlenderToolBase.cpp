@@ -8,7 +8,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString &InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString& InDisplayName)
 		: Mode(InMode), Axis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -38,11 +38,6 @@ namespace BlenderControls
 
 		SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 
-		// Calculate the dot product to see how aligned the view is with each axis.
-		const FVector::FReal XDot = FMath::Abs(FVector::DotProduct(ViewDirection, FVector::XAxisVector));
-		const FVector::FReal YDot = FMath::Abs(FVector::DotProduct(ViewDirection, FVector::YAxisVector));
-		const FVector::FReal ZDot = FMath::Abs(FVector::DotProduct(ViewDirection, FVector::ZAxisVector));
-
 		if (bIsAxisLockActive)
 		{
 			if (EnumHasAllFlags(Axis, ETransformAxis::X | ETransformAxis::Y))
@@ -66,20 +61,14 @@ namespace BlenderControls
 			else if (EnumHasAnyFlags(Axis, ETransformAxis::X))
 			{
 				DrawAxisLine(ETransformAxis::X);
-				PlaneNormal = (YDot > ZDot) ? FVector::YAxisVector : FVector::ZAxisVector;
-				NormalToRemove = (YDot > ZDot) ? FVector::ZAxisVector : FVector::YAxisVector;
 			}
 			else if (EnumHasAnyFlags(Axis, ETransformAxis::Y))
 			{
 				DrawAxisLine(ETransformAxis::Y);
-				PlaneNormal = (XDot > ZDot) ? FVector::XAxisVector : FVector::ZAxisVector;
-				NormalToRemove = (XDot > ZDot) ? FVector::ZAxisVector : FVector::XAxisVector;
 			}
 			else if (EnumHasAnyFlags(Axis, ETransformAxis::Z))
 			{
 				DrawAxisLine(ETransformAxis::Z);
-				PlaneNormal = (XDot > YDot) ? FVector::XAxisVector : FVector::YAxisVector;
-				NormalToRemove = (XDot > YDot) ? FVector::YAxisVector : FVector::XAxisVector;
 			}
 		}
 
@@ -133,7 +122,7 @@ namespace BlenderControls
 		}
 	}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector &Origin) const
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
 	{
 		if (!SceneView)
 		{
@@ -155,9 +144,9 @@ namespace BlenderControls
 		FVector AxisVector =
 			(InAxis == ETransformAxis::X)
 				? FVector::XAxisVector
-			: (InAxis == ETransformAxis::Y)
+				: (InAxis == ETransformAxis::Y)
 				? FVector::YAxisVector
-			: (InAxis == ETransformAxis::Z)
+				: (InAxis == ETransformAxis::Z)
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
@@ -170,7 +159,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
+		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
 			return;
@@ -184,7 +173,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
 
-		if (UWorld *World = GEditor->GetEditorWorldContext().World())
+		if (UWorld* World = GEditor->GetEditorWorldContext().World())
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
@@ -223,21 +212,18 @@ namespace BlenderControls
 		FIntPoint MousePosInt;
 		Viewport->GetMousePos(MousePosInt);
 		FVector2D MousePos = FVector2D(MousePosInt);
-
-		FVector WorldOrigin, WorldDirection;
+		
 		SceneView->DeprojectFVector2D(MousePos, WorldOrigin, WorldDirection);
 
 		UpdateDragPlane();
 
-		PreviousPlaneIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-																	  WorldOrigin + (WorldDirection *
-																					 BIG_NUMBER),
-																	  DragPlane);
-		NewPivotPosition = Pivot->GetStartTransform().GetLocation();
-		GrabStartPlaneIntersectionPoint = PreviousPlaneIntersectionPoint;
+		GrabStartPlaneIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
+		                                                               WorldOrigin + (WorldDirection *
+			                                                               BIG_NUMBER),
+		                                                               DragPlane);
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
@@ -246,8 +232,7 @@ namespace BlenderControls
 		}
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
 		const FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
-
-		FVector WorldOrigin, WorldDirection;
+		
 		FSceneViewFamilyContext TempViewFamily(
 			FSceneViewFamily::ConstructionValues(
 				ViewportClient->Viewport,
@@ -261,8 +246,8 @@ namespace BlenderControls
 		}
 
 		CurrentPlaneIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-																	 WorldOrigin + (WorldDirection * BIG_NUMBER),
-																	 DragPlane);
+		                                                             WorldOrigin + (WorldDirection * BIG_NUMBER),
+		                                                             DragPlane);
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
@@ -277,7 +262,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -289,6 +274,29 @@ namespace BlenderControls
 		}
 
 		FlushDrawnAxisLines();
+	}
+
+	void FBlenderToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)
+	{
+		if (bNewPrecisionModeActive && !bPrecisionModeActive)
+		{
+			ShiftStartIntersectionPoint = CurrentPlaneIntersectionPoint;
+			PrecisionAnchor = CurrentPlaneIntersectionPoint - GrabStartPlaneIntersectionPoint;
+			bWasPrecisionModeActive = false;
+		}
+
+		if (!bNewPrecisionModeActive && bPrecisionModeActive)
+		{
+			const FVector RawDeltaSinceShift = CurrentPlaneIntersectionPoint - ShiftStartIntersectionPoint;
+			const FVector DeltaAtRelease = PrecisionAnchor + RawDeltaSinceShift * PrecisionFactor;
+			
+			GrabStartPlaneIntersectionPoint = CurrentPlaneIntersectionPoint - DeltaAtRelease;
+			
+			ShiftStartIntersectionPoint = CurrentPlaneIntersectionPoint;
+			PrecisionAnchor = DeltaAtRelease; 
+		}
+
+		bPrecisionModeActive = bNewPrecisionModeActive;
 	}
 
 	void FBlenderToolBase::StartNewLock(const ETransformAxis NewAxis)
@@ -357,7 +365,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition)
 	{
 		OnActive(CurrentViewportMousePosition);
 	}
@@ -373,10 +381,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection *ActorSelection = GEditor->GetSelectedActors();
+			USelection* ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor *Actor = Cast<AActor>(*It))
+				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}

@@ -31,7 +31,7 @@ namespace BlenderControls
 		virtual void OnBegin();
 		virtual void OnEnd(bool bApply);
 
-		void SetPrecisionModeActive(bool bNewPrecisionModeActive) { bPrecisionModeActive = bNewPrecisionModeActive; }
+		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
 		void HandleAxisLock(ETransformAxis AxisPressed);
 
@@ -77,10 +77,16 @@ namespace BlenderControls
 		FSceneView* SceneView = nullptr;
 		FPlane DragPlane;
 		float PrecisionFactor = 0.1f;
+		float CurrentPrecisionFactor = 1.0f;
 		bool bPrecisionModeActive = false;
+		bool bWasPrecisionModeActive = false;
 		bool bSnappingEnabled = false;
 		FVector GrabStartPlaneIntersectionPoint;
 		FVector NewPivotPosition;
+		FVector PrecisionAnchor;
+		FVector ShiftStartIntersectionPoint;
+		FVector WorldOrigin;
+		FVector WorldDirection;
 		FLevelEditorViewportClient* ViewportClient = nullptr;
 		bool bIsAxisLockActive = false;
 		bool bIsUsingLocalSpace = false;

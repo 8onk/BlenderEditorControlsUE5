@@ -17,16 +17,45 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		FVector MousePosDelta3D = bPrecisionModeActive
-			                          ? (CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint) *
-			                          PrecisionFactor
-			                          : CurrentPlaneIntersectionPoint - PreviousPlaneIntersectionPoint;
-
-		if (NormalToRemove != FVector::ZeroVector)
+		FVector MousePosOffset3D;
+		if (bPrecisionModeActive)
 		{
-			MousePosDelta3D -= NormalToRemove * FVector::DotProduct(MousePosDelta3D, NormalToRemove);
+			CurrentPrecisionFactor = PrecisionFactor;
+			const FVector RawDeltaSinceShift = CurrentPlaneIntersectionPoint - ShiftStartIntersectionPoint;
+			MousePosOffset3D = PrecisionAnchor + RawDeltaSinceShift * CurrentPrecisionFactor;
 		}
-		NewPivotPosition += MousePosDelta3D;
+		else
+		{
+			CurrentPrecisionFactor = 1.0f;
+			MousePosOffset3D = CurrentPlaneIntersectionPoint - GrabStartPlaneIntersectionPoint;
+		}
+
+		// if (Axis == ETransformAxis::X || Axis == ETransformAxis::Y || Axis == ETransformAxis::Z)
+		// {
+		// 	FVector AxisDirection;
+		// 	switch (Axis)
+		// 	{
+		// 	case ETransformAxis::X: AxisDirection = FVector::ForwardVector;
+		// 		break;
+		// 	case ETransformAxis::Y: AxisDirection = FVector::RightVector;
+		// 		break;
+		// 	case ETransformAxis::Z: AxisDirection = FVector::UpVector;
+		// 		break;
+		// 	default: break;
+		// 	}
+		//
+		// 	// Reproject mouse ray onto axis line
+		// 	const FVector ClosestPointNow = FMath::ClosestPointOnInfiniteLine (
+		// 		GrabStartPlaneIntersectionPoint, // origin of line
+		// 		AxisDirection,
+		// 		WorldOrigin
+		// 	);
+		//
+		// 	const FVector Delta = ClosestPointNow - Pivot->GetStartTransform().GetLocation(); 
+		// 	MousePosOffset3D = Delta * CurrentPrecisionFactor;
+		// }
+
+		NewPivotPosition = Pivot->GetStartTransform().GetLocation() + MousePosOffset3D;
 
 		FVector TargetPivotPosition;
 		if (bSnappingEnabled)
@@ -43,7 +72,6 @@ namespace BlenderControls
 		{
 			Pivot->SetPosition(TargetPivotPosition);
 		}
-		PreviousPlaneIntersectionPoint = CurrentPlaneIntersectionPoint;
 	}
 
 	void FMoveTool::ApplyNumeric(float Value)
