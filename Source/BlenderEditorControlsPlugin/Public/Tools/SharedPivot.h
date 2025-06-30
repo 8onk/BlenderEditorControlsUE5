@@ -18,14 +18,16 @@ namespace BlenderControls
 	{
 	public:
 		explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &InSelection);
+		~FSharedPivot();
 
 		const FTransform &GetPivot() const { return Pivot; }
 		UTransformProxy *GetTransformProxy() const { return TransformProxy; }
 		const FTransform &GetStartTransform() const { return StartLocation; }
-		
-		void SetPosition(const FVector& NewPosition);
+
+		void SetPosition(const FVector &NewPosition);
 		void RotateBy(const FQuat &Delta);
 		void ScaleBy(const FVector &Scale, bool bUniform);
+		void SetStartTransformPosition(const FVector &InPosition);
 
 	private:
 		void RecalcPivot();

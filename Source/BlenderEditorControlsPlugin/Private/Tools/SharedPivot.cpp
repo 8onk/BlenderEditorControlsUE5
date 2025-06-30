@@ -5,6 +5,7 @@ namespace BlenderControls
 	FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &Selection)
 	{
 		TransformProxy = NewObject<UTransformProxy>();
+		TransformProxy->AddToRoot();
 		if (!IsValid(TransformProxy))
 		{
 			return;
@@ -32,12 +33,22 @@ namespace BlenderControls
 			AverageLocation /= Children.Num();
 		}
 
+		//NOTE: THIS BEHAVES ODDLY FOR EMPTY OBJECTS LIKE PLAYER START, WHERE X = 56 BUT 0 IN TRANSFORM
 		Pivot.SetLocation(AverageLocation);
 		StartLocation = Pivot;
 
 		for (FChildInfo &Child : Children)
 		{
 			Child.Offset = Child.Actor->GetActorLocation() - Pivot.GetLocation();
+		}
+	}
+
+	FSharedPivot::~FSharedPivot()
+	{
+		if (TransformProxy)
+		{
+			TransformProxy->RemoveFromRoot();
+			TransformProxy = nullptr;
 		}
 	}
 
@@ -48,5 +59,10 @@ namespace BlenderControls
 			Pivot.SetLocation(NewPosition);
 			TransformProxy->SetTransform(Pivot);
 		}
+	}
+
+	void FSharedPivot::SetStartTransformPosition(const FVector &InPosition)
+	{
+		StartLocation.SetLocation(InPosition);
 	}
 } // namespace BlenderControls

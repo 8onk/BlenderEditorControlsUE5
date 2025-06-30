@@ -2,7 +2,7 @@
 
 namespace BlenderControls
 {
-    FRotateTool::FRotateTool(ETransformAxis InAxis)
+    FRotateTool::FRotateTool(EAxisLock InAxis)
         : FBlenderToolBase(ETransformMode::Rotate, InAxis, TEXT("Rotate"))
     {
     }

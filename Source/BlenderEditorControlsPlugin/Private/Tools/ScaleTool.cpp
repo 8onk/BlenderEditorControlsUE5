@@ -2,7 +2,7 @@
 
 namespace BlenderControls
 {
-    FScaleTool::FScaleTool(ETransformAxis InAxis)
+    FScaleTool::FScaleTool(EAxisLock InAxis)
         : FBlenderToolBase(ETransformMode::Scale, InAxis, TEXT("Scale"))
     {
     }

@@ -9,7 +9,7 @@ namespace BlenderControls
     class FMoveTool : public FBlenderToolBase
     {
     public:
-        FMoveTool(ETransformAxis InAxis);
+        FMoveTool(EAxisLock InAxis);
 
         /* FBlenderToolBase */
         virtual void OnActive(const FVector2D &CurrentViewportMousePosition) override;

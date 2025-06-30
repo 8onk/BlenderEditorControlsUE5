@@ -3,7 +3,7 @@
 
 namespace BlenderControls
 {
-	FMoveTool::FMoveTool(ETransformAxis InAxis)
+	FMoveTool::FMoveTool(EAxisLock InAxis)
 		: FBlenderToolBase(ETransformMode::Translate, InAxis, TEXT("Move"))
 	{
 	}
@@ -13,65 +13,37 @@ namespace BlenderControls
 		FBlenderToolBase::OnBegin();
 	}
 
-	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
+	void FMoveTool::OnActive(const FVector2D &CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		FVector MousePosOffset3D;
+		FVector LiveDelta;
 		if (bPrecisionModeActive)
 		{
-			CurrentPrecisionFactor = PrecisionFactor;
-			const FVector RawDeltaSinceShift = CurrentPlaneIntersectionPoint - ShiftStartIntersectionPoint;
-			MousePosOffset3D = PrecisionAnchor + RawDeltaSinceShift * CurrentPrecisionFactor;
+			const FVector FineDelta = (CurrentHit - GrabContext.ShiftStartHit) * CurrentPrecisionFactor;
+			LiveDelta = GrabContext.DeltaAnchor + FineDelta;
 		}
 		else
 		{
-			CurrentPrecisionFactor = 1.0f;
-			MousePosOffset3D = CurrentPlaneIntersectionPoint - GrabStartPlaneIntersectionPoint;
+			const FVector Unscaled = (CurrentHit - GrabContext.StartHit);
+			LiveDelta = GrabContext.DeltaAnchor + Unscaled;
 		}
 
-		// if (Axis == ETransformAxis::X || Axis == ETransformAxis::Y || Axis == ETransformAxis::Z)
-		// {
-		// 	FVector AxisDirection;
-		// 	switch (Axis)
-		// 	{
-		// 	case ETransformAxis::X: AxisDirection = FVector::ForwardVector;
-		// 		break;
-		// 	case ETransformAxis::Y: AxisDirection = FVector::RightVector;
-		// 		break;
-		// 	case ETransformAxis::Z: AxisDirection = FVector::UpVector;
-		// 		break;
-		// 	default: break;
-		// 	}
-		//
-		// 	// Reproject mouse ray onto axis line
-		// 	const FVector ClosestPointNow = FMath::ClosestPointOnInfiniteLine (
-		// 		GrabStartPlaneIntersectionPoint, // origin of line
-		// 		AxisDirection,
-		// 		WorldOrigin
-		// 	);
-		//
-		// 	const FVector Delta = ClosestPointNow - Pivot->GetStartTransform().GetLocation(); 
-		// 	MousePosOffset3D = Delta * CurrentPrecisionFactor;
-		// }
-
-		NewPivotPosition = Pivot->GetStartTransform().GetLocation() + MousePosOffset3D;
-
-		FVector TargetPivotPosition;
 		if (bSnappingEnabled)
 		{
-			const FVector SnappedNewPivotPosition = GetSnapOffset(NewPivotPosition);
-			TargetPivotPosition = SnappedNewPivotPosition;
+			LiveDelta = GetSnapOffset(LiveDelta);
 		}
-		else
-		{
-			TargetPivotPosition = NewPivotPosition;
-		}
+		GrabContext.TotalDelta = LiveDelta;
 
-		if (Pivot.IsValid())
-		{
-			Pivot->SetPosition(TargetPivotPosition);
-		}
+		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
+
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("GrabContext State:"));
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("  DeltaAnchor: %s"), *GrabContext.DeltaAnchor.ToString());
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("  StartHit: %s"), *GrabContext.StartHit.ToString());
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("  CurrentHit: %s"), *CurrentHit.ToString());
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("  PivotPos: %s"), *Pivot->GetStartTransform().GetLocation().ToString());
+
+		Pivot->SetPosition(NewPos);
 	}
 
 	void FMoveTool::ApplyNumeric(float Value)

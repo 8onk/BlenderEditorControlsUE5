@@ -32,7 +32,7 @@ namespace BlenderControls
         /* Helpers */
         void BeginTool(ETransformMode Mode);
         void EndTool(bool bApply);
-        void UpdateAxis(ETransformAxis Axis);
+        void UpdateAxis(EAxisLock Axis);
         void FeedNumeric(const TCHAR Digit);
         void FlushNumeric();
         // void ShowSoftwareGrabCursor();

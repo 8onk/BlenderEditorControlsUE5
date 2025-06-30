@@ -14,7 +14,7 @@ namespace BlenderControls
     {
     public:
         /** Axis = All means track-ball by default, overridden by SetAxis() calls. */
-        explicit FRotateTool(ETransformAxis InAxis = ETransformAxis::All);
+        explicit FRotateTool(EAxisLock InAxis = EAxisLock::All);
 
         /* ---------- FBlenderToolBase overrides ---------- */
         virtual void OnActive(const FVector2D &CurrentViewportMousePosition) override;

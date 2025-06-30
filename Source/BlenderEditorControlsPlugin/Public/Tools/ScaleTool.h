@@ -12,7 +12,7 @@ namespace BlenderControls
     class FScaleTool : public FBlenderToolBase
     {
     public:
-        explicit FScaleTool(ETransformAxis InAxis = ETransformAxis::All);
+        explicit FScaleTool(EAxisLock InAxis = EAxisLock::All);
 
         /* ---------- FBlenderToolBase overrides ---------- */
         virtual void OnActive(const FVector2D &CurrentViewportMousePosition) override;

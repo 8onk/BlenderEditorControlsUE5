@@ -56,7 +56,7 @@ namespace BlenderControls
 
 		// Update precision mode based on Shift key state
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
-		CurrentTool->SetPrecisionModeActive(bShift);
+		//CurrentTool->SetPrecisionModeActive(bShift);
 
 		bool bIsGridSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
 
@@ -85,17 +85,17 @@ namespace BlenderControls
 
 			if (Key == EKeys::X)
 			{
-				CurrentTool->HandleAxisLock(bShift ? (ETransformAxis::Y | ETransformAxis::Z) : ETransformAxis::X);
+				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
 				return true;
 			}
 			if (Key == EKeys::Y)
 			{
-				CurrentTool->HandleAxisLock(bShift ? (ETransformAxis::X | ETransformAxis::Z) : ETransformAxis::Y);
+				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
 				return true;
 			}
 			if (Key == EKeys::Z)
 			{
-				CurrentTool->HandleAxisLock(bShift ? (ETransformAxis::X | ETransformAxis::Y) : ETransformAxis::Z);
+				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
 				return true;
 			}
 
@@ -163,7 +163,7 @@ namespace BlenderControls
 			return;
 		}
 
-		constexpr ETransformAxis InitialAxis = ETransformAxis::All;
+		constexpr EAxisLock InitialAxis = EAxisLock::All;
 
 		switch (Mode)
 		{

@@ -8,8 +8,8 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, ETransformAxis InAxis, const FString& InDisplayName)
-		: Mode(InMode), Axis(InAxis), DisplayName(InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName)
+		: Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
 
@@ -17,65 +17,124 @@ namespace BlenderControls
 	{
 	}
 
-	void FBlenderToolBase::UpdateDragPlane()
+	void FBlenderToolBase::UpdateAxisLock()
 	{
-		if (!Pivot.IsValid() || !SceneView)
+		if (!ViewportClient)
 		{
 			return;
 		}
 
-		FlushDrawnAxisLines();
+		GrabContext.Pivot = Pivot->GetStartTransform().GetLocation();
 
-		FVector ViewDirection = SceneView->ViewRotation.Vector();
-		FVector PlaneNormal = -ViewDirection;
-		NormalToRemove = FVector::ZeroVector;
-
-		FSceneViewFamilyContext ViewFamily(
-			FSceneViewFamily::ConstructionValues(
-				ViewportClient->Viewport,
-				ViewportClient->GetScene(),
-				ViewportClient->EngineShowFlags));
-
-		SceneView = ViewportClient->CalcSceneView(&ViewFamily);
-
-		if (bIsAxisLockActive)
+		FVector ViewDirection;
+		if (ViewportClient->IsPerspective())
 		{
-			if (EnumHasAllFlags(Axis, ETransformAxis::X | ETransformAxis::Y))
+			ViewDirection = ViewportClient->GetViewRotation().Vector();
+		}
+		else
+		{
+			switch (ViewportClient->ViewportType)
 			{
-				DrawAxisLine(ETransformAxis::X);
-				DrawAxisLine(ETransformAxis::Y);
-				PlaneNormal = GetAxisVector(ETransformAxis::Z);
-			}
-			else if (EnumHasAllFlags(Axis, ETransformAxis::X | ETransformAxis::Z))
-			{
-				DrawAxisLine(ETransformAxis::X);
-				DrawAxisLine(ETransformAxis::Z);
-				PlaneNormal = GetAxisVector(ETransformAxis::Y);
-			}
-			else if (EnumHasAllFlags(Axis, ETransformAxis::Y | ETransformAxis::Z))
-			{
-				DrawAxisLine(ETransformAxis::Y);
-				DrawAxisLine(ETransformAxis::Z);
-				PlaneNormal = GetAxisVector(ETransformAxis::X);
-			}
-			else if (EnumHasAnyFlags(Axis, ETransformAxis::X))
-			{
-				DrawAxisLine(ETransformAxis::X);
-			}
-			else if (EnumHasAnyFlags(Axis, ETransformAxis::Y))
-			{
-				DrawAxisLine(ETransformAxis::Y);
-			}
-			else if (EnumHasAnyFlags(Axis, ETransformAxis::Z))
-			{
-				DrawAxisLine(ETransformAxis::Z);
+			case LVT_OrthoXY:
+				ViewDirection = FVector::UpVector;
+				break; // Top view
+			case LVT_OrthoXZ:
+				ViewDirection = FVector::RightVector;
+				break; // Front view
+			case LVT_OrthoYZ:
+				ViewDirection = FVector::ForwardVector;
+				break; // Side view
+			case LVT_OrthoNegativeXY:
+				ViewDirection = -FVector::UpVector;
+				break;
+			case LVT_OrthoNegativeXZ:
+				ViewDirection = -FVector::RightVector;
+				break;
+			case LVT_OrthoNegativeYZ:
+				ViewDirection = -FVector::ForwardVector;
+				break;
+			default:
+				ViewDirection = FVector::ForwardVector;
+				break;
 			}
 		}
 
-		const FVector PlaneOrigin = Pivot->GetStartTransform().GetLocation();
-		DragPlane = FPlane(PlaneOrigin, PlaneNormal);
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("Called"));
+		FlushDrawnAxisLines();
+		switch (LockedAxis)
+		{
+		case EAxisLock::All:
+			GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
+			GrabContext.HelperPlaneN = -ViewDirection;
+			break;
 
-		// OnAxisLockRecalculated(CurrentViewportMousePos);
+		case EAxisLock::X:
+			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
+			GrabContext.HelperAxisDir = FVector::XAxisVector;
+			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoAxis(GrabContext.TotalDelta, GrabContext.HelperAxisDir);
+			DrawAxisLine(EAxisLock::X);
+			break;
+
+		case EAxisLock::Y:
+			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
+			GrabContext.HelperAxisDir = FVector::YAxisVector;
+			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoAxis(GrabContext.TotalDelta, GrabContext.HelperAxisDir);
+			DrawAxisLine(EAxisLock::Y);
+			break;
+
+		case EAxisLock::Z:
+			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
+			GrabContext.HelperAxisDir = FVector::ZAxisVector;
+			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoAxis(GrabContext.TotalDelta, GrabContext.HelperAxisDir);
+			DrawAxisLine(EAxisLock::Z);
+			break;
+
+		case EAxisLock::YZ:
+			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GrabContext.HelperPlaneN = FVector::XAxisVector;
+			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(GrabContext.TotalDelta, GrabContext.HelperPlaneN);
+			DrawAxisLine(EAxisLock::Y);
+			DrawAxisLine(EAxisLock::Z);
+			break;
+
+		case EAxisLock::XZ:
+			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GrabContext.HelperPlaneN = FVector::YAxisVector;
+			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(GrabContext.TotalDelta, GrabContext.HelperPlaneN);
+			DrawAxisLine(EAxisLock::X);
+			DrawAxisLine(EAxisLock::Z);
+			break;
+
+		case EAxisLock::XY:
+			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GrabContext.HelperPlaneN = FVector::ZAxisVector;
+			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(GrabContext.TotalDelta, GrabContext.HelperPlaneN);
+			DrawAxisLine(EAxisLock::X);
+			DrawAxisLine(EAxisLock::Y);
+			break;
+		}
+
+		const FVector NewStartHit = Math::IntersectHelper(GrabContext, WorldOriginOnStart, WorldDirectionOnStart);
+		const FVector NewCurrentHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+
+		GrabContext.StartHit = NewStartHit;
+		CurrentHit = NewCurrentHit;
+		GrabContext.TotalDelta = NewCurrentHit - NewStartHit;
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage((uint64)-1, 10.f, FColor::Yellow, FString::Printf(TEXT("TotalDelta: %s"), *GrabContext.TotalDelta.ToString()));
+		}
+
+		const FVector ObjectStartPos = Pivot->GetStartTransform().GetLocation();
+		const FVector ProjectedObjectPos = BlenderControls::Math::ProjectVectorOntoPlane(ObjectStartPos, GrabContext.HelperPlaneN);
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage((uint64)-1, 5.f, FColor::Cyan, FString::Printf(TEXT("StartPos: %s"), *ObjectStartPos.ToString()));
+			GEngine->AddOnScreenDebugMessage((uint64)-1, 5.f, FColor::Green, FString::Printf(TEXT("ProjectedPos: %s"), *ProjectedObjectPos.ToString()));
+		}
+		Pivot->SetStartTransformPosition(ProjectedObjectPos);
+		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
+		Pivot->SetPosition(NewPos);
 	}
 
 	void FBlenderToolBase::FlushDrawnAxisLines() const
@@ -87,22 +146,22 @@ namespace BlenderControls
 		}
 	}
 
-	FLinearColor FBlenderToolBase::GetAxisColor(ETransformAxis InAxis)
+	FLinearColor FBlenderToolBase::GetAxisColor(EAxisLock InAxis)
 	{
 		switch (InAxis)
 		{
-		case ETransformAxis::X:
+		case EAxisLock::X:
 			return FLinearColor::Red;
-		case ETransformAxis::Y:
+		case EAxisLock::Y:
 			return FLinearColor::Green;
-		case ETransformAxis::Z:
+		case EAxisLock::Z:
 			return FLinearColor::Blue;
 		default:
 			return FLinearColor::White;
 		}
 	}
 
-	void FBlenderToolBase::DrawAxisLine(ETransformAxis InAxis) const
+	void FBlenderToolBase::DrawAxisLine(EAxisLock InAxis) const
 	{
 		if (CachedBatcher.IsValid())
 		{
@@ -122,7 +181,7 @@ namespace BlenderControls
 		}
 	}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector &Origin) const
 	{
 		if (!SceneView)
 		{
@@ -139,14 +198,14 @@ namespace BlenderControls
 		return FMath::Clamp(Scaled, MinLineThickness, MaxLineThickness);
 	}
 
-	FVector FBlenderToolBase::GetAxisVector(ETransformAxis InAxis) const
+	FVector FBlenderToolBase::GetAxisVector(EAxisLock InAxis) const
 	{
 		FVector AxisVector =
-			(InAxis == ETransformAxis::X)
+			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
-				: (InAxis == ETransformAxis::Y)
+			: (InAxis == EAxisLock::Y)
 				? FVector::YAxisVector
-				: (InAxis == ETransformAxis::Z)
+			: (InAxis == EAxisLock::Z)
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
@@ -159,7 +218,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+		ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
 			return;
@@ -173,7 +232,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
 
-		if (UWorld* World = GEditor->GetEditorWorldContext().World())
+		if (UWorld *World = GEditor->GetEditorWorldContext().World())
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
@@ -212,18 +271,23 @@ namespace BlenderControls
 		FIntPoint MousePosInt;
 		Viewport->GetMousePos(MousePosInt);
 		FVector2D MousePos = FVector2D(MousePosInt);
-		
+
 		SceneView->DeprojectFVector2D(MousePos, WorldOrigin, WorldDirection);
 
-		UpdateDragPlane();
+		// Cache the initial world origin and direction
+		WorldOriginOnStart = WorldOrigin;
+		WorldDirectionOnStart = WorldDirection;
+		
+		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
+		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
+		GrabContext.PivotStartPos = Pivot->GetStartTransform().GetLocation();
 
-		GrabStartPlaneIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-		                                                               WorldOrigin + (WorldDirection *
-			                                                               BIG_NUMBER),
-		                                                               DragPlane);
+		GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+		GrabContext.TotalDelta = FVector::ZeroVector;
+		GrabContext.DeltaAnchor = FVector::ZeroVector;
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
+	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
@@ -232,7 +296,7 @@ namespace BlenderControls
 		}
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
 		const FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
-		
+
 		FSceneViewFamilyContext TempViewFamily(
 			FSceneViewFamily::ConstructionValues(
 				ViewportClient->Viewport,
@@ -245,9 +309,7 @@ namespace BlenderControls
 			SceneView->DeprojectFVector2D(CurrentMousePos, WorldOrigin, WorldDirection);
 		}
 
-		CurrentPlaneIntersectionPoint = FMath::LinePlaneIntersection(WorldOrigin,
-		                                                             WorldOrigin + (WorldDirection * BIG_NUMBER),
-		                                                             DragPlane);
+		CurrentHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
@@ -258,11 +320,11 @@ namespace BlenderControls
 		}
 
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
-		Axis = ETransformAxis::All;
+		LockedAxis = EAxisLock::All;
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -272,43 +334,44 @@ namespace BlenderControls
 			FVector NewPivot = bApply ? Pivot->GetPivot().GetLocation() : Pivot->GetStartTransform().GetLocation();
 			GEditor->SetPivot(NewPivot, false, true, false);
 		}
-
+		
 		FlushDrawnAxisLines();
 	}
 
 	void FBlenderToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)
 	{
+		// On shift held down
 		if (bNewPrecisionModeActive && !bPrecisionModeActive)
 		{
-			ShiftStartIntersectionPoint = CurrentPlaneIntersectionPoint;
-			PrecisionAnchor = CurrentPlaneIntersectionPoint - GrabStartPlaneIntersectionPoint;
+			GrabContext.DeltaAnchor = GrabContext.TotalDelta;
+			GrabContext.ShiftStartHit = CurrentHit;
+			CurrentPrecisionFactor = PrecisionFactor;
 			bWasPrecisionModeActive = false;
 		}
 
+		// On shift released
 		if (!bNewPrecisionModeActive && bPrecisionModeActive)
 		{
-			const FVector RawDeltaSinceShift = CurrentPlaneIntersectionPoint - ShiftStartIntersectionPoint;
-			const FVector DeltaAtRelease = PrecisionAnchor + RawDeltaSinceShift * PrecisionFactor;
-			
-			GrabStartPlaneIntersectionPoint = CurrentPlaneIntersectionPoint - DeltaAtRelease;
-			
-			ShiftStartIntersectionPoint = CurrentPlaneIntersectionPoint;
-			PrecisionAnchor = DeltaAtRelease; 
+			const FVector CurrentHitOnNewHelper = BlenderControls::Math::IntersectHelper(
+				GrabContext, WorldOrigin, WorldDirection);
+			GrabContext.StartHit = CurrentHitOnNewHelper;
+			GrabContext.DeltaAnchor = GrabContext.TotalDelta;
+			CurrentPrecisionFactor = 1.0f;
 		}
 
 		bPrecisionModeActive = bNewPrecisionModeActive;
 	}
 
-	void FBlenderToolBase::StartNewLock(const ETransformAxis NewAxis)
+	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis)
 	{
-		Axis = NewAxis;
+		LockedAxis = NewAxis;
 		bIsAxisLockActive = true;
 		bIsUsingLocalSpace = bLocalSpaceDefault;
 	}
 
-	void FBlenderToolBase::HandleAxisLock(const ETransformAxis AxisPressed)
+	void FBlenderToolBase::HandleAxisLock(const EAxisLock AxisPressed)
 	{
-		if (!bIsAxisLockActive || Axis != AxisPressed)
+		if (!bIsAxisLockActive || LockedAxis != AxisPressed)
 		{
 			StartNewLock(AxisPressed);
 		}
@@ -324,12 +387,11 @@ namespace BlenderControls
 			{
 				// Third Press: We were in the alternate space, so cycle is complete. Unlock.
 				bIsAxisLockActive = false;
-				Axis = ETransformAxis::All;
+				LockedAxis = EAxisLock::All;
 			}
 		}
 
-		UpdateDragPlane();
-		OnActive(CurrentViewportMousePos);
+		UpdateAxisLock();
 	}
 
 	void FBlenderToolBase::Accept()
@@ -365,7 +427,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition)
+	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D &CurrentViewportMousePosition)
 	{
 		OnActive(CurrentViewportMousePosition);
 	}
@@ -381,10 +443,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection* ActorSelection = GEditor->GetSelectedActors();
+			USelection *ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor* Actor = Cast<AActor>(*It))
+				if (AActor *Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}

@@ -13,7 +13,7 @@ namespace BlenderControls
 		Scale
 	};
 
-	enum class ETransformAxis : uint8
+	enum class EAxisLock : uint8
 	{
 		X = 1 << 0,
 		Y = 1 << 1,
@@ -25,5 +25,5 @@ namespace BlenderControls
 	};
 
 	// Makes bitwise ops work (like |, &, etc.)
-	ENUM_CLASS_FLAGS(ETransformAxis)
+	ENUM_CLASS_FLAGS(EAxisLock)
 } // namespace BlenderControls
