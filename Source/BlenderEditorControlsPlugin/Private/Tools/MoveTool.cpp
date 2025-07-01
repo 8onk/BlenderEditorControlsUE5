@@ -1,4 +1,6 @@
 #include "Tools/MoveTool.h"
+
+#include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
 
 namespace BlenderControls
@@ -13,7 +15,7 @@ namespace BlenderControls
 		FBlenderToolBase::OnBegin();
 	}
 
-	void FMoveTool::OnActive(const FVector2D &CurrentViewportMousePosition)
+	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
@@ -35,13 +37,16 @@ namespace BlenderControls
 		}
 		GrabContext.TotalDelta = LiveDelta;
 
-		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
+		const float PixelDelta = (CurrentViewportMousePosition - CurrentViewportMousePos).Size();
+		// or from OnBegin mouse pos
+		const float WorldDelta = LiveDelta.Size();
 
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("GrabContext State:"));
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("  DeltaAnchor: %s"), *GrabContext.DeltaAnchor.ToString());
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("  StartHit: %s"), *GrabContext.StartHit.ToString());
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("  CurrentHit: %s"), *CurrentHit.ToString());
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("  PivotPos: %s"), *Pivot->GetStartTransform().GetLocation().ToString());
+		const float GainRatio = PixelDelta > KINDA_SMALL_NUMBER ? (WorldDelta / PixelDelta) : 0.0f;
+		const float ViewPlaneAngleCos = FVector::DotProduct(ViewportClient->GetViewRotation().Vector(),
+		                                                    GrabContext.HelperPlaneN);
+
+
+		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
 
 		Pivot->SetPosition(NewPos);
 	}

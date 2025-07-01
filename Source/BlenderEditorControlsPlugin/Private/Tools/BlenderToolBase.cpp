@@ -58,8 +58,7 @@ namespace BlenderControls
 				break;
 			}
 		}
-
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("Called"));
+		
 		FlushDrawnAxisLines();
 		switch (LockedAxis)
 		{
@@ -351,9 +350,9 @@ namespace BlenderControls
 		// On shift released
 		if (!bNewPrecisionModeActive && bPrecisionModeActive)
 		{
-			const FVector CurrentHitOnNewHelper = BlenderControls::Math::IntersectHelper(
+			const FVector NewCurrentHit = BlenderControls::Math::IntersectHelper(
 				GrabContext, WorldOrigin, WorldDirection);
-			GrabContext.StartHit = CurrentHitOnNewHelper;
+			GrabContext.StartHit = NewCurrentHit;
 			GrabContext.DeltaAnchor = GrabContext.TotalDelta;
 			CurrentPrecisionFactor = 1.0f;
 		}
@@ -389,7 +388,7 @@ namespace BlenderControls
 				LockedAxis = EAxisLock::All;
 			}
 		}
-		
+
 		UpdateAxisLock();
 	}
 

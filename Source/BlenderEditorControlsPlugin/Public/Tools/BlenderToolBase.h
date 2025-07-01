@@ -4,6 +4,7 @@
 #include "BlenderEditorControlsEnums.h"
 #include "SharedPivot.h"
 #include "ScopedTransaction.h"
+#include "Utils/BlenderMathHelpers.h"
 
 namespace BlenderControls
 {
@@ -117,5 +118,6 @@ namespace BlenderControls
 		bool bIsUsingLocalSpace = false;
 		bool bLocalSpaceDefault;
 		FGrabContext GrabContext;
+		BlenderControls::Math::FMatrix2x2 PlaneToJacobian;
 	};
 } // namespace BlenderControls

@@ -62,4 +62,44 @@ namespace BlenderControls::Math
 		FVector Axis = AxisDirection.GetSafeNormal();
 		return FVector::DotProduct(Vector, Axis) * Axis;
 	}
+
+	FMatrix2x2::FMatrix2x2()
+	{
+		M[0][0] = 0.0f;
+		M[0][1] = 0.0f;
+		M[1][0] = 0.0f;
+		M[1][1] = 0.0f;
+	}
+
+	FMatrix2x2::FMatrix2x2(float m00, float m01, float m10, float m11)
+	{
+		M[0][0] = m00;
+		M[0][1] = m01;
+		M[1][0] = m10;
+		M[1][1] = m11;
+	}
+
+	FMatrix2x2 FMatrix2x2::Inverse() const
+	{
+		float det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+		if (FMath::IsNearlyZero(det))
+		{
+			// Return zero matrix if not invertible
+			return FMatrix2x2();
+		}
+		float invDet = 1.0f / det;
+		return FMatrix2x2(
+			M[1][1] * invDet, -M[0][1] * invDet,
+			-M[1][0] * invDet, M[0][0] * invDet);
+	}
+
+	FVector2D FMatrix2x2::GetColumn0() const
+	{
+		return FVector2D(M[0][0], M[1][0]);
+	}
+
+	FVector2D FMatrix2x2::GetColumn1() const
+	{
+		return FVector2D(M[0][1], M[1][1]);
+	}
 }

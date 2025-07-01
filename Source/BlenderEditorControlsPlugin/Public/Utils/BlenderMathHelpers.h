@@ -2,10 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "BlenderEditorControlsEnums.h"
-#include "Tools/SharedPivot.h"
 #include "Misc/Optional.h"
 #include "Math/Plane.h"
-#include "BlenderEditorControlsPlugin.h"
 
 namespace BlenderControls
 {
@@ -24,4 +22,16 @@ namespace BlenderControls::Math
 
 	FVector ProjectVectorOntoPlane(const FVector &Vector, const FVector &PlaneNormal);
 	FVector ProjectVectorOntoAxis(const FVector &Vector, const FVector &AxisDirection);
+
+	struct FMatrix2x2
+	{
+		float M[2][2];
+
+		FMatrix2x2();
+		FMatrix2x2(float m00, float m01, float m10, float m11);
+
+		FMatrix2x2 Inverse() const;
+		FVector2D GetColumn0() const;
+		FVector2D GetColumn1() const;
+	};
 } // namespace BlenderControls::Math
