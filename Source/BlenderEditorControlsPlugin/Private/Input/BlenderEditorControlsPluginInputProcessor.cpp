@@ -26,7 +26,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BindCommands()
 	{
-		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
+		const auto &Commands = FBlenderEditorControlsPluginCommands::Get();
 
 		// G  – Translate
 		CommandList->MapAction(
@@ -47,7 +47,7 @@ namespace BlenderControls
 			FCanExecuteAction());
 	}
 
-	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
+	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &App, TSharedRef<ICursor>)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -56,7 +56,7 @@ namespace BlenderControls
 
 		// Update precision mode based on Shift key state
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
-		//CurrentTool->SetPrecisionModeActive(bShift);
+		CurrentTool->SetPrecisionModeActive(bShift);
 
 		bool bIsGridSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
 
@@ -71,7 +71,7 @@ namespace BlenderControls
 		}*/
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
@@ -83,20 +83,26 @@ namespace BlenderControls
 			const FKey Key = KeyEvent.GetKey();
 			const bool bShift = KeyEvent.IsShiftDown();
 
-			if (Key == EKeys::X)
+			// Only handle if not already down
+			if ((Key == EKeys::X || Key == EKeys::Y || Key == EKeys::Z) && !AxisLockKeysDown.Contains(Key))
 			{
-				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
-				return true;
-			}
-			if (Key == EKeys::Y)
-			{
-				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
-				return true;
-			}
-			if (Key == EKeys::Z)
-			{
-				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
-				return true;
+				AxisLockKeysDown.Add(Key);
+
+				if (Key == EKeys::X)
+				{
+					CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
+					return true;
+				}
+				if (Key == EKeys::Y)
+				{
+					CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
+					return true;
+				}
+				if (Key == EKeys::Z)
+				{
+					CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
+					return true;
+				}
 			}
 
 			if (KeyEvent.GetKey() == EKeys::Escape)
@@ -109,12 +115,17 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
 	{
+		const FKey Key = KeyEvent.GetKey();
+		if (Key == EKeys::X || Key == EKeys::Y || Key == EKeys::Z)
+		{
+			AxisLockKeysDown.Remove(Key);
+		}
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid() || bNumericInput)
 		{
@@ -124,12 +135,12 @@ namespace BlenderControls
 		FVector2D CurrentViewportMousePosition;
 
 		BlenderControls::Math::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
-		                                                CurrentViewportMousePosition);
+														CurrentViewportMousePosition);
 		CurrentTool->OnActive(CurrentViewportMousePosition);
 		return true;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -151,7 +162,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication &, const FPointerEvent &)
 	{
 		return false;
 	}

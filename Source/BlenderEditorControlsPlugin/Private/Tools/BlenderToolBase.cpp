@@ -8,7 +8,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
 		: Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -116,23 +116,22 @@ namespace BlenderControls
 
 		const FVector NewStartHit = Math::IntersectHelper(GrabContext, WorldOriginOnStart, WorldDirectionOnStart);
 		const FVector NewCurrentHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+		const FVector NewTotalDelta = NewCurrentHit - NewStartHit;
 
 		GrabContext.StartHit = NewStartHit;
 		CurrentHit = NewCurrentHit;
-		GrabContext.TotalDelta = NewCurrentHit - NewStartHit;
-		if (GEngine)
+
+		if (GrabContext.HelperType == FGrabContext::EHelperType::AxisLine)
 		{
-			GEngine->AddOnScreenDebugMessage((uint64)-1, 10.f, FColor::Yellow, FString::Printf(TEXT("TotalDelta: %s"), *GrabContext.TotalDelta.ToString()));
+			GrabContext.TotalDelta = NewTotalDelta;
+		}
+		else
+		{
+			const FVector ProjectedNewTotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(
+				NewTotalDelta, GrabContext.HelperPlaneN);
+			GrabContext.TotalDelta = ProjectedNewTotalDelta;
 		}
 
-		const FVector ObjectStartPos = Pivot->GetStartTransform().GetLocation();
-		const FVector ProjectedObjectPos = BlenderControls::Math::ProjectVectorOntoPlane(ObjectStartPos, GrabContext.HelperPlaneN);
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage((uint64)-1, 5.f, FColor::Cyan, FString::Printf(TEXT("StartPos: %s"), *ObjectStartPos.ToString()));
-			GEngine->AddOnScreenDebugMessage((uint64)-1, 5.f, FColor::Green, FString::Printf(TEXT("ProjectedPos: %s"), *ProjectedObjectPos.ToString()));
-		}
-		Pivot->SetStartTransformPosition(ProjectedObjectPos);
 		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
 		Pivot->SetPosition(NewPos);
 	}
@@ -181,7 +180,7 @@ namespace BlenderControls
 		}
 	}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector &Origin) const
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
 	{
 		if (!SceneView)
 		{
@@ -203,9 +202,9 @@ namespace BlenderControls
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
-			: (InAxis == EAxisLock::Y)
+				: (InAxis == EAxisLock::Y)
 				? FVector::YAxisVector
-			: (InAxis == EAxisLock::Z)
+				: (InAxis == EAxisLock::Z)
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
@@ -218,7 +217,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
+		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
 			return;
@@ -232,7 +231,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
 
-		if (UWorld *World = GEditor->GetEditorWorldContext().World())
+		if (UWorld* World = GEditor->GetEditorWorldContext().World())
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
@@ -277,7 +276,7 @@ namespace BlenderControls
 		// Cache the initial world origin and direction
 		WorldOriginOnStart = WorldOrigin;
 		WorldDirectionOnStart = WorldDirection;
-		
+
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
 		GrabContext.PivotStartPos = Pivot->GetStartTransform().GetLocation();
@@ -287,7 +286,7 @@ namespace BlenderControls
 		GrabContext.DeltaAnchor = FVector::ZeroVector;
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
@@ -324,7 +323,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -334,7 +333,7 @@ namespace BlenderControls
 			FVector NewPivot = bApply ? Pivot->GetPivot().GetLocation() : Pivot->GetStartTransform().GetLocation();
 			GEditor->SetPivot(NewPivot, false, true, false);
 		}
-		
+
 		FlushDrawnAxisLines();
 	}
 
@@ -390,7 +389,7 @@ namespace BlenderControls
 				LockedAxis = EAxisLock::All;
 			}
 		}
-
+		
 		UpdateAxisLock();
 	}
 
@@ -427,7 +426,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition)
 	{
 		OnActive(CurrentViewportMousePosition);
 	}
@@ -443,10 +442,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection *ActorSelection = GEditor->GetSelectedActors();
+			USelection* ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor *Actor = Cast<AActor>(*It))
+				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}
