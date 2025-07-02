@@ -37,17 +37,7 @@ namespace BlenderControls
 		}
 		GrabContext.TotalDelta = LiveDelta;
 
-		const float PixelDelta = (CurrentViewportMousePosition - CurrentViewportMousePos).Size();
-		// or from OnBegin mouse pos
-		const float WorldDelta = LiveDelta.Size();
-
-		const float GainRatio = PixelDelta > KINDA_SMALL_NUMBER ? (WorldDelta / PixelDelta) : 0.0f;
-		const float ViewPlaneAngleCos = FVector::DotProduct(ViewportClient->GetViewRotation().Vector(),
-		                                                    GrabContext.HelperPlaneN);
-
-
 		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
-
 		Pivot->SetPosition(NewPos);
 	}
 

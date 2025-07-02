@@ -8,7 +8,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName)
 		: Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -58,7 +58,7 @@ namespace BlenderControls
 				break;
 			}
 		}
-		
+
 		FlushDrawnAxisLines();
 		switch (LockedAxis)
 		{
@@ -179,7 +179,7 @@ namespace BlenderControls
 		}
 	}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector &Origin) const
 	{
 		if (!SceneView)
 		{
@@ -201,9 +201,9 @@ namespace BlenderControls
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
-				: (InAxis == EAxisLock::Y)
+			: (InAxis == EAxisLock::Y)
 				? FVector::YAxisVector
-				: (InAxis == EAxisLock::Z)
+			: (InAxis == EAxisLock::Z)
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
@@ -216,7 +216,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+		ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
 			return;
@@ -230,7 +230,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
 
-		if (UWorld* World = GEditor->GetEditorWorldContext().World())
+		if (UWorld *World = GEditor->GetEditorWorldContext().World())
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
@@ -283,10 +283,15 @@ namespace BlenderControls
 		GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
 		GrabContext.TotalDelta = FVector::ZeroVector;
 		GrabContext.DeltaAnchor = FVector::ZeroVector;
+
+		// Initialize MouseDelta2D to zero at the start of the tool
+		MouseDelta2D = FVector2D::ZeroVector;
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
+	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
 	{
+		// Calculate per-frame mouse delta
+		MouseDelta2D = CurrentViewportMousePosition - CurrentViewportMousePos;
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
 		{
@@ -322,7 +327,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -425,7 +430,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition)
+	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D &CurrentViewportMousePosition)
 	{
 		OnActive(CurrentViewportMousePosition);
 	}
@@ -441,10 +446,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection* ActorSelection = GEditor->GetSelectedActors();
+			USelection *ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor* Actor = Cast<AActor>(*It))
+				if (AActor *Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}

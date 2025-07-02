@@ -119,5 +119,8 @@ namespace BlenderControls
 		bool bLocalSpaceDefault;
 		FGrabContext GrabContext;
 		BlenderControls::Math::FMatrix2x2 PlaneToJacobian;
+
+		/** Per-frame mouse delta in viewport space */
+		FVector2D MouseDelta2D = FVector2D::ZeroVector;
 	};
 } // namespace BlenderControls
