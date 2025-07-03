@@ -13,6 +13,9 @@ namespace BlenderControls
 		FVector PivotStartPos; // world-space position at G-press
 		FVector StartHit;	   // ray/plane or ray/line intersection at G-press
 		FVector TotalDelta;	   // accumulated movement applied so far
+		FVector2D MousePosA;
+		FVector2D MousePosB;
+		float ScreenToWorldScale;
 
 		// Helper describing current dragging surface (view-plane, axis-line, dual plane)
 		enum class EHelperType
@@ -118,9 +121,8 @@ namespace BlenderControls
 		bool bIsUsingLocalSpace = false;
 		bool bLocalSpaceDefault;
 		FGrabContext GrabContext;
-		BlenderControls::Math::FMatrix2x2 PlaneToJacobian;
-
-		/** Per-frame mouse delta in viewport space */
-		FVector2D MouseDelta2D = FVector2D::ZeroVector;
+		FVector2D MouseDelta;
+		FVector ViewUp;
+		FVector ViewRight;
 	};
 } // namespace BlenderControls

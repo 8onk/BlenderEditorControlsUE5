@@ -5,6 +5,8 @@
 #include "Components/LineBatchComponent.h"
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
+#include "DrawDebugHelpers.h"
+#include "Misc/OutputDeviceDebug.h"
 
 namespace BlenderControls
 {
@@ -131,8 +133,26 @@ namespace BlenderControls
 			GrabContext.TotalDelta = ProjectedNewTotalDelta;
 		}
 
+		// FOR FIXING THE HUGE SPIKES FAR AWAY
+		//  const float cosFactor = FMath::Abs(FVector::DotProduct(GrabContext.HelperPlaneN,
+		//  													   ViewDirection));
+		//  GrabContext.TotalDelta *= cosFactor;
+
 		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
 		Pivot->SetPosition(NewPos);
+
+		// Draw persistent debug spheres for CurrentHit (green) and StartHit (red)
+		// if (GEditor && GEditor->GetEditorWorldContext().World())
+		// {
+		// 	UWorld* World = GEditor->GetEditorWorldContext().World();
+		// 	const float SphereRadius = 12.0f;
+		// 	const int32 Segments = 16;
+		// 	const float Duration = 0.0f; // Persistent
+		// 	const float Thickness = 2.0f;
+		// 	DrawDebugSphere(World, CurrentHit, SphereRadius, Segments, FColor::Green, true, Duration, 0, Thickness);
+		// 	DrawDebugSphere(World, GrabContext.StartHit, SphereRadius, Segments, FColor::Red, true, Duration, 0,
+		// 	                Thickness);
+		// }
 	}
 
 	void FBlenderToolBase::FlushDrawnAxisLines() const
@@ -270,6 +290,8 @@ namespace BlenderControls
 		Viewport->GetMousePos(MousePosInt);
 		FVector2D MousePos = FVector2D(MousePosInt);
 
+		UE_LOG(LogTemp, Log, TEXT("OnBegin: CurrentMousePos X=%.2f Y=%.2f"), MousePos.X, MousePos.Y);
+
 		SceneView->DeprojectFVector2D(MousePos, WorldOrigin, WorldDirection);
 
 		// Cache the initial world origin and direction
@@ -284,14 +306,23 @@ namespace BlenderControls
 		GrabContext.TotalDelta = FVector::ZeroVector;
 		GrabContext.DeltaAnchor = FVector::ZeroVector;
 
-		// Initialize MouseDelta2D to zero at the start of the tool
-		MouseDelta2D = FVector2D::ZeroVector;
+		// NEW TEST
+		GrabContext.MousePosA = MousePos;
+		GrabContext.MousePosB = GrabContext.MousePosA + FVector2D(1, 0);
+
+		FVector MousePosBOrigin, MousePosBDirection;
+		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
+		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+		FVector MouseIntersectionB = BlenderControls::Math::IntersectHelper(
+			GrabContext, MousePosBOrigin, MousePosBDirection);
+
+		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
+		ViewUp = SceneView->GetViewUp();
+		ViewRight = SceneView->GetViewRight();
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
 	{
-		// Calculate per-frame mouse delta
-		MouseDelta2D = CurrentViewportMousePosition - CurrentViewportMousePos;
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
 		{
@@ -313,6 +344,55 @@ namespace BlenderControls
 		}
 
 		CurrentHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+		MouseDelta = CurrentMousePos - GrabContext.MousePosA;
+
+		// Draw persistent debug spheres for CurrentHit (green) and StartHit (red) every frame
+		// if (GEditor && GEditor->GetEditorWorldContext().World())
+		// {
+		// 	UWorld* World = GEditor->GetEditorWorldContext().World();
+		// 	const float SphereRadius = 12.0f;
+		// 	const int32 Segments = 16;
+		// 	const float Duration = 0.05f; // Short duration, refreshed every frame
+		// 	const float Thickness = 2.0f;
+		// 	DrawDebugSphere(World, CurrentHit, SphereRadius, Segments, FColor::Green, false, Duration, 0, Thickness);
+		// 	DrawDebugSphere(World, GrabContext.StartHit, SphereRadius, Segments, FColor::Red, false, Duration, 0,
+		// 	                Thickness);
+		// }
+
+		FVector ViewDirection = ViewportClient->GetViewRotation().Vector();
+
+		float dot_nd = FMath::Abs(FVector::DotProduct(GrabContext.HelperPlaneN,
+													  ViewDirection));
+
+		// if (GEngine)
+		// {
+		// 	FString DebugText = FString::Printf(
+		// 		TEXT("ViewDirection: X=%.2f Y=%.2f Z=%.2f | dot_nd: %.4f"), ViewDirection.X, ViewDirection.Y,
+		// 		ViewDirection.Z, dot_nd);
+		// 	GEngine->AddOnScreenDebugMessage(123456, 0.05f, FColor::Yellow, DebugText, true, FVector2D(1.5f, 1.5f));
+
+		// 	FString TotalDeltaText = FString::Printf(
+		// 		TEXT("TotalDelta: X=%.2f Y=%.2f Z=%.2f"),
+		// 		GrabContext.TotalDelta.X, GrabContext.TotalDelta.Y, GrabContext.TotalDelta.Z);
+		// 	GEngine->AddOnScreenDebugMessage(123457, 0.05f, FColor::Cyan, TotalDeltaText, true, FVector2D(1.5f, 1.5f));
+		// }
+
+		// Compute distance between CurrentHit and LastHit
+		static FVector LastHit = FVector::ZeroVector;
+		float HitDistance = FVector::Dist(CurrentHit, LastHit);
+
+		// Log to UE_LOG
+		// UE_LOG(LogTemp, Log, TEXT("CurrentHit-LastHit distance: %.4f"), HitDistance);
+
+		// Log to screen
+		// if (GEngine)
+		// {
+		// 	FString HitDistText = FString::Printf(TEXT("CurrentHit-LastHit Dist: %.4f"), HitDistance);
+		// 	GEngine->AddOnScreenDebugMessage(123458, 0.05f, FColor::Magenta, HitDistText, true, FVector2D(1.5f, 1.5f));
+		// }
+
+		// Update LastHit for next frame
+		LastHit = CurrentHit;
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
