@@ -56,7 +56,7 @@ namespace BlenderControls
 
 		// Update precision mode based on Shift key state
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
-		//CurrentTool->SetPrecisionModeActive(bShift);
+		CurrentTool->SetPrecisionModeActive(bShift);
 
 		bool bIsGridSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
 

@@ -10,7 +10,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
 		: Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -72,28 +72,24 @@ namespace BlenderControls
 		case EAxisLock::X:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
 			GrabContext.HelperAxisDir = FVector::XAxisVector;
-			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoAxis(GrabContext.TotalDelta, GrabContext.HelperAxisDir);
 			DrawAxisLine(EAxisLock::X);
 			break;
 
 		case EAxisLock::Y:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
 			GrabContext.HelperAxisDir = FVector::YAxisVector;
-			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoAxis(GrabContext.TotalDelta, GrabContext.HelperAxisDir);
 			DrawAxisLine(EAxisLock::Y);
 			break;
 
 		case EAxisLock::Z:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
 			GrabContext.HelperAxisDir = FVector::ZAxisVector;
-			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoAxis(GrabContext.TotalDelta, GrabContext.HelperAxisDir);
 			DrawAxisLine(EAxisLock::Z);
 			break;
 
 		case EAxisLock::YZ:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
 			GrabContext.HelperPlaneN = FVector::XAxisVector;
-			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(GrabContext.TotalDelta, GrabContext.HelperPlaneN);
 			DrawAxisLine(EAxisLock::Y);
 			DrawAxisLine(EAxisLock::Z);
 			break;
@@ -101,7 +97,6 @@ namespace BlenderControls
 		case EAxisLock::XZ:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
 			GrabContext.HelperPlaneN = FVector::YAxisVector;
-			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(GrabContext.TotalDelta, GrabContext.HelperPlaneN);
 			DrawAxisLine(EAxisLock::X);
 			DrawAxisLine(EAxisLock::Z);
 			break;
@@ -109,50 +104,13 @@ namespace BlenderControls
 		case EAxisLock::XY:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
 			GrabContext.HelperPlaneN = FVector::ZAxisVector;
-			// GrabContext.TotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(GrabContext.TotalDelta, GrabContext.HelperPlaneN);
 			DrawAxisLine(EAxisLock::X);
 			DrawAxisLine(EAxisLock::Y);
 			break;
 		}
-
-		const FVector NewStartHit = Math::IntersectHelper(GrabContext, WorldOriginOnStart, WorldDirectionOnStart);
-		const FVector NewCurrentHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
-		const FVector NewTotalDelta = NewCurrentHit - NewStartHit;
-
-		GrabContext.StartHit = NewStartHit;
-		CurrentHit = NewCurrentHit;
-
-		if (GrabContext.HelperType == FGrabContext::EHelperType::AxisLine)
-		{
-			GrabContext.TotalDelta = NewTotalDelta;
-		}
-		else
-		{
-			const FVector ProjectedNewTotalDelta = BlenderControls::Math::ProjectVectorOntoPlane(
-				NewTotalDelta, GrabContext.HelperPlaneN);
-			GrabContext.TotalDelta = ProjectedNewTotalDelta;
-		}
-
-		// FOR FIXING THE HUGE SPIKES FAR AWAY
-		//  const float cosFactor = FMath::Abs(FVector::DotProduct(GrabContext.HelperPlaneN,
-		//  													   ViewDirection));
-		//  GrabContext.TotalDelta *= cosFactor;
-
-		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
-		Pivot->SetPosition(NewPos);
-
-		// Draw persistent debug spheres for CurrentHit (green) and StartHit (red)
-		// if (GEditor && GEditor->GetEditorWorldContext().World())
-		// {
-		// 	UWorld* World = GEditor->GetEditorWorldContext().World();
-		// 	const float SphereRadius = 12.0f;
-		// 	const int32 Segments = 16;
-		// 	const float Duration = 0.0f; // Persistent
-		// 	const float Thickness = 2.0f;
-		// 	DrawDebugSphere(World, CurrentHit, SphereRadius, Segments, FColor::Green, true, Duration, 0, Thickness);
-		// 	DrawDebugSphere(World, GrabContext.StartHit, SphereRadius, Segments, FColor::Red, true, Duration, 0,
-		// 	                Thickness);
-		// }
+		
+		//Update object pos to be on new plane
+		OnActive(CurrentViewportMousePos);
 	}
 
 	void FBlenderToolBase::FlushDrawnAxisLines() const
@@ -199,7 +157,7 @@ namespace BlenderControls
 		}
 	}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector &Origin) const
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
 	{
 		if (!SceneView)
 		{
@@ -221,9 +179,9 @@ namespace BlenderControls
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
-			: (InAxis == EAxisLock::Y)
+				: (InAxis == EAxisLock::Y)
 				? FVector::YAxisVector
-			: (InAxis == EAxisLock::Z)
+				: (InAxis == EAxisLock::Z)
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
@@ -236,7 +194,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
+		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
 			return;
@@ -250,7 +208,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
 
-		if (UWorld *World = GEditor->GetEditorWorldContext().World())
+		if (UWorld* World = GEditor->GetEditorWorldContext().World())
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
@@ -292,27 +250,22 @@ namespace BlenderControls
 
 		UE_LOG(LogTemp, Log, TEXT("OnBegin: CurrentMousePos X=%.2f Y=%.2f"), MousePos.X, MousePos.Y);
 
-		SceneView->DeprojectFVector2D(MousePos, WorldOrigin, WorldDirection);
-
-		// Cache the initial world origin and direction
-		WorldOriginOnStart = WorldOrigin;
-		WorldDirectionOnStart = WorldDirection;
+		SceneView->DeprojectFVector2D(MousePos, CurrentRayOrigin, CurrentRayDirection);
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
 		GrabContext.PivotStartPos = Pivot->GetStartTransform().GetLocation();
 
-		GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+		//GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
 		GrabContext.TotalDelta = FVector::ZeroVector;
 		GrabContext.DeltaAnchor = FVector::ZeroVector;
-
-		// NEW TEST
+		
 		GrabContext.MousePosA = MousePos;
 		GrabContext.MousePosB = GrabContext.MousePosA + FVector2D(1, 0);
 
 		FVector MousePosBOrigin, MousePosBDirection;
 		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
-		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(GrabContext, CurrentRayOrigin, CurrentRayDirection);
 		FVector MouseIntersectionB = BlenderControls::Math::IntersectHelper(
 			GrabContext, MousePosBOrigin, MousePosBDirection);
 
@@ -321,7 +274,7 @@ namespace BlenderControls
 		ViewRight = SceneView->GetViewRight();
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
@@ -340,59 +293,10 @@ namespace BlenderControls
 		SceneView = ViewportClient->CalcSceneView(&TempViewFamily);
 		if (SceneView)
 		{
-			SceneView->DeprojectFVector2D(CurrentMousePos, WorldOrigin, WorldDirection);
+			SceneView->DeprojectFVector2D(CurrentMousePos, CurrentRayOrigin, CurrentRayDirection);
 		}
 
-		CurrentHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
 		MouseDelta = CurrentMousePos - GrabContext.MousePosA;
-
-		// Draw persistent debug spheres for CurrentHit (green) and StartHit (red) every frame
-		// if (GEditor && GEditor->GetEditorWorldContext().World())
-		// {
-		// 	UWorld* World = GEditor->GetEditorWorldContext().World();
-		// 	const float SphereRadius = 12.0f;
-		// 	const int32 Segments = 16;
-		// 	const float Duration = 0.05f; // Short duration, refreshed every frame
-		// 	const float Thickness = 2.0f;
-		// 	DrawDebugSphere(World, CurrentHit, SphereRadius, Segments, FColor::Green, false, Duration, 0, Thickness);
-		// 	DrawDebugSphere(World, GrabContext.StartHit, SphereRadius, Segments, FColor::Red, false, Duration, 0,
-		// 	                Thickness);
-		// }
-
-		FVector ViewDirection = ViewportClient->GetViewRotation().Vector();
-
-		float dot_nd = FMath::Abs(FVector::DotProduct(GrabContext.HelperPlaneN,
-													  ViewDirection));
-
-		// if (GEngine)
-		// {
-		// 	FString DebugText = FString::Printf(
-		// 		TEXT("ViewDirection: X=%.2f Y=%.2f Z=%.2f | dot_nd: %.4f"), ViewDirection.X, ViewDirection.Y,
-		// 		ViewDirection.Z, dot_nd);
-		// 	GEngine->AddOnScreenDebugMessage(123456, 0.05f, FColor::Yellow, DebugText, true, FVector2D(1.5f, 1.5f));
-
-		// 	FString TotalDeltaText = FString::Printf(
-		// 		TEXT("TotalDelta: X=%.2f Y=%.2f Z=%.2f"),
-		// 		GrabContext.TotalDelta.X, GrabContext.TotalDelta.Y, GrabContext.TotalDelta.Z);
-		// 	GEngine->AddOnScreenDebugMessage(123457, 0.05f, FColor::Cyan, TotalDeltaText, true, FVector2D(1.5f, 1.5f));
-		// }
-
-		// Compute distance between CurrentHit and LastHit
-		static FVector LastHit = FVector::ZeroVector;
-		float HitDistance = FVector::Dist(CurrentHit, LastHit);
-
-		// Log to UE_LOG
-		// UE_LOG(LogTemp, Log, TEXT("CurrentHit-LastHit distance: %.4f"), HitDistance);
-
-		// Log to screen
-		// if (GEngine)
-		// {
-		// 	FString HitDistText = FString::Printf(TEXT("CurrentHit-LastHit Dist: %.4f"), HitDistance);
-		// 	GEngine->AddOnScreenDebugMessage(123458, 0.05f, FColor::Magenta, HitDistText, true, FVector2D(1.5f, 1.5f));
-		// }
-
-		// Update LastHit for next frame
-		LastHit = CurrentHit;
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
@@ -407,7 +311,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -436,8 +340,8 @@ namespace BlenderControls
 		if (!bNewPrecisionModeActive && bPrecisionModeActive)
 		{
 			const FVector NewCurrentHit = BlenderControls::Math::IntersectHelper(
-				GrabContext, WorldOrigin, WorldDirection);
-			GrabContext.StartHit = NewCurrentHit;
+				GrabContext, CurrentRayOrigin, CurrentRayDirection);
+			//GrabContext.StartHit = NewCurrentHit;
 			GrabContext.DeltaAnchor = GrabContext.TotalDelta;
 			CurrentPrecisionFactor = 1.0f;
 		}
@@ -510,7 +414,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition)
 	{
 		OnActive(CurrentViewportMousePosition);
 	}
@@ -526,10 +430,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection *ActorSelection = GEditor->GetSelectedActors();
+			USelection* ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor *Actor = Cast<AActor>(*It))
+				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}
