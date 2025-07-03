@@ -108,7 +108,7 @@ namespace BlenderControls
 			DrawAxisLine(EAxisLock::Y);
 			break;
 		}
-		
+
 		//Update object pos to be on new plane
 		OnActive(CurrentViewportMousePos);
 	}
@@ -259,13 +259,16 @@ namespace BlenderControls
 		//GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
 		GrabContext.TotalDelta = FVector::ZeroVector;
 		GrabContext.DeltaAnchor = FVector::ZeroVector;
-		
-		GrabContext.MousePosA = MousePos;
-		GrabContext.MousePosB = GrabContext.MousePosA + FVector2D(1, 0);
+
+		GrabContext.MousePosStart = MousePos;
+		GrabContext.MousePosB = GrabContext.MousePosStart + FVector2D(1, 0);
+		GrabContext.MousePosAnchor = MousePos;
+		GrabContext.TotalMouseDeltaAtAnchor = FVector2D::ZeroVector;
 
 		FVector MousePosBOrigin, MousePosBDirection;
 		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
-		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(GrabContext, CurrentRayOrigin, CurrentRayDirection);
+		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(
+			GrabContext, CurrentRayOrigin, CurrentRayDirection);
 		FVector MouseIntersectionB = BlenderControls::Math::IntersectHelper(
 			GrabContext, MousePosBOrigin, MousePosBDirection);
 
@@ -282,7 +285,7 @@ namespace BlenderControls
 			return;
 		}
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
-		const FVector2D CurrentMousePos = FVector2D(CurrentMousePosInt);
+		CurrentMousePos = FVector2D(CurrentMousePosInt);
 
 		FSceneViewFamilyContext TempViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -296,7 +299,7 @@ namespace BlenderControls
 			SceneView->DeprojectFVector2D(CurrentMousePos, CurrentRayOrigin, CurrentRayDirection);
 		}
 
-		MouseDelta = CurrentMousePos - GrabContext.MousePosA;
+		MouseDeltaSinceAnchor = CurrentMousePos - GrabContext.MousePosAnchor;
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
@@ -327,26 +330,25 @@ namespace BlenderControls
 
 	void FBlenderToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)
 	{
-		// On shift held down
-		if (bNewPrecisionModeActive && !bPrecisionModeActive)
+		// Only proceed if the state is actually changing.
+		if (bNewPrecisionModeActive == bPrecisionModeActive)
 		{
-			GrabContext.DeltaAnchor = GrabContext.TotalDelta;
-			GrabContext.ShiftStartHit = CurrentHit;
-			CurrentPrecisionFactor = PrecisionFactor;
-			bWasPrecisionModeActive = false;
+			return;
 		}
 
-		// On shift released
-		if (!bNewPrecisionModeActive && bPrecisionModeActive)
-		{
-			const FVector NewCurrentHit = BlenderControls::Math::IntersectHelper(
-				GrabContext, CurrentRayOrigin, CurrentRayDirection);
-			//GrabContext.StartHit = NewCurrentHit;
-			GrabContext.DeltaAnchor = GrabContext.TotalDelta;
-			CurrentPrecisionFactor = 1.0f;
-		}
+		const FVector2D MouseDeltaSinceLastAnchor = CurrentMousePos - GrabContext.MousePosAnchor;
+		GrabContext.TotalMouseDeltaAtAnchor += (MouseDeltaSinceLastAnchor * CurrentPrecisionFactor);
+		GrabContext.MousePosAnchor = CurrentMousePos;
 
 		bPrecisionModeActive = bNewPrecisionModeActive;
+		if (bPrecisionModeActive)
+		{
+			CurrentPrecisionFactor = PrecisionFactor;
+		}
+		else
+		{
+			CurrentPrecisionFactor = 1.0f;
+		}
 	}
 
 	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis)

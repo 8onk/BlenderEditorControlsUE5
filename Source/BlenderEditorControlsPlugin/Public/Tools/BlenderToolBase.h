@@ -13,8 +13,10 @@ namespace BlenderControls
 		FVector PivotStartPos; // world-space position at G-press
 		FVector HitAnchor; // ray/plane or ray/line intersection at G-press
 		FVector TotalDelta; // accumulated movement applied so far
-		FVector2D MousePosA;
+		FVector2D MousePosStart;
 		FVector2D MousePosB;
+		FVector2D MousePosAnchor;
+		FVector2D TotalMouseDeltaAtAnchor; 
 		float ScreenToWorldScale;
 
 		// Helper describing current dragging surface (view-plane, axis-line, dual plane)
@@ -84,6 +86,8 @@ namespace BlenderControls
 		void CaptureSelection();
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		FVector2D CurrentViewportMousePos;
+		FVector2D CurrentMousePos;
+		FVector2D MouseDeltaSinceAnchor;
 		FVector NormalToRemove;
 		FVector AccumulatedDelta;
 

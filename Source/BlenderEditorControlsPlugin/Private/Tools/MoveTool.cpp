@@ -19,8 +19,10 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		FVector UnconstrainedDelta = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
-			(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
+		const FVector2D ScaledMouseDelta = MouseDeltaSinceAnchor * CurrentPrecisionFactor;
+		const FVector2D TotalEffectiveMouseDelta = GrabContext.TotalMouseDeltaAtAnchor + ScaledMouseDelta;
+		FVector UnconstrainedDelta = (ViewRight * TotalEffectiveMouseDelta.X * GrabContext.ScreenToWorldScale) +
+			(-ViewUp * TotalEffectiveMouseDelta.Y * GrabContext.ScreenToWorldScale);
 
 		FVector FinalTotalDelta = UnconstrainedDelta;
 
@@ -31,7 +33,6 @@ namespace BlenderControls
 
 			const FVector RayOrigin = SceneView->ViewLocation;
 			const FVector RayDir = (GhostPos - RayOrigin).GetSafeNormal();
-
 			const FVector FinalHit = BlenderControls::Math::IntersectHelper(GrabContext, RayOrigin, RayDir);
 			FinalTotalDelta = FinalHit - Pivot->GetStartTransform().GetLocation();
 		}
