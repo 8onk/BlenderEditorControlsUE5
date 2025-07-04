@@ -80,14 +80,14 @@ namespace BlenderControls
 		const float MinLineThickness = 1.0f;
 		const float MaxLineThickness = 6.0f;
 		const float ReferenceDistance = 500.0f;
+		FVector2D LastMousePosition;
 
 	protected:
 		/** Child tools call this to populate Selected & prepare undo */
 		void CaptureSelection();
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		FVector2D CurrentViewportMousePos;
-		FVector2D CurrentMousePos;
-		FVector2D MouseDeltaSinceAnchor;
+		FVector2D CurrentMousePosition;
 		FVector NormalToRemove;
 		FVector AccumulatedDelta;
 

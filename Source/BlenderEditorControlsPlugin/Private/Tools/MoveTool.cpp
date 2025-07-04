@@ -18,11 +18,9 @@ namespace BlenderControls
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
-
-		const FVector2D ScaledMouseDelta = MouseDeltaSinceAnchor * CurrentPrecisionFactor;
-		const FVector2D TotalEffectiveMouseDelta = GrabContext.TotalMouseDeltaAtAnchor + ScaledMouseDelta;
-		FVector UnconstrainedDelta = (ViewRight * TotalEffectiveMouseDelta.X * GrabContext.ScreenToWorldScale) +
-			(-ViewUp * TotalEffectiveMouseDelta.Y * GrabContext.ScreenToWorldScale);
+		
+		FVector UnconstrainedDelta = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
+			(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
 
 		FVector FinalTotalDelta = UnconstrainedDelta;
 

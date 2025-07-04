@@ -1,7 +1,6 @@
 #pragma once
 
 #include "BlenderToolBase.h"
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 #include "BlenderEditorControlsEnums.h"
 
 namespace BlenderControls

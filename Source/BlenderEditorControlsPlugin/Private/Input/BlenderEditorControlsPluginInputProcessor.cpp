@@ -10,6 +10,7 @@
 #include "Containers/Ticker.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "Editor/UnrealEd/Classes/Settings/LevelEditorViewportSettings.h"
+#include "Editor/UnrealEd/Public/EditorViewportClient.h"
 
 class SLevelViewport;
 
@@ -133,10 +134,14 @@ namespace BlenderControls
 		}
 
 		FVector2D CurrentViewportMousePosition;
-
 		BlenderControls::Math::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
 														CurrentViewportMousePosition);
 		CurrentTool->OnActive(CurrentViewportMousePosition);
+
+		// Track if mouse was wrapped and inform the tool
+		bool bWrapped = WrapMouse(CurrentViewportMousePosition);
+		//CurrentTool->SetWrapped(bWrapped);
+
 		return true;
 	}
 
@@ -243,5 +248,55 @@ namespace BlenderControls
 		}
 
 		FSlateApplication::Get().GetPlatformCursor()->Show(true);
+	}
+
+	bool FBlenderControlsInputProcessor::WrapMouse(const FVector2D &CurrentViewportMousePosition)
+	{
+		UEditorEngine *EditorEngine = Cast<UEditorEngine>(GEngine);
+		if (!EditorEngine)
+		{
+			return false;
+		}
+		FViewport *EditorViewport = EditorEngine->GetActiveViewport();
+		if (!EditorViewport)
+		{
+			return false;
+		}
+
+		const int32 ViewportSizeX = EditorViewport->GetSizeXY().X;
+		const int32 ViewportSizeY = EditorViewport->GetSizeXY().Y;
+
+		int32 MouseX = (int32)CurrentViewportMousePosition.X;
+		int32 MouseY = (int32)CurrentViewportMousePosition.Y;
+
+		bool bWrapped = false;
+
+		if (MouseX < 0)
+		{
+			MouseX = ViewportSizeX - 1;
+			bWrapped = true;
+		}
+		else if (MouseX >= ViewportSizeX)
+		{
+			MouseX = 0;
+			bWrapped = true;
+		}
+
+		if (MouseY < 0)
+		{
+			MouseY = ViewportSizeY - 1;
+			bWrapped = true;
+		}
+		else if (MouseY >= ViewportSizeY)
+		{
+			MouseY = 0;
+			bWrapped = true;
+		}
+
+		if (bWrapped)
+		{
+			EditorViewport->SetMouse(MouseX, MouseY);
+		}
+		return bWrapped;
 	}
 } // namespace BlenderControls

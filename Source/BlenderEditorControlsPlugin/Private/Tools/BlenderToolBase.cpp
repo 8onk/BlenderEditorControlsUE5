@@ -248,8 +248,6 @@ namespace BlenderControls
 		Viewport->GetMousePos(MousePosInt);
 		FVector2D MousePos = FVector2D(MousePosInt);
 
-		UE_LOG(LogTemp, Log, TEXT("OnBegin: CurrentMousePos X=%.2f Y=%.2f"), MousePos.X, MousePos.Y);
-
 		SceneView->DeprojectFVector2D(MousePos, CurrentRayOrigin, CurrentRayDirection);
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
@@ -275,6 +273,9 @@ namespace BlenderControls
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 		ViewUp = SceneView->GetViewUp();
 		ViewRight = SceneView->GetViewRight();
+		MouseDelta = FVector2D::ZeroVector;
+		LastMousePosition = MousePos;
+		CurrentMousePosition = MousePos;
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -285,7 +286,7 @@ namespace BlenderControls
 			return;
 		}
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
-		CurrentMousePos = FVector2D(CurrentMousePosInt);
+		CurrentMousePosition = FVector2D(CurrentMousePosInt);
 
 		FSceneViewFamilyContext TempViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -294,12 +295,18 @@ namespace BlenderControls
 				ViewportClient->EngineShowFlags));
 
 		SceneView = ViewportClient->CalcSceneView(&TempViewFamily);
-		if (SceneView)
-		{
-			SceneView->DeprojectFVector2D(CurrentMousePos, CurrentRayOrigin, CurrentRayDirection);
-		}
 
-		MouseDeltaSinceAnchor = CurrentMousePos - GrabContext.MousePosAnchor;
+		const FVector2D CurrentFrameDelta = CurrentMousePosition - LastMousePosition;
+		MouseDelta += CurrentFrameDelta * CurrentPrecisionFactor;
+		LastMousePosition = CurrentMousePosition;
+
+		UE_LOG(LogTemp, Log,
+		       TEXT(
+			       "MouseDelta updated. CurrentMousePosition: (%f, %f), LastMousePos: (%f, %f), MouseDelta: (%f, %f)"
+		       ),
+		       CurrentMousePosition.X, CurrentMousePosition.Y,
+		       LastMousePosition.X, LastMousePosition.Y,
+		       MouseDelta.X, MouseDelta.Y);
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
@@ -336,9 +343,9 @@ namespace BlenderControls
 			return;
 		}
 
-		const FVector2D MouseDeltaSinceLastAnchor = CurrentMousePos - GrabContext.MousePosAnchor;
+		const FVector2D MouseDeltaSinceLastAnchor = CurrentMousePosition - GrabContext.MousePosAnchor;
 		GrabContext.TotalMouseDeltaAtAnchor += (MouseDeltaSinceLastAnchor * CurrentPrecisionFactor);
-		GrabContext.MousePosAnchor = CurrentMousePos;
+		GrabContext.MousePosAnchor = CurrentMousePosition;
 
 		bPrecisionModeActive = bNewPrecisionModeActive;
 		if (bPrecisionModeActive)
