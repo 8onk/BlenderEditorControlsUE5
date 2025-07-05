@@ -10,7 +10,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName)
 		: Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -109,7 +109,7 @@ namespace BlenderControls
 			break;
 		}
 
-		//Update object pos to be on new plane
+		// Update object pos to be on new plane
 		OnActive(CurrentViewportMousePos);
 	}
 
@@ -157,7 +157,7 @@ namespace BlenderControls
 		}
 	}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector &Origin) const
 	{
 		if (!SceneView)
 		{
@@ -179,9 +179,9 @@ namespace BlenderControls
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
-				: (InAxis == EAxisLock::Y)
+			: (InAxis == EAxisLock::Y)
 				? FVector::YAxisVector
-				: (InAxis == EAxisLock::Z)
+			: (InAxis == EAxisLock::Z)
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
@@ -194,7 +194,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+		ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
 			return;
@@ -208,7 +208,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
 
-		if (UWorld* World = GEditor->GetEditorWorldContext().World())
+		if (UWorld *World = GEditor->GetEditorWorldContext().World())
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
@@ -254,7 +254,7 @@ namespace BlenderControls
 		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
 		GrabContext.PivotStartPos = Pivot->GetStartTransform().GetLocation();
 
-		//GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
+		// GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
 		GrabContext.TotalDelta = FVector::ZeroVector;
 		GrabContext.DeltaAnchor = FVector::ZeroVector;
 
@@ -276,9 +276,10 @@ namespace BlenderControls
 		MouseDelta = FVector2D::ZeroVector;
 		LastMousePosition = MousePos;
 		CurrentMousePosition = MousePos;
+		bPendingMouseWrap = false;
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
+	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
@@ -287,6 +288,13 @@ namespace BlenderControls
 		}
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
 		CurrentMousePosition = FVector2D(CurrentMousePosInt);
+
+		if (bPendingMouseWrap)
+		{
+			LastMousePosition = CurrentMousePosition;
+			bPendingMouseWrap = false;
+			return;
+		}
 
 		FSceneViewFamilyContext TempViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -299,14 +307,6 @@ namespace BlenderControls
 		const FVector2D CurrentFrameDelta = CurrentMousePosition - LastMousePosition;
 		MouseDelta += CurrentFrameDelta * CurrentPrecisionFactor;
 		LastMousePosition = CurrentMousePosition;
-
-		UE_LOG(LogTemp, Log,
-		       TEXT(
-			       "MouseDelta updated. CurrentMousePosition: (%f, %f), LastMousePos: (%f, %f), MouseDelta: (%f, %f)"
-		       ),
-		       CurrentMousePosition.X, CurrentMousePosition.Y,
-		       LastMousePosition.X, LastMousePosition.Y,
-		       MouseDelta.X, MouseDelta.Y);
 	}
 
 	void FBlenderToolBase::OnEnd(bool bApply)
@@ -321,7 +321,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -423,11 +423,6 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition)
-	{
-		OnActive(CurrentViewportMousePosition);
-	}
-
 	void FBlenderToolBase::ApplyNumeric(float Value)
 	{
 		// Base implementation does nothing
@@ -439,10 +434,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection* ActorSelection = GEditor->GetSelectedActors();
+			USelection *ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor* Actor = Cast<AActor>(*It))
+				if (AActor *Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}

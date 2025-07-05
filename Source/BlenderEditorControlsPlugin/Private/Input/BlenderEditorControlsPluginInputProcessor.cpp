@@ -27,7 +27,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BindCommands()
 	{
-		const auto &Commands = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
 
 		// G  – Translate
 		CommandList->MapAction(
@@ -48,7 +48,7 @@ namespace BlenderControls
 			FCanExecuteAction());
 	}
 
-	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication &App, TSharedRef<ICursor>)
+	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -72,7 +72,7 @@ namespace BlenderControls
 		}*/
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication &SlateApp, const FKeyEvent &KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
@@ -116,7 +116,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication &, const FKeyEvent &KeyEvent)
+	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
 	{
 		const FKey Key = KeyEvent.GetKey();
 		if (Key == EKeys::X || Key == EKeys::Y || Key == EKeys::Z)
@@ -126,7 +126,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid() || bNumericInput)
 		{
@@ -135,17 +135,17 @@ namespace BlenderControls
 
 		FVector2D CurrentViewportMousePosition;
 		BlenderControls::Math::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
-														CurrentViewportMousePosition);
+		                                                CurrentViewportMousePosition);
 		CurrentTool->OnActive(CurrentViewportMousePosition);
+		WrapMouse(CurrentViewportMousePosition);
 
 		// Track if mouse was wrapped and inform the tool
-		bool bWrapped = WrapMouse(CurrentViewportMousePosition);
-		//CurrentTool->SetWrapped(bWrapped);
+		// CurrentTool->SetWrapped(bWrapped);
 
 		return true;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &MouseEvent)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
 		if (!bActive || !CurrentTool.IsValid())
 		{
@@ -167,7 +167,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication &, const FPointerEvent &)
+	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&)
 	{
 		return false;
 	}
@@ -247,56 +247,40 @@ namespace BlenderControls
 			Overlay->SetContext(nullptr);
 		}
 
-		FSlateApplication::Get().GetPlatformCursor()->Show(true);
+		// FSlateApplication::Get().GetPlatformCursor()->Show(true);
 	}
 
-	bool FBlenderControlsInputProcessor::WrapMouse(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderControlsInputProcessor::WrapMouse(const FVector2D& CurrentViewportMousePosition) const
 	{
-		UEditorEngine *EditorEngine = Cast<UEditorEngine>(GEngine);
+		UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);
 		if (!EditorEngine)
 		{
-			return false;
+			return;
 		}
-		FViewport *EditorViewport = EditorEngine->GetActiveViewport();
+		FViewport* EditorViewport = EditorEngine->GetActiveViewport();
 		if (!EditorViewport)
 		{
-			return false;
+			return;
 		}
 
 		const int32 ViewportSizeX = EditorViewport->GetSizeXY().X;
 		const int32 ViewportSizeY = EditorViewport->GetSizeXY().Y;
-
-		int32 MouseX = (int32)CurrentViewportMousePosition.X;
-		int32 MouseY = (int32)CurrentViewportMousePosition.Y;
-
-		bool bWrapped = false;
-
-		if (MouseX < 0)
+		
+		if (CurrentViewportMousePosition.X < 0 || CurrentViewportMousePosition.X > ViewportSizeX ||
+			CurrentViewportMousePosition.Y < 0 || CurrentViewportMousePosition.Y > ViewportSizeY)
 		{
-			MouseX = ViewportSizeX - 1;
-			bWrapped = true;
-		}
-		else if (MouseX >= ViewportSizeX)
-		{
-			MouseX = 0;
-			bWrapped = true;
-		}
+			int NewX = static_cast<int>(CurrentViewportMousePosition.X) % ViewportSizeX;
+			if (NewX < 0) NewX += ViewportSizeX;
 
-		if (MouseY < 0)
-		{
-			MouseY = ViewportSizeY - 1;
-			bWrapped = true;
+			int NewY = static_cast<int>(CurrentViewportMousePosition.Y) % ViewportSizeY;
+			if (NewY < 0) NewY += ViewportSizeY;
+			
+			EditorViewport->SetMouse(NewX, NewY);
+			
+			if (CurrentTool.IsValid())
+			{
+				CurrentTool->NotifyMouseWrap();
+			}
 		}
-		else if (MouseY >= ViewportSizeY)
-		{
-			MouseY = 0;
-			bWrapped = true;
-		}
-
-		if (bWrapped)
-		{
-			EditorViewport->SetMouse(MouseX, MouseY);
-		}
-		return bWrapped;
 	}
 } // namespace BlenderControls

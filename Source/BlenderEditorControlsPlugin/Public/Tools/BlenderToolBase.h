@@ -11,12 +11,12 @@ namespace BlenderControls
 	struct FGrabContext
 	{
 		FVector PivotStartPos; // world-space position at G-press
-		FVector HitAnchor; // ray/plane or ray/line intersection at G-press
-		FVector TotalDelta; // accumulated movement applied so far
+		FVector HitAnchor;	   // ray/plane or ray/line intersection at G-press
+		FVector TotalDelta;	   // accumulated movement applied so far
 		FVector2D MousePosStart;
 		FVector2D MousePosB;
 		FVector2D MousePosAnchor;
-		FVector2D TotalMouseDeltaAtAnchor; 
+		FVector2D TotalMouseDeltaAtAnchor;
 		float ScreenToWorldScale;
 
 		// Helper describing current dragging surface (view-plane, axis-line, dual plane)
@@ -28,8 +28,8 @@ namespace BlenderControls
 		} HelperType;
 
 		FVector HelperAxisDir; // normalized axis vector      (AxisLine)  OR
-		FVector HelperPlaneN; // normalized plane normal      (AxisPlane / ViewPlane)
-		FVector Pivot; // centre the helper goes through
+		FVector HelperPlaneN;  // normalized plane normal      (AxisPlane / ViewPlane)
+		FVector Pivot;		   // centre the helper goes through
 
 		// precision mode bookkeeping
 		FVector DeltaAnchor;
@@ -39,11 +39,11 @@ namespace BlenderControls
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
 	{
 	public:
-		FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName);
+		FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName);
 		virtual ~FBlenderToolBase();
 
 		/** Per-frame update from input-processor */
-		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;
+		virtual void OnActive(const FVector2D &CurrentViewportMousePosition) = 0;
 
 		virtual void Accept();
 		virtual void Cancel();
@@ -55,7 +55,7 @@ namespace BlenderControls
 		virtual void ApplyNumeric(float Value);
 
 		// Getter for DisplayName
-		const FString& GetDisplayName() const { return DisplayName; }
+		const FString &GetDisplayName() const { return DisplayName; }
 
 		virtual void OnBegin();
 		virtual void OnEnd(bool bApply);
@@ -64,7 +64,10 @@ namespace BlenderControls
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
 		void HandleAxisLock(EAxisLock AxisPressed);
 
-		void OnAxisLockRecalculated(const FVector2D& CurrentViewportMousePosition);
+		// Getter and Setter for MouseDelta
+		const FVector2D &GetMouseDelta() const { return MouseDelta; }
+		void SetMouseDelta(const FVector2D &InMouseDelta) { MouseDelta = InMouseDelta; }
+		void NotifyMouseWrap() { bPendingMouseWrap = true; }
 
 	private:
 		FLinearColor CachedSelectionColor;
@@ -74,13 +77,14 @@ namespace BlenderControls
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
 		void DrawAxisLine(const EAxisLock InAxis) const;
 		void FlushDrawnAxisLines() const;
-		float CalculateDynamicThickness(const FVector& Origin) const;
+		float CalculateDynamicThickness(const FVector &Origin) const;
 		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
 		float FallbackLineThickness = 2.0f;
 		const float MinLineThickness = 1.0f;
 		const float MaxLineThickness = 6.0f;
 		const float ReferenceDistance = 500.0f;
 		FVector2D LastMousePosition;
+		bool bPendingMouseWrap = false;
 
 	protected:
 		/** Child tools call this to populate Selected & prepare undo */
@@ -104,9 +108,9 @@ namespace BlenderControls
 		TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
 		FVector PreviousPlaneIntersectionPoint = FVector::ZeroVector;
 		FVector CurrentHit = FVector::ZeroVector;
-		FViewport* Viewport = nullptr;
+		FViewport *Viewport = nullptr;
 		TSharedPtr<class FSharedPivot> Pivot;
-		FSceneView* SceneView = nullptr;
+		FSceneView *SceneView = nullptr;
 		FPlane DragPlane;
 		float PrecisionFactor = 0.1f;
 		float CurrentPrecisionFactor = 1.0f;
@@ -119,7 +123,7 @@ namespace BlenderControls
 		FVector ShiftStartIntersectionPoint;
 		FVector CurrentRayOrigin;
 		FVector CurrentRayDirection;
-		FLevelEditorViewportClient* ViewportClient = nullptr;
+		FLevelEditorViewportClient *ViewportClient = nullptr;
 		bool bIsAxisLockActive = false;
 		bool bIsUsingLocalSpace = false;
 		bool bLocalSpaceDefault;

@@ -35,7 +35,7 @@ namespace BlenderControls
         void UpdateAxis(EAxisLock Axis);
         void FeedNumeric(const TCHAR Digit);
         void FlushNumeric();
-        static bool WrapMouse(const FVector2D &CurrentViewportMousePosition);
+        void WrapMouse(const FVector2D &CurrentViewportMousePosition) const;
         // void ShowSoftwareGrabCursor();
 
         /* Input handlers for activating transform tools */
