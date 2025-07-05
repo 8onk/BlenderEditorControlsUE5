@@ -17,21 +17,7 @@ namespace BlenderControls::Math
 	/** Rounds all components of a vector to their nearest integer values */
 	FVector RoundVectorToInt(const FVector &InVector);
 	FVector GetAxisVector(EAxisLock InAxis);
-
 	FVector IntersectHelper(const FGrabContext &GC, const FVector &RayOrigin, const FVector &RayDir);
-
 	FVector ProjectVectorOntoPlane(const FVector &Vector, const FVector &PlaneNormal);
 	FVector ProjectVectorOntoAxis(const FVector &Vector, const FVector &AxisDirection);
-
-	struct FMatrix2x2
-	{
-		float M[2][2];
-
-		FMatrix2x2();
-		FMatrix2x2(float m00, float m01, float m10, float m11);
-
-		FMatrix2x2 Inverse() const;
-		FVector2D GetColumn0() const;
-		FVector2D GetColumn1() const;
-	};
 } // namespace BlenderControls::Math

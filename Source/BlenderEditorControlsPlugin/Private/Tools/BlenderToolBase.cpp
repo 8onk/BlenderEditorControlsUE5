@@ -10,7 +10,7 @@
 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
 		: Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -25,8 +25,6 @@ namespace BlenderControls
 		{
 			return;
 		}
-
-		GrabContext.Pivot = Pivot->GetStartTransform().GetLocation();
 
 		FVector ViewDirection;
 		if (ViewportClient->IsPerspective())
@@ -109,7 +107,7 @@ namespace BlenderControls
 			break;
 		}
 
-		// Update object pos to be on new plane
+		// Refresh object pos to be on new plane
 		OnActive(CurrentViewportMousePos);
 	}
 
@@ -157,7 +155,7 @@ namespace BlenderControls
 		}
 	}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector &Origin) const
+	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
 	{
 		if (!SceneView)
 		{
@@ -179,9 +177,9 @@ namespace BlenderControls
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
-			: (InAxis == EAxisLock::Y)
+				: (InAxis == EAxisLock::Y)
 				? FVector::YAxisVector
-			: (InAxis == EAxisLock::Z)
+				: (InAxis == EAxisLock::Z)
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
@@ -194,7 +192,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient *>(GEditor->GetActiveViewport()->GetClient());
+		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
 			return;
@@ -208,7 +206,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
 
-		if (UWorld *World = GEditor->GetEditorWorldContext().World())
+		if (UWorld* World = GEditor->GetEditorWorldContext().World())
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
@@ -237,6 +235,7 @@ namespace BlenderControls
 		{
 			return;
 		}
+		ViewLocation = SceneView->ViewLocation;
 
 		Viewport = ViewportClient->Viewport;
 		if (!Viewport)
@@ -248,38 +247,36 @@ namespace BlenderControls
 		Viewport->GetMousePos(MousePosInt);
 		FVector2D MousePos = FVector2D(MousePosInt);
 
-		SceneView->DeprojectFVector2D(MousePos, CurrentRayOrigin, CurrentRayDirection);
+		FVector StartRayOrigin, StartRayDirection;
+		SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
 
-		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
-		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
-		GrabContext.PivotStartPos = Pivot->GetStartTransform().GetLocation();
-
-		// GrabContext.StartHit = BlenderControls::Math::IntersectHelper(GrabContext, WorldOrigin, WorldDirection);
-		GrabContext.TotalDelta = FVector::ZeroVector;
-		GrabContext.DeltaAnchor = FVector::ZeroVector;
-
-		GrabContext.MousePosStart = MousePos;
-		GrabContext.MousePosB = GrabContext.MousePosStart + FVector2D(1, 0);
-		GrabContext.MousePosAnchor = MousePos;
-		GrabContext.TotalMouseDeltaAtAnchor = FVector2D::ZeroVector;
-
-		FVector MousePosBOrigin, MousePosBDirection;
-		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
-		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(
-			GrabContext, CurrentRayOrigin, CurrentRayDirection);
-		FVector MouseIntersectionB = BlenderControls::Math::IntersectHelper(
-			GrabContext, MousePosBOrigin, MousePosBDirection);
-
-		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 		ViewUp = SceneView->GetViewUp();
 		ViewRight = SceneView->GetViewRight();
+		ViewForward = ViewportClient->GetViewRotation().Vector();
 		MouseDelta = FVector2D::ZeroVector;
 		LastMousePosition = MousePos;
 		CurrentMousePosition = MousePos;
 		bPendingMouseWrap = false;
+
+		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
+		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
+		GrabContext.MousePosStart = MousePos;
+		GrabContext.MousePosB = GrabContext.MousePosStart + FVector2D(1, 0);
+		GrabContext.TotalDelta = FVector::ZeroVector;
+		GrabContext.PivotStartPosition = Pivot->GetStartTransform().GetLocation();
+
+		FVector MousePosBOrigin, MousePosBDirection;
+		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
+		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(
+			GrabContext, StartRayOrigin, StartRayDirection);
+		FVector MouseIntersectionB = BlenderControls::Math::IntersectHelper(
+			GrabContext, MousePosBOrigin, MousePosBDirection);
+
+		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
+		GrabContext.ViewForward = ViewForward;
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D &CurrentViewportMousePosition)
+	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !Pivot)
@@ -295,14 +292,6 @@ namespace BlenderControls
 			bPendingMouseWrap = false;
 			return;
 		}
-
-		FSceneViewFamilyContext TempViewFamily(
-			FSceneViewFamily::ConstructionValues(
-				ViewportClient->Viewport,
-				ViewportClient->GetScene(),
-				ViewportClient->EngineShowFlags));
-
-		SceneView = ViewportClient->CalcSceneView(&TempViewFamily);
 
 		const FVector2D CurrentFrameDelta = CurrentMousePosition - LastMousePosition;
 		MouseDelta += CurrentFrameDelta * CurrentPrecisionFactor;
@@ -321,7 +310,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools *ModeTools = &GLevelEditorModeTools())
+		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
 		{
 			ModeTools->SetWidgetMode(InitialWidgetMode);
 		}
@@ -342,10 +331,6 @@ namespace BlenderControls
 		{
 			return;
 		}
-
-		const FVector2D MouseDeltaSinceLastAnchor = CurrentMousePosition - GrabContext.MousePosAnchor;
-		GrabContext.TotalMouseDeltaAtAnchor += (MouseDeltaSinceLastAnchor * CurrentPrecisionFactor);
-		GrabContext.MousePosAnchor = CurrentMousePosition;
 
 		bPrecisionModeActive = bNewPrecisionModeActive;
 		if (bPrecisionModeActive)
@@ -434,10 +419,10 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			USelection *ActorSelection = GEditor->GetSelectedActors();
+			USelection* ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
-				if (AActor *Actor = Cast<AActor>(*It))
+				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}

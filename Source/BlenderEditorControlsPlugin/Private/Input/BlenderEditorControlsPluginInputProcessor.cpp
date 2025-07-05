@@ -265,18 +265,18 @@ namespace BlenderControls
 
 		const int32 ViewportSizeX = EditorViewport->GetSizeXY().X;
 		const int32 ViewportSizeY = EditorViewport->GetSizeXY().Y;
-		
-		if (CurrentViewportMousePosition.X < 0 || CurrentViewportMousePosition.X > ViewportSizeX ||
-			CurrentViewportMousePosition.Y < 0 || CurrentViewportMousePosition.Y > ViewportSizeY)
+
+		if (CurrentViewportMousePosition.X < 0 || CurrentViewportMousePosition.X >= ViewportSizeX ||
+			CurrentViewportMousePosition.Y < 0 || CurrentViewportMousePosition.Y >= ViewportSizeY)
 		{
 			int NewX = static_cast<int>(CurrentViewportMousePosition.X) % ViewportSizeX;
 			if (NewX < 0) NewX += ViewportSizeX;
 
 			int NewY = static_cast<int>(CurrentViewportMousePosition.Y) % ViewportSizeY;
 			if (NewY < 0) NewY += ViewportSizeY;
-			
+
 			EditorViewport->SetMouse(NewX, NewY);
-			
+
 			if (CurrentTool.IsValid())
 			{
 				CurrentTool->NotifyMouseWrap();
