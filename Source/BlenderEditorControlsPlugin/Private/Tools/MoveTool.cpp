@@ -17,9 +17,16 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		constexpr float PARALLEL_COS = 0.995f;
-		const float CosAngle = FMath::Abs(FVector::DotProduct(ViewForward, GrabContext.HelperAxisDir));
+		constexpr float PARALLEL_COS = 0.990f;
+		float CosAngle = SMALL_NUMBER;
+		//If HelperAxisDir is 0 then we aren't in single axis lock. 
+		if (!GrabContext.HelperAxisDir.IsNearlyZero())
+		{
+			CosAngle = FMath::Abs(FVector::DotProduct(ViewForward.GetSafeNormal(),
+			                                          GrabContext.HelperAxisDir.GetSafeNormal()));
+		}
 
+		UE_LOG(LogTemp, Log, TEXT("CosAngle: %f"), CosAngle);
 		FVector FinalTotalDelta;
 		if (CosAngle <= PARALLEL_COS)
 		{
@@ -35,6 +42,7 @@ namespace BlenderControls
 		}
 		else
 		{
+			UE_LOG(LogTemp, Log, TEXT("Fallback!"));
 			const FVector2D ScreenUpVector(0.0f, -1.0f);
 			const float ScreenSpaceFactor = FVector2D::DotProduct(MouseDelta, ScreenUpVector);
 			const float ScaledFactor = FMath::Sign(ScreenSpaceFactor) * FMath::Square(ScreenSpaceFactor) * 0.1f;

@@ -6,7 +6,7 @@
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
-#include "Misc/OutputDeviceDebug.h"
+#include "VectorUtil.h"
 
 namespace BlenderControls
 {
@@ -235,6 +235,8 @@ namespace BlenderControls
 		CurrentMousePosition = MousePos;
 		bPendingMouseWrap = false;
 		bIsAxisLockActive = false;
+		bIsUsingLocalSpace = bLocalSpaceDefault;
+		LockedAxis = EAxisLock::All;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
@@ -242,6 +244,7 @@ namespace BlenderControls
 		GrabContext.MousePosB = GrabContext.MousePosStart + FVector2D(1, 0);
 		GrabContext.TotalDelta = FVector::ZeroVector;
 		GrabContext.PivotStartPosition = Pivot->GetStartTransform().GetLocation();
+		GrabContext.HelperAxisDir = FVector::ZeroVector;
 
 		FVector MousePosBOrigin, MousePosBDirection;
 		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
@@ -285,6 +288,12 @@ namespace BlenderControls
 
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 		LockedAxis = EAxisLock::All;
+		bPrecisionModeActive = false;
+		CurrentPrecisionFactor = 1.0f;
+		MouseDelta = FVector2D::ZeroVector;
+		CurrentMousePosition = FVector2D::ZeroVector;
+		LastMousePosition = FVector2D::ZeroVector;
+
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
@@ -356,16 +365,19 @@ namespace BlenderControls
 
 		case EAxisLock::XY:
 			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GC.HelperAxisDir = FVector::ZeroVector;
 			GC.HelperPlaneN = Z;
 			break;
 
 		case EAxisLock::XZ:
 			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GC.HelperAxisDir = FVector::ZeroVector;
 			GC.HelperPlaneN = Y;
 			break;
 
 		case EAxisLock::YZ:
 			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GC.HelperAxisDir = FVector::ZeroVector;
 			GC.HelperPlaneN = X;
 			break;
 		}
