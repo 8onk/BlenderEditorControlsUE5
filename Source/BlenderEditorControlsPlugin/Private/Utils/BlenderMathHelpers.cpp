@@ -5,22 +5,22 @@
 #include "Tools/BlenderToolBase.h"
 #include "DrawDebugHelpers.h"
 
-namespace BlenderControls::Math
+namespace BlenderControls::MathHelper
 {
-	void GetMousePosToViewportPos(const FVector2D& ScreenSpacePos, FVector2D& OutViewportPos)
+	void GetMousePosToViewportPos(const FVector2D &ScreenSpacePos, FVector2D &OutViewportPos)
 	{
-		const FViewport* Viewport = GEditor->GetActiveViewport();
+		const FViewport *Viewport = GEditor->GetActiveViewport();
 		if (!Viewport)
 			return;
 
 		const FIntPoint DesktopInt(static_cast<int32>(ScreenSpacePos.X),
-		                           static_cast<int32>(ScreenSpacePos.Y));
+								   static_cast<int32>(ScreenSpacePos.Y));
 
 		const FVector2D Normalized = Viewport->VirtualDesktopPixelToViewport(DesktopInt);
 		OutViewportPos = Normalized * FVector2D(Viewport->GetSizeXY());
 	}
 
-	FVector RoundVectorToInt(const FVector& InVector)
+	FVector RoundVectorToInt(const FVector &InVector)
 	{
 		return FVector(
 			FMath::RoundToInt(InVector.X),
@@ -28,14 +28,14 @@ namespace BlenderControls::Math
 			FMath::RoundToInt(InVector.Z));
 	}
 
-	FVector IntersectHelper(const FGrabContext& GC, const FVector& RayOrigin, const FVector& RayDir)
+	FVector IntersectHelper(const FGrabContext &GC, const FVector &RayOrigin, const FVector &RayDir)
 	{
 		const FVector PlaneOrigin = GC.PivotStartPosition;
 		const FVector MouseRayStart = RayOrigin - (RayDir * WORLD_MAX);
 		const FVector MouseRayEnd = RayOrigin + (RayDir * WORLD_MAX);
 
 		FVector IntersectionPoint = FMath::LinePlaneIntersection(MouseRayStart, MouseRayEnd, PlaneOrigin,
-		                                                         GC.HelperPlaneN);
+																 GC.HelperPlaneN);
 		if (GC.HelperType == FGrabContext::EHelperType::AxisLine)
 		{
 			const FVector AxisLineStart = GC.PivotStartPosition - (GC.HelperAxisDir * WORLD_MAX);
@@ -46,7 +46,14 @@ namespace BlenderControls::Math
 		return IntersectionPoint;
 	}
 
-	FVector ProjectVectorOntoPlane(const FVector& Vector, const FVector& PlaneNormal)
+	FVector SelectMostParallelPlaneNormal(const FVector &Axis, const FVector &A, const FVector &B, const FVector &ViewForward)
+	{
+		const float DotA = FMath::Abs(FVector::DotProduct(ViewForward, A));
+		const float DotB = FMath::Abs(FVector::DotProduct(ViewForward, B));
+		return (DotA > DotB) ? A : B;
+	}
+
+	FVector ProjectVectorOntoPlane(const FVector &Vector, const FVector &PlaneNormal)
 	{
 		const FVector Normal = PlaneNormal.GetSafeNormal();
 		const FVector Projected = Vector - FVector::DotProduct(Vector, Normal) * Normal;
@@ -54,7 +61,7 @@ namespace BlenderControls::Math
 		return Projected;
 	}
 
-	FVector ProjectVectorOntoAxis(const FVector& Vector, const FVector& AxisDirection)
+	FVector ProjectVectorOntoAxis(const FVector &Vector, const FVector &AxisDirection)
 	{
 		const FVector Axis = AxisDirection.GetSafeNormal();
 		return FVector::DotProduct(Vector, Axis) * Axis;

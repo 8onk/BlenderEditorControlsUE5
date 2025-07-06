@@ -30,7 +30,7 @@ namespace BlenderControls
 			const FVector GhostPos = Pivot->GetStartTransform().GetLocation() + UnconstrainedDelta;
 			const FVector RayOrigin = ViewLocation;
 			const FVector RayDir = (GhostPos - RayOrigin).GetSafeNormal();
-			const FVector FinalHit = BlenderControls::Math::IntersectHelper(GrabContext, RayOrigin, RayDir);
+			const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
 			FinalTotalDelta = FinalHit - Pivot->GetStartTransform().GetLocation();
 		}
 		else

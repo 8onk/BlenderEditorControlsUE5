@@ -234,6 +234,7 @@ namespace BlenderControls
 		LastMousePosition = MousePos;
 		CurrentMousePosition = MousePos;
 		bPendingMouseWrap = false;
+		bIsAxisLockActive = false;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
@@ -244,9 +245,9 @@ namespace BlenderControls
 
 		FVector MousePosBOrigin, MousePosBDirection;
 		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
-		FVector MouseIntersectionA = BlenderControls::Math::IntersectHelper(
+		FVector MouseIntersectionA = BlenderControls::MathHelper::IntersectHelper(
 			GrabContext, StartRayOrigin, StartRayDirection);
-		FVector MouseIntersectionB = BlenderControls::Math::IntersectHelper(
+		FVector MouseIntersectionB = BlenderControls::MathHelper::IntersectHelper(
 			GrabContext, MousePosBOrigin, MousePosBDirection);
 
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
@@ -338,19 +339,19 @@ namespace BlenderControls
 		case EAxisLock::X:
 			GC.HelperType = FGrabContext::EHelperType::AxisLine;
 			GC.HelperAxisDir = X;
-			GC.HelperPlaneN = Y;
+			GC.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(X, Y, Z, GC.ViewForward);
 			break;
 
 		case EAxisLock::Y:
 			GC.HelperType = FGrabContext::EHelperType::AxisLine;
 			GC.HelperAxisDir = Y;
-			GC.HelperPlaneN = X;
+			GC.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Y, X, Z, GC.ViewForward);
 			break;
 
 		case EAxisLock::Z:
 			GC.HelperType = FGrabContext::EHelperType::AxisLine;
 			GC.HelperAxisDir = Z;
-			GC.HelperPlaneN = Y;
+			GC.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Z, X, Y, GC.ViewForward);
 			break;
 
 		case EAxisLock::XY:
@@ -466,7 +467,7 @@ namespace BlenderControls
 
 		float GridSize = GEditor->GetGridSize();
 		FVector SnapOffset = OffsetFromStart / GridSize;
-		SnapOffset = BlenderControls::Math::RoundVectorToInt(SnapOffset);
+		SnapOffset = BlenderControls::MathHelper::RoundVectorToInt(SnapOffset);
 		SnapOffset *= GridSize;
 
 		return SnapOffset;
