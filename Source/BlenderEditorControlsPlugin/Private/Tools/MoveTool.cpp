@@ -31,7 +31,6 @@ namespace BlenderControls
 			const FVector RayOrigin = ViewLocation;
 			const FVector RayDir = (GhostPos - RayOrigin).GetSafeNormal();
 			const FVector FinalHit = BlenderControls::Math::IntersectHelper(GrabContext, RayOrigin, RayDir);
-			
 			FinalTotalDelta = FinalHit - Pivot->GetStartTransform().GetLocation();
 		}
 		else
@@ -39,7 +38,7 @@ namespace BlenderControls
 			const FVector2D ScreenUpVector(0.0f, -1.0f);
 			const float ScreenSpaceFactor = FVector2D::DotProduct(MouseDelta, ScreenUpVector);
 			const float ScaledFactor = FMath::Sign(ScreenSpaceFactor) * FMath::Square(ScreenSpaceFactor) * 0.1f;
-			
+
 			FinalTotalDelta = GrabContext.HelperAxisDir * ScaledFactor;
 		}
 

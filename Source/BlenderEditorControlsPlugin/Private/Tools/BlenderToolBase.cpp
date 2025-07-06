@@ -60,51 +60,28 @@ namespace BlenderControls
 		}
 
 		FlushDrawnAxisLines();
-		switch (LockedAxis)
+		SetGrabContextAxisLock(GrabContext, LockedAxis, bIsUsingLocalSpace);
+		if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::XZ || LockedAxis == EAxisLock::YZ)
 		{
-		case EAxisLock::All:
-			GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
-			GrabContext.HelperPlaneN = -ViewDirection;
-			break;
-
-		case EAxisLock::X:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
-			GrabContext.HelperAxisDir = FVector::XAxisVector;
-			DrawAxisLine(EAxisLock::X);
-			break;
-
-		case EAxisLock::Y:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
-			GrabContext.HelperAxisDir = FVector::YAxisVector;
-			DrawAxisLine(EAxisLock::Y);
-			break;
-
-		case EAxisLock::Z:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
-			GrabContext.HelperAxisDir = FVector::ZAxisVector;
-			DrawAxisLine(EAxisLock::Z);
-			break;
-
-		case EAxisLock::YZ:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GrabContext.HelperPlaneN = FVector::XAxisVector;
-			DrawAxisLine(EAxisLock::Y);
-			DrawAxisLine(EAxisLock::Z);
-			break;
-
-		case EAxisLock::XZ:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GrabContext.HelperPlaneN = FVector::YAxisVector;
-			DrawAxisLine(EAxisLock::X);
-			DrawAxisLine(EAxisLock::Z);
-			break;
-
-		case EAxisLock::XY:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GrabContext.HelperPlaneN = FVector::ZAxisVector;
-			DrawAxisLine(EAxisLock::X);
-			DrawAxisLine(EAxisLock::Y);
-			break;
+			if (LockedAxis == EAxisLock::XY)
+			{
+				DrawAxisLine(EAxisLock::X);
+				DrawAxisLine(EAxisLock::Y);
+			}
+			else if (LockedAxis == EAxisLock::XZ)
+			{
+				DrawAxisLine(EAxisLock::X);
+				DrawAxisLine(EAxisLock::Z);
+			}
+			else if (LockedAxis == EAxisLock::YZ)
+			{
+				DrawAxisLine(EAxisLock::Y);
+				DrawAxisLine(EAxisLock::Z);
+			}
+		}
+		else if (LockedAxis != EAxisLock::All)
+		{
+			DrawAxisLine(LockedAxis);
 		}
 
 		// Refresh object pos to be on new plane
@@ -141,35 +118,35 @@ namespace BlenderControls
 		{
 			const FVector AxisDir = GetAxisVector(InAxis);
 			const FVector Origin = Pivot->GetStartTransform().GetLocation();
-			const float LineLength = 10000;
+			const float LineLength = WORLD_MAX;
 
 			const FVector LineStart = Origin - AxisDir * LineLength;
 			const FVector LineEnd = Origin + AxisDir * LineLength;
 
 			const float Lifetime = 0.f; // persistent
 			const FLinearColor Color = GetAxisColor(InAxis);
-			const float Thickness = CalculateDynamicThickness(Origin);
 
-			CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, Thickness, Lifetime);
+			CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, 2.0f, Lifetime);
 			CachedBatcher->MarkRenderStateDirty();
 		}
 	}
 
 	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
 	{
-		if (!SceneView)
-		{
-			return FallbackLineThickness;
-		}
-
-		const FVector CameraLocation = SceneView->ViewLocation;
-		const float Distance = FVector::Dist(CameraLocation, Origin);
-
-		// Linear scaling: thickness grows with distance
-		float Scaled = FallbackLineThickness * (Distance / ReferenceDistance);
-
-		// Clamp to reasonable bounds
-		return FMath::Clamp(Scaled, MinLineThickness, MaxLineThickness);
+		return 0.f;
+		// if (!SceneView)
+		// {
+		// 	return FallbackLineThickness;
+		// }
+		//
+		// const FVector CameraLocation = SceneView->ViewLocation;
+		// const float Distance = FVector::Dist(CameraLocation, Origin);
+		//
+		// // Linear scaling: thickness grows with distance
+		// float Scaled = FallbackLineThickness * (Distance / ReferenceDistance);
+		//
+		// // Clamp to reasonable bounds
+		// return FMath::Clamp(Scaled, MinLineThickness, MaxLineThickness);
 	}
 
 	FVector FBlenderToolBase::GetAxisVector(EAxisLock InAxis) const
@@ -340,6 +317,56 @@ namespace BlenderControls
 		else
 		{
 			CurrentPrecisionFactor = 1.0f;
+		}
+	}
+
+	void FBlenderToolBase::SetGrabContextAxisLock(FGrabContext& GC, EAxisLock AxisLock,
+	                                              bool bUseLocalSpace) const
+	{
+		const FTransform ObjectTransform = Pivot->GetStartTransform();
+		const FVector X = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
+		const FVector Y = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
+		const FVector Z = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+
+		switch (AxisLock)
+		{
+		case EAxisLock::All:
+			GC.HelperType = FGrabContext::EHelperType::ViewPlane;
+			GC.HelperPlaneN = -GC.ViewForward;
+			break;
+
+		case EAxisLock::X:
+			GC.HelperType = FGrabContext::EHelperType::AxisLine;
+			GC.HelperAxisDir = X;
+			GC.HelperPlaneN = Y;
+			break;
+
+		case EAxisLock::Y:
+			GC.HelperType = FGrabContext::EHelperType::AxisLine;
+			GC.HelperAxisDir = Y;
+			GC.HelperPlaneN = X;
+			break;
+
+		case EAxisLock::Z:
+			GC.HelperType = FGrabContext::EHelperType::AxisLine;
+			GC.HelperAxisDir = Z;
+			GC.HelperPlaneN = Y;
+			break;
+
+		case EAxisLock::XY:
+			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GC.HelperPlaneN = Z;
+			break;
+
+		case EAxisLock::XZ:
+			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GC.HelperPlaneN = Y;
+			break;
+
+		case EAxisLock::YZ:
+			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
+			GC.HelperPlaneN = X;
+			break;
 		}
 	}
 

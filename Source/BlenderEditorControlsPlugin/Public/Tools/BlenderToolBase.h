@@ -13,9 +13,10 @@ namespace BlenderControls
 		FVector2D MousePosB;
 		FVector TotalDelta;
 		FVector PivotStartPosition;
-		float ScreenToWorldScale;
-
+		FVector HelperAxisDir;
+		FVector HelperPlaneN;
 		FVector ViewForward;
+		float ScreenToWorldScale;
 
 		// Helper describing current dragging surface (view-plane, axis-line, dual plane)
 		enum class EHelperType
@@ -24,9 +25,6 @@ namespace BlenderControls
 			AxisLine,
 			AxisPlane
 		} HelperType;
-
-		FVector HelperAxisDir;
-		FVector HelperPlaneN;
 	};
 
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
@@ -65,12 +63,19 @@ namespace BlenderControls
 	private:
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
+
+		void SetGrabContextAxisLock(
+			FGrabContext& Context,
+			EAxisLock AxisLock,
+			bool bUseLocalSpace) const;
 		void StartNewLock(EAxisLock NewAxis);
 		void UpdateAxisLock();
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
 		void DrawAxisLine(const EAxisLock InAxis) const;
 		void FlushDrawnAxisLines() const;
 		float CalculateDynamicThickness(const FVector& Origin) const;
+
+
 		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
 		float FallbackLineThickness = 2.0f;
 		const float MinLineThickness = 1.0f;

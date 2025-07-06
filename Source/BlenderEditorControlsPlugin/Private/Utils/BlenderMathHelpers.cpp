@@ -9,7 +9,7 @@ namespace BlenderControls::Math
 {
 	void GetMousePosToViewportPos(const FVector2D& ScreenSpacePos, FVector2D& OutViewportPos)
 	{
-		FViewport* Viewport = GEditor->GetActiveViewport();
+		const FViewport* Viewport = GEditor->GetActiveViewport();
 		if (!Viewport)
 			return;
 
@@ -31,36 +31,32 @@ namespace BlenderControls::Math
 	FVector IntersectHelper(const FGrabContext& GC, const FVector& RayOrigin, const FVector& RayDir)
 	{
 		const FVector PlaneOrigin = GC.PivotStartPosition;
-		const float LINE_LENGTH = 1e12f;
-		const FVector MouseRayStart = RayOrigin - (RayDir * LINE_LENGTH);
-		const FVector MouseRayEnd = RayOrigin + (RayDir * LINE_LENGTH);
+		const FVector MouseRayStart = RayOrigin - (RayDir * WORLD_MAX);
+		const FVector MouseRayEnd = RayOrigin + (RayDir * WORLD_MAX);
 
-		if (GC.HelperType == FGrabContext::EHelperType::ViewPlane || GC.HelperType ==
-			FGrabContext::EHelperType::AxisPlane)
+		FVector IntersectionPoint = FMath::LinePlaneIntersection(MouseRayStart, MouseRayEnd, PlaneOrigin,
+		                                                         GC.HelperPlaneN);
+		if (GC.HelperType == FGrabContext::EHelperType::AxisLine)
 		{
-			FVector Result = FMath::LinePlaneIntersection(MouseRayStart, MouseRayEnd, PlaneOrigin, GC.HelperPlaneN);
-			return Result;
+			const FVector AxisLineStart = GC.PivotStartPosition - (GC.HelperAxisDir * WORLD_MAX);
+			const FVector AxisLineEnd = GC.PivotStartPosition + (GC.HelperAxisDir * WORLD_MAX);
+			IntersectionPoint = FMath::ClosestPointOnInfiniteLine(AxisLineStart, AxisLineEnd, IntersectionPoint);
 		}
 
-		FVector AxisStart = GC.PivotStartPosition - GC.HelperAxisDir * LINE_LENGTH;
-		FVector AxisEnd = GC.PivotStartPosition + GC.HelperAxisDir * LINE_LENGTH;
-
-		FVector ClosestOnRay, ClosestOnAxis;
-		FMath::SegmentDistToSegment(MouseRayStart, MouseRayEnd, AxisStart, AxisEnd, ClosestOnRay, ClosestOnAxis);
-		return ClosestOnAxis;
+		return IntersectionPoint;
 	}
 
 	FVector ProjectVectorOntoPlane(const FVector& Vector, const FVector& PlaneNormal)
 	{
-		FVector Normal = PlaneNormal.GetSafeNormal();
-		FVector Projected = Vector - FVector::DotProduct(Vector, Normal) * Normal;
+		const FVector Normal = PlaneNormal.GetSafeNormal();
+		const FVector Projected = Vector - FVector::DotProduct(Vector, Normal) * Normal;
 
 		return Projected;
 	}
 
 	FVector ProjectVectorOntoAxis(const FVector& Vector, const FVector& AxisDirection)
 	{
-		FVector Axis = AxisDirection.GetSafeNormal();
+		const FVector Axis = AxisDirection.GetSafeNormal();
 		return FVector::DotProduct(Vector, Axis) * Axis;
 	}
 }
