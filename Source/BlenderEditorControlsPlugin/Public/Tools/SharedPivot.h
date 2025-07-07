@@ -10,7 +10,8 @@ namespace BlenderControls
 	struct FChildInfo
 	{
 		AActor *Actor;
-		FTransform Original;
+		FTransform Transform;
+		//FQuat Rotation;
 		FVector Offset;
 	};
 
@@ -27,7 +28,6 @@ namespace BlenderControls
 		void SetPosition(const FVector &NewPosition);
 		void RotateBy(const FQuat &Delta);
 		void ScaleBy(const FVector &Scale, bool bUniform);
-		void SetStartTransformPosition(const FVector &InPosition);
 
 	private:
 		void RecalcPivot();

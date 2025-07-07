@@ -134,7 +134,7 @@ namespace BlenderControls
 		}
 
 		FVector2D CurrentViewportMousePosition;
-		BlenderControls::MathHelper::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
+		MathHelper::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
 		                                                CurrentViewportMousePosition);
 		CurrentTool->OnActive(CurrentViewportMousePosition);
 		WrapMouse(CurrentViewportMousePosition);

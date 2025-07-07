@@ -1,29 +1,30 @@
 #include "Tools/SharedPivot.h"
+//TODO, Cancelling, resets the pivot's rotation also. 
 
 namespace BlenderControls
 {
-	FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &Selection)
+	FSharedPivot::FSharedPivot(const TArray<TWeakObjectPtr<AActor>>& InSelection)
 	{
 		TransformProxy = NewObject<UTransformProxy>();
-		TransformProxy->AddToRoot();
 		if (!IsValid(TransformProxy))
 		{
 			return;
 		}
+		TransformProxy->AddToRoot();
 
 		FVector AverageLocation = FVector::ZeroVector;
-		for (auto &APtr : Selection)
+		for (auto& APtr : InSelection)
 		{
 			if (APtr.IsValid())
 			{
-				AActor *A = APtr.Get();
+				AActor* Actor = APtr.Get();
 
 				// Uses bounding box centre for now only, maybe expand to be able to choose.
 				FVector Origin, Extent;
-				A->GetActorBounds(false, Origin, Extent);
+				Actor->GetActorBounds(false, Origin, Extent);
 
-				Children.Add({A, A->GetActorTransform(), FVector::ZeroVector});
-				TransformProxy->AddComponent(A->GetRootComponent(), true);
+				Children.Add({Actor, Actor->GetActorTransform(), FVector::ZeroVector});
+				TransformProxy->AddComponent(Actor->GetRootComponent(), true);
 				AverageLocation += Origin; // use bounds center
 			}
 		}
@@ -37,9 +38,10 @@ namespace BlenderControls
 		Pivot.SetLocation(AverageLocation);
 		StartLocation = Pivot;
 
-		for (FChildInfo &Child : Children)
+		for (FChildInfo& Child : Children)
 		{
 			Child.Offset = Child.Actor->GetActorLocation() - Pivot.GetLocation();
+			TransformProxy->GetTransform().SetRotation(Child.Transform.GetRotation());
 		}
 	}
 
@@ -52,17 +54,15 @@ namespace BlenderControls
 		}
 	}
 
-	void FSharedPivot::SetPosition(const FVector &NewPosition)
+	void FSharedPivot::SetPosition(const FVector& NewPosition)
 	{
 		if (IsValid(TransformProxy))
 		{
+			const FTransform Current = TransformProxy->GetTransform();
 			Pivot.SetLocation(NewPosition);
+			Pivot.SetRotation(Current.GetRotation());
+			Pivot.SetScale3D(Current.GetScale3D());
 			TransformProxy->SetTransform(Pivot);
 		}
-	}
-
-	void FSharedPivot::SetStartTransformPosition(const FVector &InPosition)
-	{
-		StartLocation.SetLocation(InPosition);
 	}
 } // namespace BlenderControls

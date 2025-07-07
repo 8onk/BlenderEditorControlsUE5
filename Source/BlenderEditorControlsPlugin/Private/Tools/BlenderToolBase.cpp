@@ -190,8 +190,10 @@ namespace BlenderControls
 
 		CaptureSelection();
 		Pivot = MakeShared<FSharedPivot>(SelectedActors);
-		InitialWidgetMode = GLevelEditorModeTools().GetWidgetMode();
-		GLevelEditorModeTools().SetWidgetMode(UE::Widget::WM_None);
+		ViewportClient->ShowWidget(false);
+		ViewportClient->Invalidate();
+		// InitialWidgetMode = GLevelEditorModeTools().GetWidgetMode();
+		// GLevelEditorModeTools().SetWidgetMode(UE::Widget::WM_None);
 
 		// Start transaction for undo
 		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
@@ -241,6 +243,7 @@ namespace BlenderControls
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
 		GrabContext.MousePosStart = MousePos;
+		CurrentViewportMousePos = MousePos;
 		GrabContext.MousePosB = GrabContext.MousePosStart + FVector2D(1, 0);
 		GrabContext.TotalDelta = FVector::ZeroVector;
 		GrabContext.PivotStartPosition = Pivot->GetStartTransform().GetLocation();
@@ -281,7 +284,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnEnd(bool bApply)
 	{
-		if (!GEditor || !Pivot)
+		if (!GEditor || !Pivot || !ViewportClient)
 		{
 			return;
 		}
@@ -297,16 +300,14 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		Pivot->GetTransformProxy()->EndTransformEditSequence();
 
-		if (FEditorModeTools* ModeTools = &GLevelEditorModeTools())
-		{
-			ModeTools->SetWidgetMode(InitialWidgetMode);
-		}
-
 		if (GEditor)
 		{
 			FVector NewPivot = bApply ? Pivot->GetPivot().GetLocation() : Pivot->GetStartTransform().GetLocation();
 			GEditor->SetPivot(NewPivot, false, true, false);
 		}
+
+		ViewportClient->ShowWidget(true);
+		ViewportClient->Invalidate();
 
 		FlushDrawnAxisLines();
 	}
@@ -333,10 +334,24 @@ namespace BlenderControls
 	void FBlenderToolBase::SetGrabContextAxisLock(FGrabContext& GC, EAxisLock AxisLock,
 	                                              bool bUseLocalSpace) const
 	{
-		const FTransform ObjectTransform = Pivot->GetStartTransform();
+		if (!Pivot)
+		{
+			return;
+		}
+		const FTransform ObjectTransform = Pivot->GetTransformProxy()->GetTransform();
 		const FVector X = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
 		const FVector Z = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+
+		const FVector RotationEuler = ObjectTransform.GetRotation().Rotator().Euler();
+		const FVector Scale = ObjectTransform.GetScale3D();
+
+		UE_LOG(LogTemp, Warning, TEXT("Rotation (Euler): X=%.2f, Y=%.2f, Z=%.2f"),
+		       RotationEuler.X, RotationEuler.Y, RotationEuler.Z);
+
+		UE_LOG(LogTemp, Warning, TEXT("Scale: X=%.2f, Y=%.2f, Z=%.2f"),
+		       Scale.X, Scale.Y, Scale.Z);
+
 
 		switch (AxisLock)
 		{
@@ -479,7 +494,7 @@ namespace BlenderControls
 
 		float GridSize = GEditor->GetGridSize();
 		FVector SnapOffset = OffsetFromStart / GridSize;
-		SnapOffset = BlenderControls::MathHelper::RoundVectorToInt(SnapOffset);
+		SnapOffset = MathHelper::RoundVectorToInt(SnapOffset);
 		SnapOffset *= GridSize;
 
 		return SnapOffset;

@@ -26,7 +26,6 @@ namespace BlenderControls
 			                                          GrabContext.HelperAxisDir.GetSafeNormal()));
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("CosAngle: %f"), CosAngle);
 		FVector FinalTotalDelta;
 		if (CosAngle <= PARALLEL_COS)
 		{
@@ -42,7 +41,6 @@ namespace BlenderControls
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("Fallback!"));
 			const FVector2D ScreenUpVector(0.0f, -1.0f);
 			const float ScreenSpaceFactor = FVector2D::DotProduct(MouseDelta, ScreenUpVector);
 			const float ScaledFactor = FMath::Sign(ScreenSpaceFactor) * FMath::Square(ScreenSpaceFactor) * 0.1f;
