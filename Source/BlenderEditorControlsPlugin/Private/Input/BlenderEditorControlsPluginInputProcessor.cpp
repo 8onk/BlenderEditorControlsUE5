@@ -106,6 +106,11 @@ namespace BlenderControls
 				}
 			}
 
+			if (CurrentTool->IsSingleAxisLocked())
+			{
+				const FKey Key = KeyEvent.GetKey();
+			}
+
 			if (KeyEvent.GetKey() == EKeys::Escape)
 			{
 				CurrentTool->Cancel();
@@ -135,7 +140,7 @@ namespace BlenderControls
 
 		FVector2D CurrentViewportMousePosition;
 		MathHelper::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
-		                                                CurrentViewportMousePosition);
+		                                     CurrentViewportMousePosition);
 		CurrentTool->OnActive(CurrentViewportMousePosition);
 		WrapMouse(CurrentViewportMousePosition);
 

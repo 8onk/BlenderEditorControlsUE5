@@ -192,8 +192,6 @@ namespace BlenderControls
 		Pivot = MakeShared<FSharedPivot>(SelectedActors);
 		ViewportClient->ShowWidget(false);
 		ViewportClient->Invalidate();
-		// InitialWidgetMode = GLevelEditorModeTools().GetWidgetMode();
-		// GLevelEditorModeTools().SetWidgetMode(UE::Widget::WM_None);
 
 		// Start transaction for undo
 		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
@@ -428,6 +426,15 @@ namespace BlenderControls
 		}
 
 		UpdateAxisLock();
+	}
+
+	bool FBlenderToolBase::IsSingleAxisLocked() const
+	{
+		if (bIsAxisLockActive && GrabContext.HelperAxisDir != FVector::ZeroVector)
+		{
+			return true;
+		}
+		return false;
 	}
 
 	void FBlenderToolBase::Accept()

@@ -54,6 +54,7 @@ namespace BlenderControls
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
 		void HandleAxisLock(EAxisLock AxisPressed);
+		bool IsSingleAxisLocked() const;
 
 		// Getter and Setter for MouseDelta
 		const FVector2D& GetMouseDelta() const { return MouseDelta; }
