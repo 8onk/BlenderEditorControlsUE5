@@ -240,15 +240,14 @@ namespace BlenderControls
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewForward;
-		GrabContext.MousePosStart = MousePos;
+		GrabContext.StartMousePos = MousePos;
 		CurrentViewportMousePos = MousePos;
-		GrabContext.MousePosB = GrabContext.MousePosStart + FVector2D(1, 0);
-		GrabContext.TotalDelta = FVector::ZeroVector;
-		GrabContext.PivotStartPosition = Pivot->GetStartTransform().GetLocation();
+		FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
+		GrabContext.StartTransform = Pivot->GetStartTransform().GetLocation();
 		GrabContext.HelperAxisDir = FVector::ZeroVector;
 
 		FVector MousePosBOrigin, MousePosBDirection;
-		SceneView->DeprojectFVector2D(GrabContext.MousePosB, MousePosBOrigin, MousePosBDirection);
+		SceneView->DeprojectFVector2D(MousePosB, MousePosBOrigin, MousePosBDirection);
 		FVector MouseIntersectionA = BlenderControls::MathHelper::IntersectHelper(
 			GrabContext, StartRayOrigin, StartRayDirection);
 		FVector MouseIntersectionB = BlenderControls::MathHelper::IntersectHelper(

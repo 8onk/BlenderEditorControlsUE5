@@ -30,7 +30,7 @@ namespace BlenderControls::MathHelper
 
 	FVector IntersectHelper(const FGrabContext& GC, const FVector& RayOrigin, const FVector& RayDir)
 	{
-		const FVector PlaneOrigin = GC.PivotStartPosition;
+		const FVector PlaneOrigin = GC.StartTransform;
 		const FVector MouseRayStart = RayOrigin - (RayDir * WORLD_MAX);
 		const FVector MouseRayEnd = RayOrigin + (RayDir * WORLD_MAX);
 
@@ -38,8 +38,8 @@ namespace BlenderControls::MathHelper
 		                                                         GC.HelperPlaneN);
 		if (GC.HelperType == FGrabContext::EHelperType::AxisLine)
 		{
-			const FVector AxisLineStart = GC.PivotStartPosition - (GC.HelperAxisDir * WORLD_MAX);
-			const FVector AxisLineEnd = GC.PivotStartPosition + (GC.HelperAxisDir * WORLD_MAX);
+			const FVector AxisLineStart = GC.StartTransform - (GC.HelperAxisDir * WORLD_MAX);
+			const FVector AxisLineEnd = GC.StartTransform + (GC.HelperAxisDir * WORLD_MAX);
 			IntersectionPoint = FMath::ClosestPointOnInfiniteLine(AxisLineStart, AxisLineEnd, IntersectionPoint);
 		}
 

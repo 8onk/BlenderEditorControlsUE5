@@ -9,10 +9,8 @@ namespace BlenderControls
 {
 	struct FGrabContext
 	{
-		FVector2D MousePosStart;
-		FVector2D MousePosB;
-		FVector TotalDelta;
-		FVector PivotStartPosition;
+		FVector2D StartMousePos;
+		FVector StartTransform;
 		FVector HelperAxisDir;
 		FVector HelperPlaneN;
 		FVector ViewForward;

@@ -54,9 +54,8 @@ namespace BlenderControls
 		{
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
-		GrabContext.TotalDelta = LiveDelta;
 
-		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + GrabContext.TotalDelta;
+		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + LiveDelta;
 		Pivot->SetPosition(NewPos);
 	}
 
@@ -75,7 +74,7 @@ namespace BlenderControls
 		{
 			return;
 		}
-		const FTransform ObjectTransform = Pivot->GetStartTransform();
+		const FTransform ObjectTransform = Pivot->GetTransformProxy()->GetTransform();
 		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
 		const FVector Z = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
