@@ -16,5 +16,9 @@ namespace BlenderControls
 
         virtual void OnBegin() override;
         virtual void OnEnd(bool bApply) override;
+
+    private:
+        virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
+        virtual FVector GetSnapOffset(const FVector OffsetFromStart) override;
     };
 } // namespace BlenderControls

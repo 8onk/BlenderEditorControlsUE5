@@ -36,7 +36,7 @@ namespace BlenderControls
 
 		//NOTE: THIS BEHAVES ODDLY FOR EMPTY OBJECTS LIKE PLAYER START, WHERE X = 56 BUT 0 IN TRANSFORM
 		Pivot.SetLocation(AverageLocation);
-		StartLocation = Pivot;
+		StartTransform = Pivot;
 
 		for (FChildInfo& Child : Children)
 		{

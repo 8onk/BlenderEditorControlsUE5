@@ -22,8 +22,9 @@ namespace BlenderControls
 		~FSharedPivot();
 
 		const FTransform &GetPivot() const { return Pivot; }
+		const FVector GetCurrentLocation() const { return TransformProxy->GetTransform().GetLocation(); }
 		UTransformProxy *GetTransformProxy() const { return TransformProxy; }
-		const FTransform &GetStartTransform() const { return StartLocation; }
+		const FTransform &GetStartTransform() const { return StartTransform; }
 
 		void SetPosition(const FVector &NewPosition);
 		void RotateBy(const FQuat &Delta);
@@ -33,7 +34,7 @@ namespace BlenderControls
 		void RecalcPivot();
 
 		FTransform Pivot;
-		FTransform StartLocation;
+		FTransform StartTransform;
 		TArray<FChildInfo> Children;
 		UTransformGizmo *Gizmo = nullptr;
 		UTransformProxy *TransformProxy = nullptr;

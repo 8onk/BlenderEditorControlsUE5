@@ -108,7 +108,7 @@ namespace BlenderControls
 
 			if (CurrentTool->IsSingleAxisLocked())
 			{
-				const FKey Key = KeyEvent.GetKey();
+				//Numer input, altough dual axis should also work
 			}
 
 			if (KeyEvent.GetKey() == EKeys::Escape)
@@ -179,9 +179,14 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BeginTool(ETransformMode Mode)
 	{
-		if (GEditor->GetSelectedActorCount() == 0 || CurrentTool.IsValid())
+		if (GEditor->GetSelectedActorCount() == 0)
 		{
 			return;
+		}
+
+		if (CurrentTool.IsValid())
+		{
+			CurrentTool.Reset();
 		}
 
 		constexpr EAxisLock InitialAxis = EAxisLock::All;

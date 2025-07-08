@@ -22,6 +22,11 @@ namespace BlenderControls
         virtual void OnBegin() override;
         virtual void OnEnd(bool bApply) override;
 
+    private:
+        FVector StartDragVector;
+        FVector LastDragVector;
+        virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
+
     protected:
         /* ——— helpers ——— */
         FVector ScreenToWorldVector(const FVector2D &ScreenPos) const;

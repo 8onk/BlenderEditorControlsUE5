@@ -19,6 +19,7 @@ namespace BlenderControls::MathHelper
 	FVector GetAxisVector(EAxisLock InAxis);
 	FVector IntersectHelper(const FGrabContext& GC, const FVector& RayOrigin, const FVector& RayDir);
 	FVector SelectMostParallelPlaneNormal(const FVector &Axis, const FVector &A, const FVector &B, const FVector &ViewForward);
+	float GetSignedAngleOnAxis(const FVector& From, const FVector& To, const FVector& Axis);
 	FVector ProjectVectorOntoPlane(const FVector& Vector, const FVector& PlaneNormal);
 	FVector ProjectVectorOntoAxis(const FVector& Vector, const FVector& AxisDirection);
 } // namespace BlenderControls::Math

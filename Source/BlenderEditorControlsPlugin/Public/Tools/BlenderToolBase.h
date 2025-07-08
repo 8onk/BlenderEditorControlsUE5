@@ -39,9 +39,6 @@ namespace BlenderControls
 		virtual void Accept();
 		virtual void Cancel();
 
-		/** Axis helpers */
-		EAxisLock GetAxis() const { return LockedAxis; }
-
 		/** Numeric entry apply */
 		virtual void ApplyNumeric(float Value);
 
@@ -55,20 +52,14 @@ namespace BlenderControls
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
 		void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;
-
-		// Getter and Setter for MouseDelta
-		const FVector2D& GetMouseDelta() const { return MouseDelta; }
-		void SetMouseDelta(const FVector2D& InMouseDelta) { MouseDelta = InMouseDelta; }
 		void NotifyMouseWrap() { bPendingMouseWrap = true; }
 
 	private:
+		void CaptureSelection();
+
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
 
-		void SetGrabContextAxisLock(
-			FGrabContext& Context,
-			EAxisLock AxisLock,
-			bool bUseLocalSpace) const;
 		void StartNewLock(EAxisLock NewAxis);
 		void UpdateAxisLock();
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
@@ -86,31 +77,22 @@ namespace BlenderControls
 		bool bPendingMouseWrap = false;
 
 	protected:
-		/** Child tools call this to populate Selected & prepare undo */
-		void CaptureSelection();
 		FVector GetAxisVector(EAxisLock InAxis) const;
+		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
+		virtual void SetGrabContextAxisLock(EAxisLock AxisLock);
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
-		FVector NormalToRemove;
-		FVector AccumulatedDelta;
 
 		/* Transaction utilities */
-		TUniquePtr<class FScopedTransaction> ParentTxn;
-
-		/** Returns snap offset for the given offset from start position */
-		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
+		TUniquePtr<FScopedTransaction> ParentTxn;
 
 		ETransformMode Mode;
 		EAxisLock LockedAxis;
 		FString DisplayName;
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
-		TMap<TWeakObjectPtr<AActor>, FTransform> OriginalTransforms;
-		FVector PreviousPlaneIntersectionPoint = FVector::ZeroVector;
-		FVector CurrentHit = FVector::ZeroVector;
 		FViewport* Viewport = nullptr;
-		TSharedPtr<class FSharedPivot> Pivot;
+		TSharedPtr<FSharedPivot> Pivot;
 		FSceneView* SceneView = nullptr;
-		FPlane DragPlane;
 		float PrecisionFactor = 0.1f;
 		float CurrentPrecisionFactor = 1.0f;
 		bool bPrecisionModeActive = false;

@@ -6,7 +6,6 @@
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
-#include "VectorUtil.h"
 
 namespace BlenderControls
 {
@@ -60,7 +59,7 @@ namespace BlenderControls
 		}
 
 		FlushDrawnAxisLines();
-		SetGrabContextAxisLock(GrabContext, LockedAxis, bIsUsingLocalSpace);
+		SetGrabContextAxisLock(LockedAxis);
 		if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::XZ || LockedAxis == EAxisLock::YZ)
 		{
 			if (LockedAxis == EAxisLock::XY)
@@ -162,7 +161,7 @@ namespace BlenderControls
 
 		if (bIsUsingLocalSpace)
 		{
-			AxisVector = Pivot->GetPivot().TransformVectorNoScale(AxisVector);
+			AxisVector = Pivot->GetTransformProxy()->GetTransform().TransformVectorNoScale(AxisVector);
 		}
 		return AxisVector.GetSafeNormal();
 	}
@@ -174,6 +173,9 @@ namespace BlenderControls
 		{
 			return;
 		}
+		InitialWidgetMode = ViewportClient->GetWidgetMode();
+		ViewportClient->ShowWidget(false);
+		ViewportClient->Invalidate();
 
 		if (!GEditor)
 		{
@@ -190,8 +192,6 @@ namespace BlenderControls
 
 		CaptureSelection();
 		Pivot = MakeShared<FSharedPivot>(SelectedActors);
-		ViewportClient->ShowWidget(false);
-		ViewportClient->Invalidate();
 
 		// Start transaction for undo
 		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
@@ -239,7 +239,7 @@ namespace BlenderControls
 		LockedAxis = EAxisLock::All;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
-		GrabContext.HelperPlaneN = -ViewportClient->GetViewRotation().Vector();
+		GrabContext.HelperPlaneN = -ViewForward;
 		GrabContext.MousePosStart = MousePos;
 		CurrentViewportMousePos = MousePos;
 		GrabContext.MousePosB = GrabContext.MousePosStart + FVector2D(1, 0);
@@ -256,6 +256,8 @@ namespace BlenderControls
 
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 		GrabContext.ViewForward = ViewForward;
+
+		SetGrabContextAxisLock(LockedAxis);
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -300,7 +302,7 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			FVector NewPivot = bApply ? Pivot->GetPivot().GetLocation() : Pivot->GetStartTransform().GetLocation();
+			FVector NewPivot = bApply ? Pivot->GetCurrentLocation() : Pivot->GetStartTransform().GetLocation();
 			GEditor->SetPivot(NewPivot, false, true, false);
 		}
 
@@ -329,71 +331,8 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::SetGrabContextAxisLock(FGrabContext& GC, EAxisLock AxisLock,
-	                                              bool bUseLocalSpace) const
+	void FBlenderToolBase::SetGrabContextAxisLock(EAxisLock AxisLock)
 	{
-		if (!Pivot)
-		{
-			return;
-		}
-		const FTransform ObjectTransform = Pivot->GetTransformProxy()->GetTransform();
-		const FVector X = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
-		const FVector Y = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
-		const FVector Z = bUseLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
-
-		const FVector RotationEuler = ObjectTransform.GetRotation().Rotator().Euler();
-		const FVector Scale = ObjectTransform.GetScale3D();
-
-		UE_LOG(LogTemp, Warning, TEXT("Rotation (Euler): X=%.2f, Y=%.2f, Z=%.2f"),
-		       RotationEuler.X, RotationEuler.Y, RotationEuler.Z);
-
-		UE_LOG(LogTemp, Warning, TEXT("Scale: X=%.2f, Y=%.2f, Z=%.2f"),
-		       Scale.X, Scale.Y, Scale.Z);
-
-
-		switch (AxisLock)
-		{
-		case EAxisLock::All:
-			GC.HelperType = FGrabContext::EHelperType::ViewPlane;
-			GC.HelperPlaneN = -GC.ViewForward;
-			break;
-
-		case EAxisLock::X:
-			GC.HelperType = FGrabContext::EHelperType::AxisLine;
-			GC.HelperAxisDir = X;
-			GC.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(X, Y, Z, GC.ViewForward);
-			break;
-
-		case EAxisLock::Y:
-			GC.HelperType = FGrabContext::EHelperType::AxisLine;
-			GC.HelperAxisDir = Y;
-			GC.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Y, X, Z, GC.ViewForward);
-			break;
-
-		case EAxisLock::Z:
-			GC.HelperType = FGrabContext::EHelperType::AxisLine;
-			GC.HelperAxisDir = Z;
-			GC.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Z, X, Y, GC.ViewForward);
-			break;
-
-		case EAxisLock::XY:
-			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GC.HelperAxisDir = FVector::ZeroVector;
-			GC.HelperPlaneN = Z;
-			break;
-
-		case EAxisLock::XZ:
-			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GC.HelperAxisDir = FVector::ZeroVector;
-			GC.HelperPlaneN = Y;
-			break;
-
-		case EAxisLock::YZ:
-			GC.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GC.HelperAxisDir = FVector::ZeroVector;
-			GC.HelperPlaneN = X;
-			break;
-		}
 	}
 
 	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis)
@@ -494,16 +433,6 @@ namespace BlenderControls
 
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
 	{
-		if (!GEditor)
-		{
-			return FVector::ZeroVector;
-		}
-
-		float GridSize = GEditor->GetGridSize();
-		FVector SnapOffset = OffsetFromStart / GridSize;
-		SnapOffset = MathHelper::RoundVectorToInt(SnapOffset);
-		SnapOffset *= GridSize;
-
-		return SnapOffset;
+		return FVector::ZeroVector;
 	}
 } // namespace BlenderControls
