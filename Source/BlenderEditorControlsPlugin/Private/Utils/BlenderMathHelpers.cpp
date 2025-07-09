@@ -46,7 +46,7 @@ namespace BlenderControls::MathHelper
 		return IntersectionPoint;
 	}
 
-	FVector SelectMostParallelPlaneNormal(const FVector& Axis, const FVector& A, const FVector& B,
+	FVector SelectMostParallelPlaneNormal(const FVector& A, const FVector& B,
 	                                      const FVector& ViewForward)
 	{
 		const float DotA = FMath::Abs(FVector::DotProduct(ViewForward, A));
@@ -54,16 +54,20 @@ namespace BlenderControls::MathHelper
 		return (DotA > DotB) ? A : B;
 	}
 
-	float GetSignedAngleOnAxis(const FVector& From, const FVector& To, const FVector& Axis)
+	float GetSignedAngle2D(const FVector2D& From, const FVector2D& To)
 	{
-		const FVector Cross = FVector::CrossProduct(From.GetSafeNormal(), To.GetSafeNormal());
-		const float Dot = FVector::DotProduct(From.GetSafeNormal(), To.GetSafeNormal());
+		const FVector2D FromNorm = From.GetSafeNormal();
+		const FVector2D ToNorm = To.GetSafeNormal();
 
-		const float Angle = FMath::Atan2(Cross.Size(), Dot); // unsigned angle
+		float Dot = FVector2D::DotProduct(FromNorm, ToNorm);
+		float Angle = FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f));
 
-		// Determine sign
-		const float Sign = FVector::DotProduct(Cross, Axis) < 0 ? -1.0f : 1.0f;
-		return Angle * Sign;
+		float CrossZ = FromNorm.X * ToNorm.Y - FromNorm.Y * ToNorm.X;
+		if (CrossZ > 0)
+		{
+			Angle = -Angle;
+		}
+		return Angle;
 	}
 
 	FVector ProjectVectorOntoPlane(const FVector& Vector, const FVector& PlaneNormal)

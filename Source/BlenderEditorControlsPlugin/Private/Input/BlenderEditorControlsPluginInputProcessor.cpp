@@ -59,11 +59,30 @@ namespace BlenderControls
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
 		CurrentTool->SetPrecisionModeActive(bShift);
 
-		bool bIsGridSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
+		bool bIsPositionSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
+		bool bIsRotationSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled;
+		bool bIsScalingSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled;
 
 		// If Ctrl is pressed, invert the grid snap setting
 		const bool bCtrl = App.GetModifierKeys().IsControlDown();
-		CurrentTool->SetSnappingEnabled(bCtrl ? !bIsGridSnapEnabled : bIsGridSnapEnabled);
+		bool bIsSnapEnabled = false;
+
+		switch (ActiveMode)
+		{
+		case ETransformMode::Translate:
+			bIsSnapEnabled = bCtrl ? !bIsPositionSnapEnabled : bIsPositionSnapEnabled;
+			break;
+		case ETransformMode::Rotate:
+			bIsSnapEnabled = bCtrl ? !bIsRotationSnapEnabled : bIsRotationSnapEnabled;
+			break;
+		case ETransformMode::Scale:
+			bIsSnapEnabled = bCtrl ? !bIsScalingSnapEnabled : bIsScalingSnapEnabled;
+			break;
+		default:
+			break;
+		}
+
+		CurrentTool->SetSnappingEnabled(bIsSnapEnabled);
 
 		// Overlay may want to animate a fade, so pass DeltaTime
 		/*if (Overlay.IsValid())

@@ -99,19 +99,19 @@ namespace BlenderControls
 		case EAxisLock::X:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
 			GrabContext.HelperAxisDir = X;
-			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(X, Y, Z, GrabContext.ViewForward);
+			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Y, Z, GrabContext.ViewForward);
 			break;
 
 		case EAxisLock::Y:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
 			GrabContext.HelperAxisDir = Y;
-			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Y, X, Z, GrabContext.ViewForward);
+			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(X, Z, GrabContext.ViewForward);
 			break;
 
 		case EAxisLock::Z:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
 			GrabContext.HelperAxisDir = Z;
-			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Z, X, Y, GrabContext.ViewForward);
+			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(X, Y, GrabContext.ViewForward);
 			break;
 
 		case EAxisLock::XY:

@@ -1,5 +1,8 @@
 #include "Tools/RotateTool.h"
 #include "Utils/BlenderMathHelpers.h"
+//TODO fix the rotation behaving oddly when mouse wraps around
+//TODO draw the rotation gizmo handle
+//TODO cancelling resets the rotation. Make the shared pivot logic be more robust. 
 
 namespace BlenderControls
 {
@@ -15,39 +18,46 @@ namespace BlenderControls
 		FVector RayOrigin, RayDirection;
 		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
 
-		const FVector Hit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDirection);
-		StartDragVector = Hit - Pivot->GetStartTransform().GetLocation();
-		LastDragVector = StartDragVector;
+		StartPivotTransform = Pivot->GetStartTransform();
+		PivotStartPos = Pivot->GetStartTransform().GetLocation();
+
+		SceneView->WorldToPixel(PivotStartPos, PivotViewportLocation);
+
+		StartDragVector = CurrentMousePosition - PivotViewportLocation;
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		FVector RayOrigin, RayDirection;
-		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
+		const FVector2D CurrentDragVector = CurrentMousePosition - PivotViewportLocation;
 
-		const FVector Hit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDirection);
-		const FVector CurrentDragVector = Hit - Pivot->GetStartTransform().GetLocation();
-
-		if (!CurrentDragVector.IsNearlyZero() && !CurrentDragVector.ContainsNaN())
+		const FVector RotationAxis = GrabContext.HelperAxisDir;
+		const float ViewAlignmentWithAxis = FVector::DotProduct(GrabContext.ViewForward, RotationAxis);
+		float TotalAngleRadians = MathHelper::GetSignedAngle2D(StartDragVector, CurrentDragVector);
+		const bool bIsRotationAxisFacingCamera = ViewAlignmentWithAxis > 0;
+		if (!bIsRotationAxisFacingCamera)
 		{
-			const FVector RotationAxis = GrabContext.HelperAxisDir;
-
-			const float DeltaAngleRad = MathHelper::GetSignedAngleOnAxis(
-				LastDragVector, CurrentDragVector, RotationAxis);
-
-			if (!FMath::IsNaN(DeltaAngleRad))
-			{
-				const FQuat DeltaRotation(RotationAxis, DeltaAngleRad);
-				FTransform CurrentTransform = Pivot->GetTransformProxy()->GetTransform();
-
-				CurrentTransform.ConcatenateRotation(DeltaRotation);
-				Pivot->GetTransformProxy()->SetTransform(CurrentTransform);
-			}
-
-			LastDragVector = CurrentDragVector;
+			TotalAngleRadians = -TotalAngleRadians;
 		}
+
+		if (!GEditor)
+		{
+			return;
+		}
+
+		//REFACTOR INTO A SNAP OFFSET FUNCTION
+		FRotator RotationGridSize = GEditor->GetRotGridSize();
+		float SnapAngleDeg = RotationGridSize.Yaw;
+		float TotalAngleDeg = FMath::RadiansToDegrees(TotalAngleRadians);
+		float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
+		float SnappedAngleRad = FMath::DegreesToRadians(SnappedAngleDeg);
+		float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : TotalAngleRadians;
+		const FQuat TargetRotation = FQuat(RotationAxis, DegreesToRotate);
+
+		FTransform NewTransform = StartPivotTransform;
+		NewTransform.ConcatenateRotation(TargetRotation);
+		Pivot->GetTransformProxy()->SetTransform(NewTransform);
 	}
 
 	void FRotateTool::ApplyNumeric(float Value)
@@ -82,8 +92,18 @@ namespace BlenderControls
 		case EAxisLock::XZ: GrabContext.HelperAxisDir = Y;
 			break;
 
-		case EAxisLock::All: GrabContext.HelperAxisDir = -GrabContext.ViewForward;
+		case EAxisLock::All: GrabContext.HelperAxisDir = GrabContext.ViewForward;
 			break;
 		}
+	}
+
+	FVector FRotateTool::GetSnapOffset(const FVector OffsetFromStart)
+	{
+		return FVector::ZeroVector;
+		// FVector SnapOffset = OffsetFromStart / RotationGridSize;
+		// SnapOffset = MathHelper::RoundVectorToInt(SnapOffset);
+		// SnapOffset *= RotationGridSize;
+		//
+		// return SnapOffset;
 	}
 } // namespace BlenderControls

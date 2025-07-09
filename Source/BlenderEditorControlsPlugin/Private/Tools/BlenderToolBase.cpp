@@ -6,7 +6,7 @@
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
-
+//TODO: make GetSnapOffset abstract
 namespace BlenderControls
 {
 	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
@@ -301,11 +301,19 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			FVector NewPivot = bApply ? Pivot->GetCurrentLocation() : Pivot->GetStartTransform().GetLocation();
-			GEditor->SetPivot(NewPivot, false, true, false);
+			const FVector CurrentPivotLocation = Pivot->GetCurrentLocation();
+			const FVector StartPivotLocation = Pivot->GetStartTransform().GetLocation();
+			const FVector NewPivotPosition = bApply ? CurrentPivotLocation : StartPivotLocation;
+
+			constexpr bool bSnapPivotToGrid = false;
+			constexpr bool bIgnoreAxis = true;
+			constexpr bool bAssignPivotToActors = false;
+			GEditor->SetPivot(NewPivotPosition, bSnapPivotToGrid, bIgnoreAxis, bAssignPivotToActors);
 		}
 
-		ViewportClient->ShowWidget(true);
+		ViewportClient->SetWidgetMode(InitialWidgetMode);
+		constexpr bool bShowWidget = true;
+		ViewportClient->ShowWidget(bShowWidget);
 		ViewportClient->Invalidate();
 
 		FlushDrawnAxisLines();
@@ -429,7 +437,7 @@ namespace BlenderControls
 			}
 		}
 	}
-
+	
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
 	{
 		return FVector::ZeroVector;
