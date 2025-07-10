@@ -4,6 +4,7 @@
 #include "Editor.h"
 #include "Tools/BlenderToolBase.h"
 #include "DrawDebugHelpers.h"
+#include "EntitySystem/MovieSceneEntitySystemRunner.h"
 
 namespace BlenderControls::MathHelper
 {
@@ -59,16 +60,27 @@ namespace BlenderControls::MathHelper
 		const FVector2D FromNorm = From.GetSafeNormal();
 		const FVector2D ToNorm = To.GetSafeNormal();
 
-		float Dot = FVector2D::DotProduct(FromNorm, ToNorm);
+		const float Dot = FVector2D::DotProduct(FromNorm, ToNorm);
+		//Clamp Dot even though both vectors are normalized so shouldn't be needed
 		float Angle = FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f));
 
-		float CrossZ = FromNorm.X * ToNorm.Y - FromNorm.Y * ToNorm.X;
+		const float CrossZ = FromNorm.X * ToNorm.Y - FromNorm.Y * ToNorm.X;
+		//counter-clockwise rotations are negative and clockwise rotations are positive.
 		if (CrossZ > 0)
 		{
 			Angle = -Angle;
 		}
 		return Angle;
 	}
+
+	float GetSignedAngle3D(const FVector& StartVec, const FVector& EndVec)
+	{
+		const FVector StartVecNorm = StartVec.GetSafeNormal();
+		const FVector EndVecNorm = EndVec.GetSafeNormal();
+		const float Dot = FVector::DotProduct(StartVecNorm, EndVecNorm);
+		return FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f));
+	}
+
 
 	FVector ProjectVectorOntoPlane(const FVector& Vector, const FVector& PlaneNormal)
 	{

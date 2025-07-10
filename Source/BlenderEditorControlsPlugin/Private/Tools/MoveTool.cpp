@@ -1,4 +1,7 @@
 #include "Tools/MoveTool.h"
+
+#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
+
 #include "Utils/BlenderMathHelpers.h"
 
 namespace BlenderControls
@@ -54,7 +57,7 @@ namespace BlenderControls
 		{
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
-
+		
 		const FVector NewPos = Pivot->GetStartTransform().GetLocation() + LiveDelta;
 		Pivot->SetPosition(NewPos);
 	}

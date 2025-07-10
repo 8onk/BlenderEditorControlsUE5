@@ -22,7 +22,7 @@ namespace BlenderControls
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
 
-		void SetTrackBallMode(const bool InTrackBallMode) { bTrackballMode = InTrackBallMode; }
+		void SetTrackBallMode(const bool InTrackBallMode) { bTrackballModeEnabled = InTrackBallMode; }
 
 	private:
 		FVector2D StartDragVector;
@@ -47,7 +47,7 @@ namespace BlenderControls
 		/* ——— state ——— */
 		FVector PivotWS = FVector::ZeroVector; // cached centre
 		FVector LastVectorWS = FVector::ZeroVector; // for track-ball
-		bool bTrackballMode = false;
+		bool bTrackballModeEnabled = false;
 		float AngleSnapIncrementDeg = 5.f;
 		float AngleAccumulatorDeg = 0.f; // used when snapping
 	};
