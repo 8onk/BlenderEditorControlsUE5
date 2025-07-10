@@ -31,138 +31,30 @@ namespace BlenderControls
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
-		//TEMPORARY
-		bTrackballModeEnabled = true;
 
 		if (bTrackballModeEnabled)
 		{
-			const FVector SphereCenter = Pivot->GetStartTransform().GetLocation();
-			//RADIUS should be 3D distance from the pivot point to the corner of the bounding box that is furthest away. 
-			constexpr double SphereRadius = 100.0;
+			constexpr float MouseDeltaSensitivity = 0.01f;
+			FVector2D ScaledMouseDelta = FVector2D(MouseDelta.X, MouseDelta.Y) * MouseDeltaSensitivity;
 
-			if (!SceneView)
+			if (bSnappingEnabled)
 			{
-				UE_LOG(LogBlenderEditorControls, Warning, TEXT("No scene view found! RotateTool.ccp::OnActive"));
-				return;
+				//Can use .Yaw or .Pitch .Roll since the snapping value is the same for all.
+				const float SnapAngleDeg = GEditor->GetRotGridSize().Yaw;
+				const float SnapAngleRad = FMath::DegreesToRadians(SnapAngleDeg);
+				const float SnapIncrement = SnapAngleRad;
+
+				ScaledMouseDelta.X = FMath::GridSnap(ScaledMouseDelta.X, SnapIncrement);
+				ScaledMouseDelta.Y = FMath::GridSnap(ScaledMouseDelta.Y, SnapIncrement);
 			}
-			FVector StartRayOrigin, StartRayDirection;
-			SceneView->DeprojectFVector2D(GrabContext.StartMousePos, StartRayOrigin, StartRayDirection);
 
-			bool bStartHit;
-			FVector ArcStartPoint;
-			GizmoMath::RaySphereIntersection(SphereCenter, SphereRadius, StartRayOrigin, StartRayDirection, bStartHit,
-			                                 ArcStartPoint);
+			const FVector RotationAxis = (-ViewUp * ScaledMouseDelta.X) + (-ViewRight * ScaledMouseDelta.Y);
+			const float RotationAngle = RotationAxis.Length();
+			const FQuat TargetRotation = FQuat(RotationAxis.GetSafeNormal(), RotationAngle);
 
-			FVector CurrentRayOrigin, CurrentRayDirection;
-			SceneView->DeprojectFVector2D(CurrentMousePosition, CurrentRayOrigin, CurrentRayDirection);
-			bool bCurrentHit;
-			FVector ArcEndPoint;
-			GizmoMath::RaySphereIntersection(SphereCenter, SphereRadius, CurrentRayOrigin, CurrentRayDirection,
-			                                 bCurrentHit,
-			                                 ArcEndPoint);
-
-			if (bStartHit && bCurrentHit)
-			{
-				FVector VecStartFromCenter = ArcStartPoint - SphereCenter;
-				FVector VecEndFromCenter = ArcEndPoint - SphereCenter;
-				FVector RotationAxis = FVector::CrossProduct(VecStartFromCenter, VecEndFromCenter).GetSafeNormal();
-				float TotalRotationAngle = MathHelper::GetSignedAngle3D(VecStartFromCenter, VecEndFromCenter);
-				//
-				// // Grab the editor world
-				// UWorld* World = nullptr;
-				// if (GEditor)
-				// {
-				// 	World = GEditor->GetEditorWorldContext().World();
-				// }
-				// if (World)
-				// {
-				// 	// 1) Draw the sphere outline
-				// 	DrawDebugSphere(
-				// 		World,
-				// 		SphereCenter,
-				// 		SphereRadius,
-				// 		32, // segments
-				// 		FColor::Emerald, // color
-				// 		false, // persistent (auto‐remove)
-				// 		0.1f, // lifetime
-				// 		0, // depth priority
-				// 		1.0f // line thickness
-				// 	);
-				//
-				// 	// 2) Draw the two radius vectors
-				// 	DrawDebugLine(
-				// 		World,
-				// 		SphereCenter,
-				// 		ArcStartPoint,
-				// 		FColor::Blue,
-				// 		false, // not persistent
-				// 		0.1f, // life
-				// 		0,
-				// 		2.0f // thickness
-				// 	);
-				// 	DrawDebugLine(
-				// 		World,
-				// 		SphereCenter,
-				// 		ArcEndPoint,
-				// 		FColor::Red,
-				// 		false,
-				// 		0.1f,
-				// 		0,
-				// 		2.0f
-				// 	);
-				//
-				// 	// 3) Mark the actual hit points
-				// 	DrawDebugPoint(
-				// 		World,
-				// 		ArcStartPoint,
-				// 		8.0f,
-				// 		FColor::Blue,
-				// 		false,
-				// 		0.1f
-				// 	);
-				// 	DrawDebugPoint(
-				// 		World,
-				// 		ArcEndPoint,
-				// 		8.0f,
-				// 		FColor::Red,
-				// 		false,
-				// 		0.1f
-				// 	);
-				//
-				// 	// 4) Draw the rotation axis
-				// 	DrawDebugDirectionalArrow(
-				// 		World,
-				// 		SphereCenter,
-				// 		SphereCenter + RotationAxis * SphereRadius,
-				// 		40.0f, // arrow size
-				// 		FColor::Yellow,
-				// 		false,
-				// 		0.1f,
-				// 		0,
-				// 		2.5f // shaft thickness
-				// 	);
-				// }
-				
-				if (!GEditor)
-				{
-					return;
-				}
-
-				//REFACTOR INTO A SNAP OFFSET FUNCTION
-				// FRotator RotationGridSize = GEditor->GetRotGridSize();
-				// float SnapAngleDeg = RotationGridSize.Yaw;
-				// float TotalAngleDeg = FMath::RadiansToDegrees(TotalRotationAngle);
-				// float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
-				// float SnappedAngleRad = FMath::DegreesToRadians(SnappedAngleDeg);
-				// float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : TotalRotationAngle;
-				const FQuat TargetRotation = FQuat(RotationAxis, TotalRotationAngle);
-
-				UE_LOG(LogBlenderEditorControls, Log, TEXT("Degrees to rotate: %f"), TotalRotationAngle);
-
-				FTransform NewTransform = StartPivotTransform;
-				NewTransform.ConcatenateRotation(TargetRotation);
-				Pivot->GetTransformProxy()->SetTransform(NewTransform);
-			}
+			FTransform NewTransform = StartPivotTransform;
+			NewTransform.ConcatenateRotation(TargetRotation);
+			Pivot->GetTransformProxy()->SetTransform(NewTransform);
 		}
 		else
 		{
@@ -191,6 +83,7 @@ namespace BlenderControls
 			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : TotalAngleRadians;
 			const FQuat TargetRotation = FQuat(RotationAxis, DegreesToRotate);
 
+			//START PIVOT TRANSFORM ROTATION IS ALWAYS 0, 0, 0. FIX THIS!
 			FTransform NewTransform = StartPivotTransform;
 			NewTransform.ConcatenateRotation(TargetRotation);
 			Pivot->GetTransformProxy()->SetTransform(NewTransform);
