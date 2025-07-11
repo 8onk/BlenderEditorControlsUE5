@@ -1,10 +1,7 @@
 #include "Tools/RotateTool.h"
-
-#include "BaseGizmos/GizmoMath.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO fix the rotation behaving oddly when mouse wraps around
 //TODO draw the rotation gizmo handle
-//TODO cancelling resets the rotation. Make the shared pivot logic be more robust. 
 
 namespace BlenderControls
 {
@@ -16,21 +13,27 @@ namespace BlenderControls
 	void FRotateTool::OnBegin()
 	{
 		FBlenderToolBase::OnBegin();
+		bTrackballModeEnabled = false;
 
 		FVector RayOrigin, RayDirection;
 		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
 
 		StartPivotTransform = Pivot->GetStartTransform();
-		PivotStartPos = Pivot->GetStartTransform().GetLocation();
+		PivotStartPosition = Pivot->GetStartTransform().GetLocation();
 
-		SceneView->WorldToPixel(PivotStartPos, PivotViewportLocation);
+		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
-		StartDragVector = CurrentMousePosition - PivotViewportLocation;
+		StartDragVector = CurrentMousePosition - PivotViewportPosition;
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+
+		if (!GEditor)
+		{
+			return;
+		}
 
 		if (bTrackballModeEnabled)
 		{
@@ -39,7 +42,7 @@ namespace BlenderControls
 
 			if (bSnappingEnabled)
 			{
-				//Can use .Yaw or .Pitch .Roll since the snapping value is the same for all.
+				//Can use .Yaw or .Pitch or .Roll since the snapping value is the same for all.
 				const float SnapAngleDeg = GEditor->GetRotGridSize().Yaw;
 				const float SnapAngleRad = FMath::DegreesToRadians(SnapAngleDeg);
 				const float SnapIncrement = SnapAngleRad;
@@ -58,20 +61,16 @@ namespace BlenderControls
 		}
 		else
 		{
-			const FVector2D CurrentDragVector = CurrentMousePosition - PivotViewportLocation;
+			const FVector2D CurrentDragVector = CurrentMousePosition - PivotViewportPosition;
 
 			const FVector RotationAxis = GrabContext.HelperAxisDir;
 			const float ViewAlignmentWithAxis = FVector::DotProduct(GrabContext.ViewForward, RotationAxis);
 			float TotalAngleRadians = MathHelper::GetSignedAngle2D(StartDragVector, CurrentDragVector);
+
 			const bool bIsRotationAxisFacingCamera = ViewAlignmentWithAxis > 0;
 			if (!bIsRotationAxisFacingCamera)
 			{
 				TotalAngleRadians = -TotalAngleRadians;
-			}
-
-			if (!GEditor)
-			{
-				return;
 			}
 
 			//REFACTOR INTO A SNAP OFFSET FUNCTION
@@ -81,12 +80,16 @@ namespace BlenderControls
 			float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
 			float SnappedAngleRad = FMath::DegreesToRadians(SnappedAngleDeg);
 			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : TotalAngleRadians;
+
+			DegreesToRotate += CachedNonTrackballRotationAngle;
 			const FQuat TargetRotation = FQuat(RotationAxis, DegreesToRotate);
+			CurrentNonTrackballRotationAngle = DegreesToRotate;
 
 			//START PIVOT TRANSFORM ROTATION IS ALWAYS 0, 0, 0. FIX THIS!
 			FTransform NewTransform = StartPivotTransform;
 			NewTransform.ConcatenateRotation(TargetRotation);
 			Pivot->GetTransformProxy()->SetTransform(NewTransform);
+			
 		}
 	}
 
@@ -135,5 +138,23 @@ namespace BlenderControls
 		// SnapOffset *= RotationGridSize;
 		//
 		// return SnapOffset;
+	}
+
+	void FRotateTool::OnMouseWrap()
+	{
+		FBlenderToolBase::OnMouseWrap();
+
+		CachedNonTrackballRotationAngle = CurrentNonTrackballRotationAngle;
+		StartDragVector = CurrentMousePosition - PivotViewportPosition;
+	}
+
+	void FRotateTool::SetTrackballRotationMode(const bool bEnabled)
+	{
+		bTrackballModeEnabled = bEnabled;
+	}
+
+	bool FRotateTool::GetTrackballRotationMode()
+	{
+		return bTrackballModeEnabled;
 	}
 } // namespace BlenderControls

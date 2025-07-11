@@ -27,28 +27,18 @@ namespace BlenderControls
 	private:
 		FVector2D StartDragVector;
 		FVector2D LastDragVector;
-		FVector PivotStartPos;
-		FVector2D PivotViewportLocation;
+		FVector PivotStartPosition;
+		FVector2D PivotViewportPosition;
 		FTransform StartPivotTransform;
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
-
-		FVector2D RotationCenterScreen; // The object's pivot point projected onto the screen
-		FVector2D MouseStartScreen; // The screen position of the mouse when rotation started
-		FQuat InitialObjectRotation; // The object's rotation when rotation started
 		FVector RotationAxisWorld;
+		bool bTrackballModeEnabled;
+		float RotationAngleAnchor;
 
 	protected:
-		/* ——— helpers ——— */
-		FVector ScreenToWorldVector(const FVector2D& ScreenPos) const;
-		void UpdateTrackball(const FVector2D& MouseDelta);
-		FQuat BuildAxisQuat(float Radians) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
-
-		/* ——— state ——— */
-		FVector PivotWS = FVector::ZeroVector; // cached centre
-		FVector LastVectorWS = FVector::ZeroVector; // for track-ball
-		bool bTrackballModeEnabled = false;
-		float AngleSnapIncrementDeg = 5.f;
-		float AngleAccumulatorDeg = 0.f; // used when snapping
+		virtual void OnMouseWrap() override;
+		virtual void SetTrackballRotationMode(const bool bEnabled) override;
+		virtual bool GetTrackballRotationMode();
 	};
 } // namespace BlenderControls

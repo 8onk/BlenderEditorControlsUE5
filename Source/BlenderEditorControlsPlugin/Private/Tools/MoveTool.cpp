@@ -1,8 +1,6 @@
 #include "Tools/MoveTool.h"
-
-#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
-
 #include "Utils/BlenderMathHelpers.h"
+//TODO snapping in local mode, behaves oddly (doesnt move along the line). 
 
 namespace BlenderControls
 {

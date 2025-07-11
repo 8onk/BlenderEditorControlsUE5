@@ -22,7 +22,7 @@ namespace BlenderControls
 		~FSharedPivot();
 
 		const FTransform &GetPivot() const { return Pivot; }
-		const FVector GetCurrentLocation() const { return TransformProxy->GetTransform().GetLocation(); }
+		FVector GetCurrentLocation() const { return TransformProxy->GetTransform().GetLocation(); }
 		UTransformProxy *GetTransformProxy() const { return TransformProxy; }
 		const FTransform &GetStartTransform() const { return StartTransform; }
 

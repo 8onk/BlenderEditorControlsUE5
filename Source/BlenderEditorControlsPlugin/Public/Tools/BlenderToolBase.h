@@ -48,6 +48,10 @@ namespace BlenderControls
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
+
+		virtual void SetTrackballRotationMode(const bool bEnabled);
+		virtual bool GetTrackballRotationMode();
+
 		void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;
 		void NotifyMouseWrap() { bPendingMouseWrap = true; }
@@ -78,8 +82,12 @@ namespace BlenderControls
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock);
+		virtual void OnMouseWrap();
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
+
+		float CurrentNonTrackballRotationAngle = 0.0f;
+		float CachedNonTrackballRotationAngle = 0.0f;
 
 		/* Transaction utilities */
 		TUniquePtr<FScopedTransaction> ParentTxn;

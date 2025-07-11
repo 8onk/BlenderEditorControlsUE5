@@ -93,48 +93,66 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
+		const FKey PressedKey = KeyEvent.GetKey();
+		const bool bShift = KeyEvent.IsShiftDown();
+		if (PressedKeys.Contains(PressedKey))
+		{
+			return false;
+		}
+		PressedKeys.Add(PressedKey);
+
+		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
+		const FKey RotateKey = Commands.CommandRotate->GetActiveChord(EMultipleKeyBindingIndex::Primary)->Key;
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("Primary key bound to Rotate: %s"), *RotateKey.ToString());
+
+
+		if (PressedKey == RotateKey && ActiveMode == ETransformMode::Rotate)
+		{
+			bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
+			CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
+			UE_LOG(LogBlenderEditorControls, Log, TEXT("bTrackballRotationModeStat = %d"), bTrackballRotationModeStat);
+		}
+
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
 			return true; // G/R/S (or remapped key) handled
 		}
 
-		if (CurrentTool.IsValid())
+		if (!CurrentTool.IsValid())
 		{
-			const FKey Key = KeyEvent.GetKey();
-			const bool bShift = KeyEvent.IsShiftDown();
+			return false;
+		}
 
-			// Only handle if not already down
-			if ((Key == EKeys::X || Key == EKeys::Y || Key == EKeys::Z) && !AxisLockKeysDown.Contains(Key))
+		if (PressedKey == EKeys::X || PressedKey == EKeys::Y || PressedKey == EKeys::Z)
+		{
+			PressedKeys.Add(PressedKey);
+
+			if (PressedKey == EKeys::X)
 			{
-				AxisLockKeysDown.Add(Key);
-
-				if (Key == EKeys::X)
-				{
-					CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
-					return true;
-				}
-				if (Key == EKeys::Y)
-				{
-					CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
-					return true;
-				}
-				if (Key == EKeys::Z)
-				{
-					CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
-					return true;
-				}
-			}
-
-			if (CurrentTool->IsSingleAxisLocked())
-			{
-				//Numer input, altough dual axis should also work
-			}
-
-			if (KeyEvent.GetKey() == EKeys::Escape)
-			{
-				CurrentTool->Cancel();
+				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
 				return true;
 			}
+			if (PressedKey == EKeys::Y)
+			{
+				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
+				return true;
+			}
+			if (PressedKey == EKeys::Z)
+			{
+				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
+				return true;
+			}
+		}
+
+		if (CurrentTool->IsSingleAxisLocked())
+		{
+			//Numer input, altough dual axis should also work
+		}
+
+		if (KeyEvent.GetKey() == EKeys::Escape)
+		{
+			CurrentTool->Cancel();
+			return true;
 		}
 
 		return false;
@@ -142,11 +160,9 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
 	{
-		const FKey Key = KeyEvent.GetKey();
-		if (Key == EKeys::X || Key == EKeys::Y || Key == EKeys::Z)
-		{
-			AxisLockKeysDown.Remove(Key);
-		}
+		const FKey PressedKey = KeyEvent.GetKey();
+		PressedKeys.Remove(PressedKey);
+
 		return false;
 	}
 
@@ -205,7 +221,8 @@ namespace BlenderControls
 
 		if (CurrentTool.IsValid())
 		{
-			CurrentTool.Reset();
+			return;
+			//CurrentTool.Reset();
 		}
 
 		constexpr EAxisLock InitialAxis = EAxisLock::All;

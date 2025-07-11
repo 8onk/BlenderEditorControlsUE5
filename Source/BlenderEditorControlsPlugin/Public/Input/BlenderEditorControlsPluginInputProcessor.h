@@ -53,6 +53,6 @@ namespace BlenderControls
         TSharedPtr<FUICommandList> CommandList;
         TSharedPtr<FBlenderOverlay> Overlay;
         TSharedPtr<SWidget> SoftwareCursorWidget;
-        TSet<FKey> AxisLockKeysDown;
+        TSet<FKey> PressedKeys;
     };
 } // namespace BlenderControls

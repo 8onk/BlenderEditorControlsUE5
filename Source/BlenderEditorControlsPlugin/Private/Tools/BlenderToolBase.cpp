@@ -6,6 +6,7 @@
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
+
 //TODO: make GetSnapOffset abstract
 namespace BlenderControls
 {
@@ -271,7 +272,7 @@ namespace BlenderControls
 
 		if (bPendingMouseWrap)
 		{
-			LastMousePosition = CurrentMousePosition;
+			OnMouseWrap();
 			bPendingMouseWrap = false;
 			return;
 		}
@@ -338,8 +339,13 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::SetGrabContextAxisLock(EAxisLock AxisLock)
+	void FBlenderToolBase::SetTrackballRotationMode(const bool bEnabled)
 	{
+	}
+
+	bool FBlenderToolBase::GetTrackballRotationMode()
+	{
+		return false;
 	}
 
 	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis)
@@ -416,6 +422,11 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
+	void FBlenderToolBase::OnMouseWrap()
+	{
+		LastMousePosition = CurrentMousePosition;
+	}
+
 	void FBlenderToolBase::ApplyNumeric(float Value)
 	{
 		// Base implementation does nothing
@@ -437,7 +448,7 @@ namespace BlenderControls
 			}
 		}
 	}
-	
+
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
 	{
 		return FVector::ZeroVector;
