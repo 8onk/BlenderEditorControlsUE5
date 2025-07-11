@@ -26,9 +26,12 @@ namespace BlenderControls
 		FVector NewScale;
 		FVector StartScale;
 		FVector2D InitialMousePosition;
+		FVector AxisLockProjectionVector;
 		float InitialMouseToPivotDistance;
 		float CurrentMouseToPivotDistance;
 		float ScaleFactor;
+
+		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
 
 	protected:
 		/* ——— helpers ——— */

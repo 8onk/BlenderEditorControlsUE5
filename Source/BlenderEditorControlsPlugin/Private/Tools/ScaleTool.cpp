@@ -30,26 +30,27 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		// 1. Calculate the mouse's displacement from its starting point
-		const FVector2D MouseDeltaFromStart = CurrentMousePosition - InitialMousePosition;
+		if (!GEditor)
+		{
+			return;
+		}
 
-		// 2. Scale this displacement by the precision factor
-		const FVector2D ScaledDelta = MouseDeltaFromStart * CurrentPrecisionFactor;
-
-		// 3. Calculate an "effective" mouse position
-		const FVector2D EffectiveMousePosition = InitialMousePosition + ScaledDelta;
-
-		// 4. Use this new effective position for your distance calculation
+		const FVector2D EffectiveMousePosition = InitialMousePosition + MouseDelta;
 		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(EffectiveMousePosition, PivotViewportPosition);
-
-		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(CurrentMousePosition, PivotViewportPosition);
 		ScaleFactor = CurrentMouseToPivotDistance / InitialMouseToPivotDistance;
 		NewScale = StartScale * ScaleFactor;
 
+		if (bSnappingEnabled)
+		{
+			const float SnappingIncrement = GEditor->GetScaleGridSize();
+			NewScale.X = FMath::GridSnap(NewScale.X, SnappingIncrement);
+			NewScale.Y = FMath::GridSnap(NewScale.Y, SnappingIncrement);
+			NewScale.Z = FMath::GridSnap(NewScale.Z, SnappingIncrement);
+		}
+		
 		FTransform NewTransform = Pivot->GetStartTransform();
 		NewTransform.SetScale3D(NewScale);
 
-		// Then do something with NewTransform, e.g. apply it
 		Pivot->GetTransformProxy()->SetTransform(NewTransform);
 	}
 
@@ -59,5 +60,34 @@ namespace BlenderControls
 
 	void FScaleTool::OnEnd(bool bApply)
 	{
+	}
+
+	void FScaleTool::SetGrabContextAxisLock(EAxisLock AxisLock)
+	{
+
+		const FTransform ObjectTransform = Pivot->GetStartTransform();
+		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
+		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
+		const FVector Z = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+
+		switch (AxisLock)
+		{
+		case EAxisLock::X: GrabContext.HelperAxisDir = X;
+			break;
+		case EAxisLock::Y: GrabContext.HelperAxisDir = Y;
+			break;
+		case EAxisLock::Z: GrabContext.HelperAxisDir = Z;
+			break;
+
+		case EAxisLock::XY: GrabContext.HelperAxisDir = Z;
+			break;
+		case EAxisLock::YZ: GrabContext.HelperAxisDir = X;
+			break;
+		case EAxisLock::XZ: GrabContext.HelperAxisDir = Y;
+			break;
+
+		case EAxisLock::All: GrabContext.HelperAxisDir = GrabContext.ViewForward;
+			break;
+		}
 	}
 } // namespace BlenderControls
