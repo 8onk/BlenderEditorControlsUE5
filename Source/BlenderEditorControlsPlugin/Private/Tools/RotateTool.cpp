@@ -2,6 +2,7 @@
 #include "Utils/BlenderMathHelpers.h"
 //TODO fix the rotation behaving oddly when mouse wraps around
 //TODO draw the rotation gizmo handle
+//ARCBALL ROTATION NOT FROM IDENTITY ROTATION ALMOST IS INVERTED ON SOME AXIS'
 
 namespace BlenderControls
 {
@@ -18,8 +19,8 @@ namespace BlenderControls
 		FVector RayOrigin, RayDirection;
 		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
 
-		StartPivotTransform = Pivot->GetStartTransform();
-		PivotStartPosition = Pivot->GetStartTransform().GetLocation();
+		StartPivotTransform = VirtualPivot->GetStartTransform();
+		PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
 
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
@@ -56,8 +57,10 @@ namespace BlenderControls
 			const FQuat TargetRotation = FQuat(RotationAxis.GetSafeNormal(), RotationAngle);
 
 			FTransform NewTransform = StartPivotTransform;
-			NewTransform.ConcatenateRotation(TargetRotation);
-			Pivot->GetTransformProxy()->SetTransform(NewTransform);
+			FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
+			NewTransform.SetRotation(FinalRotation);
+			NewTransform.NormalizeRotation();
+			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
 		}
 		else
 		{
@@ -65,33 +68,34 @@ namespace BlenderControls
 
 			const FVector RotationAxis = GrabContext.HelperAxisDir;
 			const float ViewAlignmentWithAxis = FVector::DotProduct(GrabContext.ViewForward, RotationAxis);
-			float TotalAngleRadians = MathHelper::GetSignedAngle2D(StartDragVector, CurrentDragVector);
+			float TotalAngleRad = MathHelper::GetSignedAngle2D(StartDragVector, CurrentDragVector);
 
-			const bool bIsRotationAxisFacingCamera = ViewAlignmentWithAxis > 0;
-			if (!bIsRotationAxisFacingCamera)
+			if (ViewAlignmentWithAxis < 0) //Is rotation axis NOT facing the camera?
 			{
-				TotalAngleRadians = -TotalAngleRadians;
+				TotalAngleRad = -TotalAngleRad;
 			}
 
 			//REFACTOR INTO A SNAP OFFSET FUNCTION
 			FRotator RotationGridSize = GEditor->GetRotGridSize();
 			float SnapAngleDeg = RotationGridSize.Yaw;
-			float TotalAngleDeg = FMath::RadiansToDegrees(TotalAngleRadians);
+			float TotalAngleDeg = FMath::RadiansToDegrees(TotalAngleRad);
 			float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
 			float SnappedAngleRad = FMath::DegreesToRadians(SnappedAngleDeg);
-			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : TotalAngleRadians;
+			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : TotalAngleRad;
 
 			DegreesToRotate += CachedNonTrackballRotationAngle;
 			const FQuat TargetRotation = FQuat(RotationAxis, DegreesToRotate);
 			CurrentNonTrackballRotationAngle = DegreesToRotate;
 
-			//START PIVOT TRANSFORM ROTATION IS ALWAYS 0, 0, 0. FIX THIS!
-			FTransform NewTransform = StartPivotTransform;
-			NewTransform.ConcatenateRotation(TargetRotation);
-			Pivot->GetTransformProxy()->SetTransform(NewTransform);
-			
+			FTransform StartTransform = StartPivotTransform;
+			FTransform NewTransform = StartTransform;
+			FQuat ResultQuat = TargetRotation * NewTransform.GetRotation();
+			ResultQuat.Normalize();
+			NewTransform.SetRotation(ResultQuat);
+			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
 		}
 	}
+
 
 	void FRotateTool::ApplyNumeric(float Value)
 	{
@@ -104,7 +108,7 @@ namespace BlenderControls
 
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		const FTransform ObjectTransform = Pivot->GetStartTransform();
+		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
 		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
 		const FVector Z = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;

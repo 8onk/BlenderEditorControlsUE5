@@ -23,6 +23,9 @@ namespace BlenderControls
 
 				FChildInfo Child = {Actor, ActorTransform, ActorRotation};
 				Children.Add(Child);
+
+				constexpr bool bModifyComponentOnTransform = true;
+				TransformProxy->AddComponent(Actor->GetRootComponent(), bModifyComponentOnTransform);
 			}
 		}
 
@@ -60,6 +63,16 @@ namespace BlenderControls
 			break;
 		}
 
+		// Preserve rotation if only one object is selected
+		if (Children.Num() == 1)
+		{
+			PivotTransform.SetRotation(Children[0].Rotation);
+		}
+		else
+		{
+			PivotTransform.SetRotation(FQuat::Identity);
+		}
+
 		TransformProxy->SetTransform(PivotTransform);
 		StartPivotTransform = TransformProxy->GetTransform();
 	}
@@ -75,7 +88,6 @@ namespace BlenderControls
 		const FVector PivotLocation = Accum / Children.Num();
 
 		PivotTransform.SetLocation(PivotLocation);
-		PivotTransform.SetRotation(FQuat::Identity);
 	}
 
 	void FSharedPivot::ComputeBoundingBoxCenterPivot()
@@ -85,12 +97,12 @@ namespace BlenderControls
 		for (auto& Child : Children)
 		{
 			FVector Origin, Extent;
-			Child.Actor->GetActorBounds(false, Origin, Extent);
+			constexpr bool bOnlyCollidingComponents = false;
+			Child.Actor->GetActorBounds(bOnlyCollidingComponents, Origin, Extent);
 			BoundingBox += Origin;
 		}
 
 		PivotTransform.SetLocation(BoundingBox.GetCenter());
-		PivotTransform.SetRotation(FQuat::Identity);
 	}
 
 	void FSharedPivot::ComputeActiveElementPivot()

@@ -78,6 +78,8 @@ namespace BlenderControls
 		FVector2D LastMousePosition;
 		bool bPendingMouseWrap = false;
 
+		int32 CachedMouseSpeed;
+
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
@@ -97,7 +99,7 @@ namespace BlenderControls
 		FString DisplayName;
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
 		FViewport* Viewport = nullptr;
-		TSharedPtr<FSharedPivot> Pivot;
+		TSharedPtr<FSharedPivot> VirtualPivot;
 		FSceneView* SceneView = nullptr;
 		float PrecisionFactor = 0.1f;
 		float CurrentPrecisionFactor = 1.0f;

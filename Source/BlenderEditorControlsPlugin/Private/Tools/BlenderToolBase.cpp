@@ -117,13 +117,13 @@ namespace BlenderControls
 		if (CachedBatcher.IsValid())
 		{
 			const FVector AxisDir = GetAxisVector(InAxis);
-			const FVector Origin = Pivot->GetStartTransform().GetLocation();
-			const float LineLength = WORLD_MAX;
+			const FVector Origin = VirtualPivot->GetStartTransform().GetLocation();
+			constexpr float LineLength = WORLD_MAX;
 
 			const FVector LineStart = Origin - AxisDir * LineLength;
 			const FVector LineEnd = Origin + AxisDir * LineLength;
 
-			const float Lifetime = 0.f; // persistent
+			constexpr float Lifetime = 0.f; // persistent
 			const FLinearColor Color = GetAxisColor(InAxis);
 
 			CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, 2.0f, Lifetime);
@@ -149,7 +149,7 @@ namespace BlenderControls
 		// return FMath::Clamp(Scaled, MinLineThickness, MaxLineThickness);
 	}
 
-	FVector FBlenderToolBase::GetAxisVector(EAxisLock InAxis) const
+	FVector FBlenderToolBase::GetAxisVector(const EAxisLock InAxis) const
 	{
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
@@ -162,7 +162,7 @@ namespace BlenderControls
 
 		if (bIsUsingLocalSpace)
 		{
-			AxisVector = Pivot->GetTransformProxy()->GetTransform().TransformVectorNoScale(AxisVector);
+			AxisVector = VirtualPivot->GetStartTransform().TransformVectorNoScale(AxisVector);
 		}
 		return AxisVector.GetSafeNormal();
 	}
@@ -184,7 +184,7 @@ namespace BlenderControls
 		}
 		CachedSelectionColor = GEditor->GetSelectionOutlineColor();
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
-		bLocalSpaceDefault = (GLevelEditorModeTools().GetCoordSystem() == COORD_Local);
+		bLocalSpaceDefault = GLevelEditorModeTools().GetCoordSystem() == COORD_Local;
 
 		if (UWorld* World = GEditor->GetEditorWorldContext().World())
 		{
@@ -192,7 +192,8 @@ namespace BlenderControls
 		}
 
 		CaptureSelection();
-		Pivot = MakeShared<FSharedPivot>(SelectedActors);
+		constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
+		VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
 
 		// Start transaction for undo
 		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
@@ -200,7 +201,7 @@ namespace BlenderControls
 		{
 			Actor->Modify();
 		}
-		Pivot->GetTransformProxy()->BeginTransformEditSequence();
+		VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
 
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -223,7 +224,7 @@ namespace BlenderControls
 
 		FIntPoint MousePosInt;
 		Viewport->GetMousePos(MousePosInt);
-		FVector2D MousePos = FVector2D(MousePosInt);
+		const FVector2D MousePos = FVector2D(MousePosInt);
 
 		FVector StartRayOrigin, StartRayDirection;
 		SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
@@ -244,7 +245,7 @@ namespace BlenderControls
 		GrabContext.StartMousePos = MousePos;
 		CurrentViewportMousePos = MousePos;
 		FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
-		GrabContext.StartLocation = Pivot->GetStartTransform().GetLocation();
+		GrabContext.StartLocation = VirtualPivot->GetStartTransform().GetLocation();
 		GrabContext.HelperAxisDir = FVector::ZeroVector;
 
 		FVector MousePosBOrigin, MousePosBDirection;
@@ -263,7 +264,7 @@ namespace BlenderControls
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		CurrentViewportMousePos = CurrentViewportMousePosition;
-		if (!Viewport || !ViewportClient || !Pivot)
+		if (!Viewport || !ViewportClient || !VirtualPivot)
 		{
 			return;
 		}
@@ -284,7 +285,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnEnd(bool bApply)
 	{
-		if (!GEditor || !Pivot || !ViewportClient)
+		if (!GEditor || !VirtualPivot || !ViewportClient)
 		{
 			return;
 		}
@@ -298,12 +299,12 @@ namespace BlenderControls
 		LastMousePosition = FVector2D::ZeroVector;
 
 		SelectedActors.Empty();
-		Pivot->GetTransformProxy()->EndTransformEditSequence();
+		VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
 
 		if (GEditor)
 		{
-			const FVector CurrentPivotLocation = Pivot->GetCurrentLocation();
-			const FVector StartPivotLocation = Pivot->GetStartTransform().GetLocation();
+			const FVector CurrentPivotLocation = VirtualPivot->GetCurrentLocation();
+			const FVector StartPivotLocation = VirtualPivot->GetStartTransform().GetLocation();
 			const FVector NewPivotPosition = bApply ? CurrentPivotLocation : StartPivotLocation;
 
 			constexpr bool bSnapPivotToGrid = false;
@@ -401,7 +402,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::Cancel()
 	{
-		if (!GEditor || !Pivot)
+		if (!GEditor || !VirtualPivot)
 		{
 			return;
 		}
@@ -410,7 +411,7 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 
 		// Reset pivot to start location
-		Pivot->GetTransformProxy()->SetTransform(Pivot->GetStartTransform());
+		VirtualPivot->GetTransformProxy()->SetTransform(VirtualPivot->GetStartTransform());
 
 		// Abort undo-tracking
 		if (ParentTxn)
@@ -452,5 +453,9 @@ namespace BlenderControls
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
 	{
 		return FVector::ZeroVector;
+	}
+
+	void FBlenderToolBase::SetGrabContextAxisLock(EAxisLock AxisLock)
+	{
 	}
 } // namespace BlenderControls

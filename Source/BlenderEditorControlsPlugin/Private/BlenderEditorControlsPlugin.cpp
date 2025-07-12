@@ -12,78 +12,80 @@ DEFINE_LOG_CATEGORY(LogBlenderEditorControls);
 
 namespace BlenderControls
 {
-    void FBlenderEditorControlsPluginModule::StartupModule()
-    {
-        UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: StartupModule"));
+	void FBlenderEditorControlsPluginModule::StartupModule()
+	{
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: StartupModule"));
 
-        RegisterStyles();         // icons, brushes
-        RegisterCommands();       // UI_COMMANDs
-        RegisterSettings();       // Preferences panel
-        RegisterMenus();          // Toolbar toggle button
-        RegisterInputProcessor(); // Input processor
-    }
+		RegisterStyles(); // icons, brushes
+		RegisterCommands(); // UI_COMMANDs
+		RegisterSettings(); // Preferences panel
+		RegisterMenus(); // Toolbar toggle button
+		RegisterInputProcessor(); // Input processor
+	}
 
-    void FBlenderEditorControlsPluginModule::ShutdownModule()
-    {
-        UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: ShutdownModule"));
+	void FBlenderEditorControlsPluginModule::ShutdownModule()
+	{
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: ShutdownModule"));
 
-        UnregisterInputProcessor();
-        UnregisterMenus();
-        UnregisterSettings();
-        UnregisterCommands();
-        UnregisterStyles();
-    }
+		UnregisterInputProcessor();
+		UnregisterMenus();
+		UnregisterSettings();
+		UnregisterCommands();
+		UnregisterStyles();
+	}
 
-    void FBlenderEditorControlsPluginModule::RegisterStyles()
-    {
-    
-    }
-    
-    void FBlenderEditorControlsPluginModule::UnregisterStyles()
-    {
-    }
+	void FBlenderEditorControlsPluginModule::RegisterStyles()
+	{
+	}
 
-    void FBlenderEditorControlsPluginModule::RegisterCommands()
-    {
-        FBlenderEditorControlsPluginCommands::Register();
-        CommandList = MakeShared<FUICommandList>();
-    }
+	void FBlenderEditorControlsPluginModule::UnregisterStyles()
+	{
+	}
 
-    void FBlenderEditorControlsPluginModule::UnregisterCommands()
-    {
-        CommandList.Reset();
-        FBlenderEditorControlsPluginCommands::Unregister();
-    }
+	void FBlenderEditorControlsPluginModule::RegisterCommands()
+	{
+		FBlenderEditorControlsPluginCommands::Register();
+		CommandList = MakeShared<FUICommandList>();
+	}
 
-    void FBlenderEditorControlsPluginModule::RegisterSettings()
-    {
-    }
-    void FBlenderEditorControlsPluginModule::UnregisterSettings()
-    {
-    }
+	void FBlenderEditorControlsPluginModule::UnregisterCommands()
+	{
+		CommandList.Reset();
+		FBlenderEditorControlsPluginCommands::Unregister();
+	}
 
-    void FBlenderEditorControlsPluginModule::RegisterMenus()
-    {
-    }
-    void FBlenderEditorControlsPluginModule::UnregisterMenus()
-    {
-    }
+	void FBlenderEditorControlsPluginModule::RegisterSettings()
+	{
+	}
 
-    void FBlenderEditorControlsPluginModule::RegisterInputProcessor()
-    {
-        InputProcessor = MakeShared<FBlenderControlsInputProcessor>(CommandList);
-        InputProcessor->BindCommands();
-        FSlateApplication::Get().RegisterInputPreProcessor(InputProcessor);
-    }
+	void FBlenderEditorControlsPluginModule::UnregisterSettings()
+	{
+	}
 
-    void FBlenderEditorControlsPluginModule::UnregisterInputProcessor()
-    {
-        if (FSlateApplication::IsInitialized() && InputProcessor.IsValid())
-        {
-            FSlateApplication::Get().UnregisterInputPreProcessor(InputProcessor);
-        }
-        InputProcessor.Reset();
-    }
+	void FBlenderEditorControlsPluginModule::RegisterMenus()
+	{
+	}
+
+	void FBlenderEditorControlsPluginModule::UnregisterMenus()
+	{
+	}
+
+	void FBlenderEditorControlsPluginModule::RegisterInputProcessor()
+	{
+		InputProcessor = MakeShared<FBlenderControlsInputProcessor>(CommandList);
+		InputProcessor->BindCommands();
+		constexpr int32 Priority = 100;
+		FSlateApplication::Get().RegisterInputPreProcessor(InputProcessor, Priority);
+	}
+
+	void FBlenderEditorControlsPluginModule::UnregisterInputProcessor()
+	{
+		if (FSlateApplication::IsInitialized() && InputProcessor.IsValid())
+		{
+			FSlateApplication::Get().UnregisterInputPreProcessor(InputProcessor);
+		}
+		InputProcessor.Reset();
+	}
 } // namespace BlenderControls
 
 #undef LOCTEXT_NAMESPACE

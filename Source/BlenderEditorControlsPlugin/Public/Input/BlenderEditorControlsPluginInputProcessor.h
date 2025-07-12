@@ -27,6 +27,7 @@ namespace BlenderControls
         virtual bool HandleMouseMoveEvent(FSlateApplication &, const FPointerEvent &) override;
         virtual bool HandleMouseButtonDownEvent(FSlateApplication &, const FPointerEvent &) override;
         virtual bool HandleMouseButtonUpEvent(FSlateApplication &, const FPointerEvent &) override;
+        virtual bool HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent) override;
 
     private:
         /* Helpers */

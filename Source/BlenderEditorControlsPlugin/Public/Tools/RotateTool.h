@@ -40,5 +40,11 @@ namespace BlenderControls
 		virtual void OnMouseWrap() override;
 		virtual void SetTrackballRotationMode(const bool bEnabled) override;
 		virtual bool GetTrackballRotationMode();
+
+		FQuat ApplyRotationAroundAxis(
+			const FQuat& CurrentRotation,
+			const FVector& Axis, // Either local or world
+			float AngleRad,
+			bool bUseLocalAxis);
 	};
 } // namespace BlenderControls

@@ -18,12 +18,12 @@ namespace BlenderControls
 
 		FVector RayOrigin, RayDirection;
 		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
-		PivotStartPosition = Pivot->GetStartTransform().GetLocation();
+		PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
 		ScaleFactor = 1.0f;
 		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(CurrentMousePosition, PivotViewportPosition);
-		StartScale = Pivot->GetStartTransform().GetScale3D();
+		StartScale = VirtualPivot->GetStartTransform().GetScale3D();
 		InitialMousePosition = CurrentMousePosition;
 	}
 
@@ -82,9 +82,9 @@ namespace BlenderControls
 			NewScale.Z = FMath::GridSnap(NewScale.Z, SnappingIncrement);
 		}
 
-		FTransform NewTransform = Pivot->GetStartTransform();
+		FTransform NewTransform = VirtualPivot->GetStartTransform();
 		NewTransform.SetScale3D(NewScale);
-		Pivot->GetTransformProxy()->SetTransform(NewTransform);
+		VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
 	}
 
 	void FScaleTool::ApplyNumeric(float Value)
@@ -98,7 +98,7 @@ namespace BlenderControls
 
 	void FScaleTool::SetGrabContextAxisLock(EAxisLock AxisLock)
 	{
-		const FTransform ObjectTransform = Pivot->GetStartTransform();
+		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
 		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
 		const FVector Z = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;

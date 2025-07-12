@@ -103,14 +103,12 @@ namespace BlenderControls
 
 		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
 		const FKey RotateKey = Commands.CommandRotate->GetActiveChord(EMultipleKeyBindingIndex::Primary)->Key;
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("Primary key bound to Rotate: %s"), *RotateKey.ToString());
-
-
+		// UE_LOG(LogBlenderEditorControls, Log, TEXT("Primary key bound to Rotate: %s"), *RotateKey.ToString());
+		
 		if (PressedKey == RotateKey && ActiveMode == ETransformMode::Rotate)
 		{
 			bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
 			CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
-			UE_LOG(LogBlenderEditorControls, Log, TEXT("bTrackballRotationModeStat = %d"), bTrackballRotationModeStat);
 		}
 
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
@@ -146,7 +144,7 @@ namespace BlenderControls
 
 		if (CurrentTool->IsSingleAxisLocked())
 		{
-			//Numer input, altough dual axis should also work
+			//Numer input, although dual axis should also work
 		}
 
 		if (KeyEvent.GetKey() == EKeys::Escape)
@@ -209,6 +207,18 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&)
 	{
+		return false;
+	}
+
+	bool FBlenderControlsInputProcessor::HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp,
+	                                                                    const FPointerEvent& InWheelEvent,
+	                                                                    const FPointerEvent* InGestureEvent)
+	{
+		if (bActive && CurrentTool.IsValid()) //Disable zoom whilst a tool is active
+		{
+			return true;
+		}
+
 		return false;
 	}
 
