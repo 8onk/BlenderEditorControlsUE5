@@ -97,7 +97,7 @@ namespace BlenderControls
 	{
 	}
 
-	void FRotateTool::OnEnd(bool bApply)
+	void FRotateTool::OnEnd(const bool bApply)
 	{
 		FBlenderToolBase::OnEnd(bApply);
 	}

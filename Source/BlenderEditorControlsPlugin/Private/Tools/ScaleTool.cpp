@@ -1,5 +1,8 @@
 #include "Tools/ScaleTool.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Utils/BlenderMathHelpers.h"
+//TODO SCALES CORRECTLY WITH MULTIPLE OBJECTS, BUT SINGLE OBJECT SELECTION ALWAYS STARTS FROM 1, 1, 1
+//GLOBAL WORLD SCALING DOESN'T WORK, ONLY LOCAL
 
 namespace BlenderControls
 {
@@ -14,10 +17,7 @@ namespace BlenderControls
 
 		FVector RayOrigin, RayDirection;
 		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
-
-		StartPivotTransform = Pivot->GetStartTransform();
 		PivotStartPosition = Pivot->GetStartTransform().GetLocation();
-
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
 		ScaleFactor = 1.0f;
@@ -30,15 +30,48 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!GEditor)
+		if (!GEditor || !SceneView)
 		{
 			return;
 		}
 
 		const FVector2D EffectiveMousePosition = InitialMousePosition + MouseDelta;
 		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(EffectiveMousePosition, PivotViewportPosition);
-		ScaleFactor = CurrentMouseToPivotDistance / InitialMouseToPivotDistance;
-		NewScale = StartScale * ScaleFactor;
+
+		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)
+		{
+			ScaleFactor = CurrentMouseToPivotDistance / InitialMouseToPivotDistance;
+		}
+		
+		FVector FinalScaleVector = StartScale; //Default to no scaling
+		switch (LockedAxis)
+		{
+		case EAxisLock::X:
+			FinalScaleVector.X = ScaleFactor;
+			break;
+		case EAxisLock::Y:
+			FinalScaleVector.Y = ScaleFactor;
+			break;
+		case EAxisLock::Z:
+			FinalScaleVector.Z = ScaleFactor;
+			break;
+		case EAxisLock::XY:
+			FinalScaleVector.X = ScaleFactor;
+			FinalScaleVector.Y = ScaleFactor;
+			break;
+		case EAxisLock::XZ:
+			FinalScaleVector.X = ScaleFactor;
+			FinalScaleVector.Z = ScaleFactor;
+			break;
+		case EAxisLock::YZ:
+			FinalScaleVector.Y = ScaleFactor;
+			FinalScaleVector.Z = ScaleFactor;
+			break;
+		default:
+			FinalScaleVector = FVector(ScaleFactor, ScaleFactor, ScaleFactor);
+			break;
+		}
+		NewScale = StartScale * FinalScaleVector;
 
 		if (bSnappingEnabled)
 		{
@@ -47,10 +80,9 @@ namespace BlenderControls
 			NewScale.Y = FMath::GridSnap(NewScale.Y, SnappingIncrement);
 			NewScale.Z = FMath::GridSnap(NewScale.Z, SnappingIncrement);
 		}
-		
+
 		FTransform NewTransform = Pivot->GetStartTransform();
 		NewTransform.SetScale3D(NewScale);
-
 		Pivot->GetTransformProxy()->SetTransform(NewTransform);
 	}
 
@@ -58,13 +90,13 @@ namespace BlenderControls
 	{
 	}
 
-	void FScaleTool::OnEnd(bool bApply)
+	void FScaleTool::OnEnd(const bool bApply)
 	{
+		FBlenderToolBase::OnEnd(bApply);
 	}
 
 	void FScaleTool::SetGrabContextAxisLock(EAxisLock AxisLock)
 	{
-
 		const FTransform ObjectTransform = Pivot->GetStartTransform();
 		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;

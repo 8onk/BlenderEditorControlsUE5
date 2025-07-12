@@ -30,11 +30,11 @@ namespace BlenderControls
 		FVector FinalTotalDelta;
 		if (CosAngle <= PARALLEL_COS)
 		{
-			const FVector UnconstrainedDelta = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
+			const FVector UnconstrainedMouseDelta3d = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
 				(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
 
 			//Intersect ghost pos to get the blender "feel", NOT the current mouse pos. 
-			const FVector GhostPos = Pivot->GetStartTransform().GetLocation() + UnconstrainedDelta;
+			const FVector GhostPos = Pivot->GetStartTransform().GetLocation() + UnconstrainedMouseDelta3d;
 			const FVector RayOrigin = ViewLocation;
 			const FVector RayDir = (GhostPos - RayOrigin).GetSafeNormal();
 			const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
@@ -79,16 +79,6 @@ namespace BlenderControls
 		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
 		const FVector Z = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
-
-		// const FVector RotationEuler = ObjectTransform.GetRotation().Rotator().Euler();
-		// const FVector Scale = ObjectTransform.GetScale3D();
-
-		// UE_LOG(LogTemp, Warning, TEXT("Rotation (Euler): X=%.2f, Y=%.2f, Z=%.2f"),
-		//        RotationEuler.X, RotationEuler.Y, RotationEuler.Z);
-		//
-		// UE_LOG(LogTemp, Warning, TEXT("Scale: X=%.2f, Y=%.2f, Z=%.2f"),
-		//        Scale.X, Scale.Y, Scale.Z);
-
 
 		switch (AxisLock)
 		{

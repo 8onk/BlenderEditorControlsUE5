@@ -244,7 +244,7 @@ namespace BlenderControls
 		GrabContext.StartMousePos = MousePos;
 		CurrentViewportMousePos = MousePos;
 		FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
-		GrabContext.StartTransform = Pivot->GetStartTransform().GetLocation();
+		GrabContext.StartLocation = Pivot->GetStartTransform().GetLocation();
 		GrabContext.HelperAxisDir = FVector::ZeroVector;
 
 		FVector MousePosBOrigin, MousePosBDirection;

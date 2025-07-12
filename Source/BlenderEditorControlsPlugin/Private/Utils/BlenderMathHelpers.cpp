@@ -31,7 +31,7 @@ namespace BlenderControls::MathHelper
 
 	FVector IntersectHelper(const FGrabContext& GC, const FVector& RayOrigin, const FVector& RayDir)
 	{
-		const FVector PlaneOrigin = GC.StartTransform;
+		const FVector PlaneOrigin = GC.StartLocation;
 		const FVector MouseRayStart = RayOrigin - (RayDir * WORLD_MAX);
 		const FVector MouseRayEnd = RayOrigin + (RayDir * WORLD_MAX);
 
@@ -39,12 +39,31 @@ namespace BlenderControls::MathHelper
 		                                                         GC.HelperPlaneN);
 		if (GC.HelperType == FGrabContext::EHelperType::AxisLine)
 		{
-			const FVector AxisLineStart = GC.StartTransform - (GC.HelperAxisDir * WORLD_MAX);
-			const FVector AxisLineEnd = GC.StartTransform + (GC.HelperAxisDir * WORLD_MAX);
+			const FVector AxisLineStart = GC.StartLocation - (GC.HelperAxisDir * WORLD_MAX);
+			const FVector AxisLineEnd = GC.StartLocation + (GC.HelperAxisDir * WORLD_MAX);
 			IntersectionPoint = FMath::ClosestPointOnInfiniteLine(AxisLineStart, AxisLineEnd, IntersectionPoint);
 		}
 
 		return IntersectionPoint;
+	}
+
+	FVector IntersectHelper(const FVector& PlaneOrigin, const FVector& RayOrigin, const FVector& RayDir,
+	                        const FVector& PlaneNormal)
+	{
+		const float Denom = FVector::DotProduct(PlaneNormal.GetSafeNormal(), RayDir.GetSafeNormal());
+		if (FMath::Abs(Denom) < KINDA_SMALL_NUMBER) // Check if ray is parallel to the plane surface
+		{
+			return FVector::ZeroVector;
+		}
+
+		const float DistanceAlongRayToHit = FVector::DotProduct(PlaneOrigin - RayOrigin, PlaneNormal) / Denom;
+		const FVector HitPoint = RayOrigin + RayDir * DistanceAlongRayToHit;
+		return HitPoint;
+	}
+
+	bool IsRayParallelToNormal(const float Denom)
+	{
+		return FMath::Abs(Denom) < KINDA_SMALL_NUMBER;
 	}
 
 	FVector SelectMostParallelPlaneNormal(const FVector& A, const FVector& B,
