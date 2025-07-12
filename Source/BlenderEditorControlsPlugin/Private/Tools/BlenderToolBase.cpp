@@ -311,6 +311,7 @@ namespace BlenderControls
 			constexpr bool bIgnoreAxis = true;
 			constexpr bool bAssignPivotToActors = false;
 			GEditor->SetPivot(NewPivotPosition, bSnapPivotToGrid, bIgnoreAxis, bAssignPivotToActors);
+			
 		}
 
 		ViewportClient->SetWidgetMode(InitialWidgetMode);

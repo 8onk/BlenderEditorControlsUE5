@@ -1,4 +1,6 @@
 #include "Tools/ScaleTool.h"
+
+#include "LevelEditorViewport.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO SCALES CORRECTLY WITH MULTIPLE OBJECTS, BUT SINGLE OBJECT SELECTION ALWAYS STARTS FROM 1, 1, 1
@@ -25,6 +27,9 @@ namespace BlenderControls
 		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(CurrentMousePosition, PivotViewportPosition);
 		StartScale = VirtualPivot->GetStartTransform().GetScale3D();
 		InitialMousePosition = CurrentMousePosition;
+
+		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
+		ViewportClient->Invalidate();
 	}
 
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)

@@ -1,4 +1,6 @@
 #include "Tools/MoveTool.h"
+
+#include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO snapping in local mode, behaves oddly (doesnt move along the line).
 //TRANSLATION MODE NOT WORKING AT ALL IN ORTHOGRAPHIC VIEWS
@@ -13,6 +15,9 @@ namespace BlenderControls
 	void FMoveTool::OnBegin()
 	{
 		FBlenderToolBase::OnBegin();
+
+		ViewportClient->SetWidgetMode(UE::Widget::WM_Translate);
+		ViewportClient->Invalidate();
 	}
 
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -56,7 +61,7 @@ namespace BlenderControls
 		{
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
-		
+
 		const FVector NewPos = VirtualPivot->GetStartTransform().GetLocation() + LiveDelta;
 		VirtualPivot->SetPosition(NewPos);
 	}

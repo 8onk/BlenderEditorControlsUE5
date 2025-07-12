@@ -1,4 +1,6 @@
 #include "Tools/RotateTool.h"
+
+#include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO fix the rotation behaving oddly when mouse wraps around
 //TODO draw the rotation gizmo handle
@@ -23,8 +25,10 @@ namespace BlenderControls
 		PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
 
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
-
 		StartDragVector = CurrentMousePosition - PivotViewportPosition;
+
+		ViewportClient->SetWidgetMode(UE::Widget::WM_Rotate);
+		ViewportClient->Invalidate();
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
