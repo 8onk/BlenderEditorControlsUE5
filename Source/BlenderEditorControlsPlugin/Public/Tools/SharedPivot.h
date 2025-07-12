@@ -3,40 +3,43 @@
 #include "CoreMinimal.h"
 #include "EditorGizmos/TransformGizmo.h"
 #include "BaseGizmos/TransformProxy.h"
-// #include "InputState.h"
 
 namespace BlenderControls
 {
+	enum class EPivotMode : uint8;
+
 	struct FChildInfo
 	{
-		AActor *Actor;
+		AActor* Actor;
 		FTransform Transform;
-		//FQuat Rotation;
-		FVector Offset;
+		FQuat Rotation;
 	};
 
 	class FSharedPivot
 	{
 	public:
-		explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>> &InSelection);
+		explicit FSharedPivot(const TArray<TWeakObjectPtr<AActor>>& InSelection, EPivotMode PivotMode);
 		~FSharedPivot();
 
-		const FTransform &GetPivot() const { return Pivot; }
+		const FTransform& GetPivot() const { return PivotTransform; }
 		FVector GetCurrentLocation() const { return TransformProxy->GetTransform().GetLocation(); }
-		UTransformProxy *GetTransformProxy() const { return TransformProxy; }
-		const FTransform &GetStartTransform() const { return StartTransform; }
+		UTransformProxy* GetTransformProxy() const { return TransformProxy; }
+		const FTransform& GetStartTransform() const { return StartPivotTransform; }
 
-		void SetPosition(const FVector &NewPosition);
-		void RotateBy(const FQuat &Delta);
-		void ScaleBy(const FVector &Scale, bool bUniform);
+		void SetPosition(const FVector& NewPosition);
+		void RotateBy(const FQuat& Delta);
+		void ScaleBy(const FVector& Scale, bool bUniform);
 
 	private:
-		void RecalcPivot();
+		void ComputePivotTransform(EPivotMode InPivotMode);
+		void ComputeMedianPivot();
+		void ComputeBoundingBoxCenterPivot();
+		void ComputeActiveElementPivot();
 
-		FTransform Pivot;
-		FTransform StartTransform;
+		FTransform PivotTransform;
+		FTransform StartPivotTransform;
 		TArray<FChildInfo> Children;
-		UTransformGizmo *Gizmo = nullptr;
-		UTransformProxy *TransformProxy = nullptr;
+		UTransformGizmo* Gizmo = nullptr;
+		UTransformProxy* TransformProxy = nullptr;
 	};
 } // namespace BlenderControls

@@ -2,6 +2,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO SCALES CORRECTLY WITH MULTIPLE OBJECTS, BUT SINGLE OBJECT SELECTION ALWAYS STARTS FROM 1, 1, 1
+//When mouse wraps around, zooming into the object doesn't scale it down to 0 fully. 
 //GLOBAL WORLD SCALING DOESN'T WORK, ONLY LOCAL
 
 namespace BlenderControls

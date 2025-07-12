@@ -1,6 +1,7 @@
 #include "Tools/MoveTool.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO snapping in local mode, behaves oddly (doesnt move along the line). 
+//TODO snapping in local mode, behaves oddly (doesnt move along the line).
+//TRANSLATION MODE NOT WORKING AT ALL IN ORTHOGRAPHIC VIEWS
 
 namespace BlenderControls
 {

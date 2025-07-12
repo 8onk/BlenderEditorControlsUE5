@@ -24,6 +24,15 @@ namespace BlenderControls
 		All = X | Y | Z
 	};
 
+	enum class EPivotMode : uint8
+	{
+		MedianPoint,
+		BoundingBoxCenter,
+		//ThreeDCursor maybe in the future?
+		IndividualOrigins,
+		ActiveElement
+	};
+
 	// Makes bitwise ops work (like |, &, etc.)
 	ENUM_CLASS_FLAGS(EAxisLock)
 } // namespace BlenderControls
