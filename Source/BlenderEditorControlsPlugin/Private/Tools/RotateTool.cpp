@@ -24,9 +24,11 @@ namespace BlenderControls
 
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 		StartDragVector = CurrentMousePosition - PivotViewportPosition;
+		LastDragVector = StartDragVector;
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Rotate);
 		ViewportClient->Invalidate();
+		AccumulatedAngleRad = 0.0f;
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -66,35 +68,39 @@ namespace BlenderControls
 		}
 		else
 		{
-			const FVector2D CurrentDragVector = CurrentMousePosition - PivotViewportPosition;
+			const FVector2D CurrentDragVector = UnscaledMouseDelta - PivotViewportPosition;
+			float AngleDeltaRad = MathHelper::GetSignedAngle2D(LastDragVector, CurrentDragVector);
+			AccumulatedAngleRad += AngleDeltaRad * CurrentPrecisionFactor;
+
+			const FVector PivotPosition = VirtualPivot->GetTransformProxy()->GetTransform().GetLocation();
+			const FVector ViewToPivot = PivotPosition - ViewLocation;
 
 			const FVector RotationAxis = GrabContext.HelperAxisDir;
-			const float ViewAlignmentWithAxis = FVector::DotProduct(GrabContext.ViewForward, RotationAxis);
-			float TotalAngleRad = MathHelper::GetSignedAngle2D(StartDragVector, CurrentDragVector);
-
-			if (ViewAlignmentWithAxis < 0) //Is the rotation axis NOT facing the camera?
+			//if lock‐axis is “backwards” relative to the camera, flip the sign
+			float SignedAccum = AccumulatedAngleRad;
+			if (FVector::DotProduct(ViewToPivot, RotationAxis) < 0)
 			{
-				TotalAngleRad = -TotalAngleRad;
+				SignedAccum = -SignedAccum;
 			}
 
 			//REFACTOR INTO A SNAP OFFSET FUNCTION
 			FRotator RotationGridSize = GEditor->GetRotGridSize();
 			float SnapAngleDeg = RotationGridSize.Yaw;
-			float TotalAngleDeg = FMath::RadiansToDegrees(TotalAngleRad);
+			float TotalAngleDeg = FMath::RadiansToDegrees(SignedAccum);
 			float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
 			float SnappedAngleRad = FMath::DegreesToRadians(SnappedAngleDeg);
-			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : TotalAngleRad;
+			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : SignedAccum;
 
-			DegreesToRotate += CachedNonTrackballRotationAngle;
 			const FQuat TargetRotation = FQuat(RotationAxis, DegreesToRotate);
-			CurrentNonTrackballRotationAngle = DegreesToRotate;
-
 			FTransform StartTransform = StartPivotTransform;
 			FTransform NewTransform = StartTransform;
 			FQuat ResultQuat = TargetRotation * NewTransform.GetRotation();
+
 			ResultQuat.Normalize();
 			NewTransform.SetRotation(ResultQuat);
 			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+
+			LastDragVector = CurrentDragVector;
 		}
 	}
 
@@ -150,7 +156,8 @@ namespace BlenderControls
 	{
 		return FVector::ZeroVector;
 		// FVector SnapOffset = OffsetFromStart / RotationGridSize;
-		// SnapOffset = MathHelper::RoundVectorToInt(SnapOffset);
+		// SnapOffset = MathHelper::RoundVect
+		// orToInt(SnapOffset);
 		// SnapOffset *= RotationGridSize;
 		//
 		// return SnapOffset;
@@ -159,9 +166,7 @@ namespace BlenderControls
 	void FRotateTool::OnMouseWrap()
 	{
 		FBlenderToolBase::OnMouseWrap();
-
-		CachedNonTrackballRotationAngle = CurrentNonTrackballRotationAngle;
-		StartDragVector = CurrentMousePosition - PivotViewportPosition;
+		LastDragVector = UnscaledMouseDelta - PivotViewportPosition;
 	}
 
 	void FRotateTool::SetTrackballRotationMode(const bool bEnabled)

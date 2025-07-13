@@ -89,6 +89,7 @@ namespace BlenderControls
 		virtual void OnMouseWrap();
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
+		FVector2D UnscaledMouseDelta;
 
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;

@@ -13,7 +13,6 @@ namespace BlenderControls
 	class FRotateTool : public FBlenderToolBase
 	{
 	public:
-		/** Axis = All means track-ball by default, overridden by SetAxis() calls. */
 		explicit FRotateTool(EAxisLock InAxis = EAxisLock::All);
 
 		/* ---------- FBlenderToolBase overrides ---------- */
@@ -33,21 +32,14 @@ namespace BlenderControls
 		FVector2D PivotViewportPosition;
 		FTransform StartPivotTransform;
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
-		FVector RotationAxisWorld;
 		bool bTrackballModeEnabled;
-		float RotationAngleAnchor;
 		EAxisLock PreviousAxisLock = EAxisLock::All;
+		float AccumulatedAngleRad;
 
 	protected:
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void OnMouseWrap() override;
 		virtual void SetTrackballRotationMode(const bool bEnabled) override;
-		virtual bool GetTrackballRotationMode();
-
-		FQuat ApplyRotationAroundAxis(
-			const FQuat& CurrentRotation,
-			const FVector& Axis, // Either local or world
-			float AngleRad,
-			bool bUseLocalAxis);
+		virtual bool GetTrackballRotationMode() override;
 	};
 } // namespace BlenderControls
