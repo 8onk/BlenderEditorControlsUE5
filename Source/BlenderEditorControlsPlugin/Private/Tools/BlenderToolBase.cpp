@@ -25,42 +25,59 @@ namespace BlenderControls
 		{
 			return;
 		}
+		//
+		// FVector ViewDirection;
+		// if (ViewportClient->IsPerspective())
+		// {
+		// 	ViewDirection = ViewportClient->GetViewRotation().Vector();
+		// }
+		// else
+		// {
+		// 	switch (ViewportClient->ViewportType)
+		// 	{
+		// 	case LVT_OrthoXY:
+		// 		ViewDirection = FVector::UpVector;
+		// 		break; // Top view
+		// 	case LVT_OrthoXZ:
+		// 		ViewDirection = FVector::RightVector;
+		// 		break; // Front view
+		// 	case LVT_OrthoYZ:
+		// 		ViewDirection = FVector::ForwardVector;
+		// 		break; // Side view
+		// 	case LVT_OrthoNegativeXY:
+		// 		ViewDirection = -FVector::UpVector;
+		// 		break;
+		// 	case LVT_OrthoNegativeXZ:
+		// 		ViewDirection = -FVector::RightVector;
+		// 		break;
+		// 	case LVT_OrthoNegativeYZ:
+		// 		ViewDirection = -FVector::ForwardVector;
+		// 		break;
+		// 	default:
+		// 		ViewDirection = FVector::ForwardVector;
+		// 		break;
+		// 	}
+		// }
 
-		FVector ViewDirection;
-		if (ViewportClient->IsPerspective())
-		{
-			ViewDirection = ViewportClient->GetViewRotation().Vector();
-		}
-		else
-		{
-			switch (ViewportClient->ViewportType)
-			{
-			case LVT_OrthoXY:
-				ViewDirection = FVector::UpVector;
-				break; // Top view
-			case LVT_OrthoXZ:
-				ViewDirection = FVector::RightVector;
-				break; // Front view
-			case LVT_OrthoYZ:
-				ViewDirection = FVector::ForwardVector;
-				break; // Side view
-			case LVT_OrthoNegativeXY:
-				ViewDirection = -FVector::UpVector;
-				break;
-			case LVT_OrthoNegativeXZ:
-				ViewDirection = -FVector::RightVector;
-				break;
-			case LVT_OrthoNegativeYZ:
-				ViewDirection = -FVector::ForwardVector;
-				break;
-			default:
-				ViewDirection = FVector::ForwardVector;
-				break;
-			}
-		}
-
-		FlushDrawnAxisLines();
 		SetGrabContextAxisLock(LockedAxis);
+		RedrawAxisLines();
+
+		// Refresh
+		OnActive(CurrentViewportMousePos);
+	}
+
+	void FBlenderToolBase::FlushDrawnAxisLines() const
+	{
+		if (CachedBatcher.IsValid())
+		{
+			CachedBatcher->Flush(); // Removes all current batched lines
+			CachedBatcher->MarkRenderStateDirty();
+		}
+	}
+
+	void FBlenderToolBase::RedrawAxisLines() const
+	{
+		FlushDrawnAxisLines();
 		if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::XZ || LockedAxis == EAxisLock::YZ)
 		{
 			if (LockedAxis == EAxisLock::XY)
@@ -83,18 +100,6 @@ namespace BlenderControls
 		{
 			DrawAxisLine(LockedAxis);
 		}
-
-		// Refresh object pos to be on new plane
-		OnActive(CurrentViewportMousePos);
-	}
-
-	void FBlenderToolBase::FlushDrawnAxisLines() const
-	{
-		if (CachedBatcher.IsValid())
-		{
-			CachedBatcher->Flush(); // Removes all current batched lines
-			CachedBatcher->MarkRenderStateDirty();
-		}
 	}
 
 	FLinearColor FBlenderToolBase::GetAxisColor(EAxisLock InAxis)
@@ -112,7 +117,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::DrawAxisLine(EAxisLock InAxis) const
+	void FBlenderToolBase::DrawAxisLine(const EAxisLock InAxis) const
 	{
 		if (CachedBatcher.IsValid())
 		{
@@ -311,7 +316,6 @@ namespace BlenderControls
 			constexpr bool bIgnoreAxis = true;
 			constexpr bool bAssignPivotToActors = false;
 			GEditor->SetPivot(NewPivotPosition, bSnapPivotToGrid, bIgnoreAxis, bAssignPivotToActors);
-			
 		}
 
 		ViewportClient->SetWidgetMode(InitialWidgetMode);
@@ -365,15 +369,14 @@ namespace BlenderControls
 		}
 		else
 		{
-			// Are we currently in the default space? (This was set on the first press)
 			if (bIsUsingLocalSpace == bLocalSpaceDefault)
 			{
-				// Second Press: We were in the default space, so switch to the alternate one.
+				// Second Press
 				bIsUsingLocalSpace = !bLocalSpaceDefault;
 			}
 			else
 			{
-				// Third Press: We were in the alternate space, so cycle is complete. Unlock.
+				// Third Press
 				bIsAxisLockActive = false;
 				LockedAxis = EAxisLock::All;
 			}

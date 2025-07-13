@@ -24,6 +24,8 @@ namespace BlenderControls
 
 		void SetTrackBallMode(const bool InTrackBallMode) { bTrackballModeEnabled = InTrackBallMode; }
 
+		virtual void HandleAxisLock(EAxisLock AxisPressed) override;
+
 	private:
 		FVector2D StartDragVector;
 		FVector2D LastDragVector;
@@ -34,6 +36,7 @@ namespace BlenderControls
 		FVector RotationAxisWorld;
 		bool bTrackballModeEnabled;
 		float RotationAngleAnchor;
+		EAxisLock PreviousAxisLock = EAxisLock::All;
 
 	protected:
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);

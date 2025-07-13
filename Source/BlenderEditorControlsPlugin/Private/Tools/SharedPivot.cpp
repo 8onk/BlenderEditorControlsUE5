@@ -63,13 +63,14 @@ namespace BlenderControls
 			break;
 		}
 
-		// Preserve rotation if only one object is selected
 		if (Children.Num() == 1)
 		{
+			PivotTransform.SetScale3D(Children[0].Transform.GetScale3D());
 			PivotTransform.SetRotation(Children[0].Rotation);
 		}
 		else
 		{
+			PivotTransform.SetScale3D(FVector::OneVector);
 			PivotTransform.SetRotation(FQuat::Identity);
 		}
 

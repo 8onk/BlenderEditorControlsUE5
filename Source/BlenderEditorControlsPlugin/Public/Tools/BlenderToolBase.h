@@ -52,21 +52,22 @@ namespace BlenderControls
 		virtual void SetTrackballRotationMode(const bool bEnabled);
 		virtual bool GetTrackballRotationMode();
 
-		void HandleAxisLock(EAxisLock AxisPressed);
+		virtual void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;
 		void NotifyMouseWrap() { bPendingMouseWrap = true; }
 
+		void FlushDrawnAxisLines() const;
+
 	private:
 		void CaptureSelection();
+		void RedrawAxisLines() const;
 
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
 
 		void StartNewLock(EAxisLock NewAxis);
-		void UpdateAxisLock();
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
 		void DrawAxisLine(const EAxisLock InAxis) const;
-		void FlushDrawnAxisLines() const;
 		float CalculateDynamicThickness(const FVector& Origin) const;
 
 
@@ -84,6 +85,7 @@ namespace BlenderControls
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock);
+		void UpdateAxisLock();
 		virtual void OnMouseWrap();
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;

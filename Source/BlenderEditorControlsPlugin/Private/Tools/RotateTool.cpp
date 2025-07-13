@@ -1,10 +1,8 @@
 #include "Tools/RotateTool.h"
-
 #include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO fix the rotation behaving oddly when mouse wraps around
 //TODO draw the rotation gizmo handle
-//ARCBALL ROTATION NOT FROM IDENTITY ROTATION ALMOST IS INVERTED ON SOME AXIS'
 
 namespace BlenderControls
 {
@@ -74,7 +72,7 @@ namespace BlenderControls
 			const float ViewAlignmentWithAxis = FVector::DotProduct(GrabContext.ViewForward, RotationAxis);
 			float TotalAngleRad = MathHelper::GetSignedAngle2D(StartDragVector, CurrentDragVector);
 
-			if (ViewAlignmentWithAxis < 0) //Is rotation axis NOT facing the camera?
+			if (ViewAlignmentWithAxis < 0) //Is the rotation axis NOT facing the camera?
 			{
 				TotalAngleRad = -TotalAngleRad;
 			}
@@ -108,6 +106,16 @@ namespace BlenderControls
 	void FRotateTool::OnEnd(const bool bApply)
 	{
 		FBlenderToolBase::OnEnd(bApply);
+	}
+
+	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)
+	{
+		if (bTrackballModeEnabled)
+		{
+			return;
+		}
+
+		FBlenderToolBase::HandleAxisLock(AxisPressed);
 	}
 
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
@@ -158,7 +166,17 @@ namespace BlenderControls
 
 	void FRotateTool::SetTrackballRotationMode(const bool bEnabled)
 	{
+		if (!bTrackballModeEnabled)
+		{
+			PreviousAxisLock = LockedAxis;
+			LockedAxis = EAxisLock::All;
+		}
+		else
+		{
+			LockedAxis = PreviousAxisLock;
+		}
 		bTrackballModeEnabled = bEnabled;
+		UpdateAxisLock();
 	}
 
 	bool FRotateTool::GetTrackballRotationMode()
