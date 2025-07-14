@@ -283,6 +283,9 @@ namespace BlenderControls
 		VirtualMousePosition += CurrentFrameDelta;
 		UnscaledMouseDelta += CurrentFrameDelta;
 		MouseDelta += CurrentFrameDelta * CurrentPrecisionFactor;
+		UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), CurrentMousePosition.X, CurrentMousePosition.Y);
+		UE_LOG(LogHAL, Log, TEXT("Last mouse X: %f, Y: %f"), LastMousePosition.X, LastMousePosition.Y);
+		UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 		LastMousePosition = CurrentMousePosition;
 	}
 

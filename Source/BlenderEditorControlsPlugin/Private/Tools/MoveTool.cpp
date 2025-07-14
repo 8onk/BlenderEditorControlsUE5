@@ -1,8 +1,6 @@
 #include "Tools/MoveTool.h"
-
 #include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO snapping in local mode, behaves oddly (doesnt move along the line).
 //TRANSLATION MODE NOT WORKING AT ALL IN ORTHOGRAPHIC VIEWS
 
 namespace BlenderControls
@@ -115,18 +113,24 @@ namespace BlenderControls
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
 			GrabContext.HelperAxisDir = FVector::ZeroVector;
 			GrabContext.HelperPlaneN = Z;
+			GrabContext.PlaneAxisU = X;
+			GrabContext.PlaneAxisV = Y;
 			break;
 
 		case EAxisLock::XZ:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
 			GrabContext.HelperAxisDir = FVector::ZeroVector;
 			GrabContext.HelperPlaneN = Y;
+			GrabContext.PlaneAxisU = X;
+			GrabContext.PlaneAxisV = Z;
 			break;
 
 		case EAxisLock::YZ:
 			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
 			GrabContext.HelperAxisDir = FVector::ZeroVector;
 			GrabContext.HelperPlaneN = X;
+			GrabContext.PlaneAxisU = Y;
+			GrabContext.PlaneAxisV = Z;
 			break;
 		}
 	}
@@ -138,10 +142,31 @@ namespace BlenderControls
 			return FVector::ZeroVector;
 		}
 
-		float GridSize = GEditor->GetGridSize();
-		FVector SnapOffset = OffsetFromStart / GridSize;
-		SnapOffset = MathHelper::RoundVectorToInt(SnapOffset);
-		SnapOffset *= GridSize;
+		const float GridSize = GEditor->GetGridSize();
+		FVector SnapOffset;
+		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::Z)
+		{
+			const FVector SnapAxis = GrabContext.HelperAxisDir;
+			const float DistanceAlongAxis = FVector::DotProduct(OffsetFromStart, SnapAxis);
+			const float SnappedDistance = FMath::GridSnap(DistanceAlongAxis, GridSize);
+			SnapOffset = SnapAxis * SnappedDistance;
+		}
+		else if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::XZ || LockedAxis == EAxisLock::YZ)
+		{
+			const float DistanceAlongU = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisU);
+			const float DistanceAlongV = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisV);
+			
+			const float SnappedDistanceU = FMath::GridSnap(DistanceAlongU, GridSize);
+			const float SnappedDistanceV = FMath::GridSnap(DistanceAlongV, GridSize);
+			
+			SnapOffset = (GrabContext. PlaneAxisU * SnappedDistanceU) + (GrabContext.PlaneAxisV * SnappedDistanceV);
+		}
+		else
+		{
+			SnapOffset = OffsetFromStart / GridSize;
+			SnapOffset = MathHelper::RoundVectorToInt(SnapOffset);
+			SnapOffset *= GridSize;
+		}
 
 		return SnapOffset;
 	}
