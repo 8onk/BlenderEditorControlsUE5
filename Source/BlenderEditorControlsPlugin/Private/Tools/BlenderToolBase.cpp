@@ -255,16 +255,16 @@ namespace BlenderControls
 
 		FVector MousePosBOrigin, MousePosBDirection;
 		SceneView->DeprojectFVector2D(MousePosB, MousePosBOrigin, MousePosBDirection);
-		FVector MouseIntersectionA = BlenderControls::MathHelper::IntersectHelper(
+		FVector MouseIntersectionA = MathHelper::IntersectHelper(
 			GrabContext, StartRayOrigin, StartRayDirection);
-		FVector MouseIntersectionB = BlenderControls::MathHelper::IntersectHelper(
+		FVector MouseIntersectionB = MathHelper::IntersectHelper(
 			GrabContext, MousePosBOrigin, MousePosBDirection);
 
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 		GrabContext.ViewForward = ViewForward;
 
 		UnscaledMouseDelta = MousePos;
-
+		VirtualMousePosition = CurrentMousePosition;
 		SetGrabContextAxisLock(LockedAxis);
 	}
 
@@ -278,20 +278,15 @@ namespace BlenderControls
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
 		CurrentMousePosition = FVector2D(CurrentMousePosInt);
 
-		if (bPendingMouseWrap)
-		{
-			OnMouseWrap();
-			bPendingMouseWrap = false;
-			return;
-		}
-
 		const FVector2D CurrentFrameDelta = CurrentMousePosition - LastMousePosition;
+		
+		VirtualMousePosition += CurrentFrameDelta;
 		UnscaledMouseDelta += CurrentFrameDelta;
 		MouseDelta += CurrentFrameDelta * CurrentPrecisionFactor;
 		LastMousePosition = CurrentMousePosition;
 	}
 
-	void FBlenderToolBase::OnEnd(bool bApply)
+	void FBlenderToolBase::OnEnd(const bool bApply)
 	{
 		if (!GEditor || !VirtualPivot || !ViewportClient)
 		{
@@ -428,11 +423,6 @@ namespace BlenderControls
 		}
 
 		SelectedActors.Empty();
-	}
-
-	void FBlenderToolBase::OnMouseWrap()
-	{
-		LastMousePosition = CurrentMousePosition;
 	}
 
 	void FBlenderToolBase::ApplyNumeric(float Value)

@@ -1,7 +1,6 @@
 #include "Tools/RotateTool.h"
 #include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO fix the rotation behaving oddly when mouse wraps around
 //TODO draw the rotation gizmo handle
 
 namespace BlenderControls
@@ -161,12 +160,6 @@ namespace BlenderControls
 		// SnapOffset *= RotationGridSize;
 		//
 		// return SnapOffset;
-	}
-
-	void FRotateTool::OnMouseWrap()
-	{
-		FBlenderToolBase::OnMouseWrap();
-		LastDragVector = UnscaledMouseDelta - PivotViewportPosition;
 	}
 
 	void FRotateTool::SetTrackballRotationMode(const bool bEnabled)

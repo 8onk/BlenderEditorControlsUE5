@@ -54,9 +54,9 @@ namespace BlenderControls
 
 		virtual void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;
-		void NotifyMouseWrap() { bPendingMouseWrap = true; }
-
 		void FlushDrawnAxisLines() const;
+
+		void SetLastMousePosition(const FVector2D NewLastMousePosition)  { LastMousePosition = NewLastMousePosition; }
 
 	private:
 		void CaptureSelection();
@@ -69,16 +69,15 @@ namespace BlenderControls
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
 		void DrawAxisLine(const EAxisLock InAxis) const;
 		float CalculateDynamicThickness(const FVector& Origin) const;
-
-
+		
 		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
 		float FallbackLineThickness = 2.0f;
 		const float MinLineThickness = 1.0f;
 		const float MaxLineThickness = 6.0f;
 		const float ReferenceDistance = 500.0f;
 		FVector2D LastMousePosition;
+		FVector2D PreWrapMousePosition;
 		bool bPendingMouseWrap = false;
-
 		int32 CachedMouseSpeed;
 
 	protected:
@@ -86,10 +85,10 @@ namespace BlenderControls
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock);
 		void UpdateAxisLock();
-		virtual void OnMouseWrap();
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
 		FVector2D UnscaledMouseDelta;
+		FVector2D VirtualMousePosition;
 
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;

@@ -55,15 +55,13 @@ namespace BlenderControls
 			return;
 		}
 
-		// Update precision mode based on Shift key state
 		const bool bShift = App.GetModifierKeys().IsShiftDown();
 		CurrentTool->SetPrecisionModeActive(bShift);
 
-		bool bIsPositionSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
-		bool bIsRotationSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled;
-		bool bIsScalingSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled;
+		const bool bIsPositionSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
+		const bool bIsRotationSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled;
+		const bool bIsScalingSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled;
 
-		// If Ctrl is pressed, invert the grid snap setting
 		const bool bCtrl = App.GetModifierKeys().IsControlDown();
 		bool bIsSnapEnabled = false;
 
@@ -104,7 +102,7 @@ namespace BlenderControls
 		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
 		const FKey RotateKey = Commands.CommandRotate->GetActiveChord(EMultipleKeyBindingIndex::Primary)->Key;
 		// UE_LOG(LogBlenderEditorControls, Log, TEXT("Primary key bound to Rotate: %s"), *RotateKey.ToString());
-		
+
 		if (PressedKey == RotateKey && ActiveMode == ETransformMode::Rotate)
 		{
 			bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
@@ -174,6 +172,7 @@ namespace BlenderControls
 		FVector2D CurrentViewportMousePosition;
 		MathHelper::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
 		                                     CurrentViewportMousePosition);
+
 		CurrentTool->OnActive(CurrentViewportMousePosition);
 		WrapMouse(CurrentViewportMousePosition);
 
@@ -260,10 +259,10 @@ namespace BlenderControls
 		StartMousePos = FSlateApplication::Get().GetCursorPos();
 
 		// Tell overlay to start drawing guides for this tool (Axis lines in level)
-		if (Overlay.IsValid())
-		{
-			Overlay->SetContext(CurrentTool);
-		}
+		// if (Overlay.IsValid())
+		// {
+		// 	Overlay->SetContext(CurrentTool);
+		// }
 
 		if (CurrentTool.IsValid())
 		{
@@ -309,7 +308,7 @@ namespace BlenderControls
 	void FBlenderControlsInputProcessor::WrapMouse(const FVector2D& CurrentViewportMousePosition) const
 	{
 		UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);
-		if (!EditorEngine)
+		if (!EditorEngine || !CurrentTool.IsValid())
 		{
 			return;
 		}
@@ -326,17 +325,20 @@ namespace BlenderControls
 			CurrentViewportMousePosition.Y < 0 || CurrentViewportMousePosition.Y >= ViewportSizeY)
 		{
 			int NewX = static_cast<int>(CurrentViewportMousePosition.X) % ViewportSizeX;
-			if (NewX < 0) NewX += ViewportSizeX;
+
+			if (NewX < 0)
+			{
+				NewX += ViewportSizeX;
+			}
 
 			int NewY = static_cast<int>(CurrentViewportMousePosition.Y) % ViewportSizeY;
-			if (NewY < 0) NewY += ViewportSizeY;
-
-			EditorViewport->SetMouse(NewX, NewY);
-
-			if (CurrentTool.IsValid())
+			if (NewY < 0)
 			{
-				CurrentTool->NotifyMouseWrap();
+				NewY += ViewportSizeY;
 			}
+			
+			EditorViewport->SetMouse(NewX, NewY);
+			CurrentTool->SetLastMousePosition(FVector2D(NewX, NewY));
 		}
 	}
 } // namespace BlenderControls

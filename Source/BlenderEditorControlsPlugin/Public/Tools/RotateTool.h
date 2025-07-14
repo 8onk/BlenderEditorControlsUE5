@@ -38,7 +38,6 @@ namespace BlenderControls
 
 	protected:
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
-		virtual void OnMouseWrap() override;
 		virtual void SetTrackballRotationMode(const bool bEnabled) override;
 		virtual bool GetTrackballRotationMode() override;
 	};

@@ -38,10 +38,9 @@ namespace BlenderControls
 		{
 			return;
 		}
-
-		const FVector2D EffectiveMousePosition = InitialMousePosition + MouseDelta;
-		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(EffectiveMousePosition, PivotViewportPosition);
-
+		
+		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(VirtualMousePosition, PivotViewportPosition);
+		
 		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)
 		{
 			ScaleFactor = CurrentMouseToPivotDistance / InitialMouseToPivotDistance;
