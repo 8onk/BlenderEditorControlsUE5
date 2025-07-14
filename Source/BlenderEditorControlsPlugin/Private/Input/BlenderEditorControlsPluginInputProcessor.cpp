@@ -11,6 +11,7 @@
 #include "Utils/BlenderMathHelpers.h"
 #include "Editor/UnrealEd/Classes/Settings/LevelEditorViewportSettings.h"
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
+//TODO issue with mouse wrapping, sometimes the current mouse pos is stale due to race condition which makes delta incorrect. 
 
 class SLevelViewport;
 
@@ -324,6 +325,7 @@ namespace BlenderControls
 		if (CurrentViewportMousePosition.X < 0 || CurrentViewportMousePosition.X >= ViewportSizeX ||
 			CurrentViewportMousePosition.Y < 0 || CurrentViewportMousePosition.Y >= ViewportSizeY)
 		{
+			UE_LOG(LogBlenderEditorControls, Log, TEXT("Wrap mouse!"));
 			int NewX = static_cast<int>(CurrentViewportMousePosition.X) % ViewportSizeX;
 
 			if (NewX < 0)
