@@ -1,7 +1,7 @@
 #include "Tools/MoveTool.h"
 #include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
-//TRANSLATION MODE NOT WORKING AT ALL IN ORTHOGRAPHIC VIEWS
+//TODO TRANSLATION MODE NOT WORKING AT ALL IN ORTHOGRAPHIC VIEWS
 
 namespace BlenderControls
 {

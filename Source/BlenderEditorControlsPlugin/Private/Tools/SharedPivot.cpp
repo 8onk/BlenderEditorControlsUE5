@@ -1,6 +1,5 @@
 #include "Tools/SharedPivot.h"
 #include "BlenderEditorControlsEnums.h"
-//TODO, Cancelling, resets the pivot's rotation also. 
 
 namespace BlenderControls
 {

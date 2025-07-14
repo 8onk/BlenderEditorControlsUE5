@@ -8,6 +8,7 @@
 #include "DrawDebugHelpers.h"
 
 //TODO: make GetSnapOffset abstract
+//make local rotation for all tools with multiple object selection work correctly 
 namespace BlenderControls
 {
 	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
