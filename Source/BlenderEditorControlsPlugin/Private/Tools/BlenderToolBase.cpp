@@ -22,44 +22,6 @@ namespace BlenderControls
 
 	void FBlenderToolBase::UpdateAxisLock()
 	{
-		if (!ViewportClient)
-		{
-			return;
-		}
-		//
-		// FVector ViewDirection;
-		// if (ViewportClient->IsPerspective())
-		// {
-		// 	ViewDirection = ViewportClient->GetViewRotation().Vector();
-		// }
-		// else
-		// {
-		// 	switch (ViewportClient->ViewportType)
-		// 	{
-		// 	case LVT_OrthoXY:
-		// 		ViewDirection = FVector::UpVector;
-		// 		break; // Top view
-		// 	case LVT_OrthoXZ:
-		// 		ViewDirection = FVector::RightVector;
-		// 		break; // Front view
-		// 	case LVT_OrthoYZ:
-		// 		ViewDirection = FVector::ForwardVector;
-		// 		break; // Side view
-		// 	case LVT_OrthoNegativeXY:
-		// 		ViewDirection = -FVector::UpVector;
-		// 		break;
-		// 	case LVT_OrthoNegativeXZ:
-		// 		ViewDirection = -FVector::RightVector;
-		// 		break;
-		// 	case LVT_OrthoNegativeYZ:
-		// 		ViewDirection = -FVector::ForwardVector;
-		// 		break;
-		// 	default:
-		// 		ViewDirection = FVector::ForwardVector;
-		// 		break;
-		// 	}
-		// }
-
 		SetGrabContextAxisLock(LockedAxis);
 		RedrawAxisLines();
 
@@ -237,7 +199,45 @@ namespace BlenderControls
 
 		ViewUp = SceneView->GetViewUp();
 		ViewRight = SceneView->GetViewRight();
-		ViewForward = ViewportClient->GetViewRotation().Vector();
+
+		if (ViewportClient->IsPerspective())
+		{
+			ViewForward = ViewportClient->GetViewRotation().Vector();
+		}
+		else
+		{
+			switch (ViewportClient->ViewportType)
+			{
+			case LVT_OrthoXY:
+				ViewForward = FVector::UpVector; // +Z, looking down from top
+				break;
+
+			case LVT_OrthoNegativeXY:
+				ViewForward = -FVector::UpVector; // -Z, looking up from bottom
+				break;
+
+			case LVT_OrthoXZ:
+				ViewForward = FVector::RightVector; // +Y, looking from front
+				break;
+
+			case LVT_OrthoNegativeXZ:
+				ViewForward = -FVector::RightVector; // -Y, looking from back
+				break;
+
+			case LVT_OrthoYZ:
+				ViewForward = FVector::ForwardVector; // +X, looking from side
+				break;
+
+			case LVT_OrthoNegativeYZ:
+				ViewForward = -FVector::ForwardVector; // -X, looking from other side
+				break;
+
+			default:
+				ViewForward = FVector::ForwardVector; // Fallback
+				break;
+			}
+		}
+
 		MouseDelta = FVector2D::ZeroVector;
 		LastMousePosition = MousePos;
 		CurrentMousePosition = MousePos;
@@ -250,7 +250,7 @@ namespace BlenderControls
 		GrabContext.HelperPlaneN = -ViewForward;
 		GrabContext.StartMousePos = MousePos;
 		CurrentViewportMousePos = MousePos;
-		FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
+		const FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
 		GrabContext.StartLocation = VirtualPivot->GetStartTransform().GetLocation();
 		GrabContext.HelperAxisDir = FVector::ZeroVector;
 
@@ -276,16 +276,28 @@ namespace BlenderControls
 		{
 			return;
 		}
-		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X, CurrentViewportMousePosition.Y);
+
+
+		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X,
+		                                               CurrentViewportMousePosition.Y);
 		CurrentMousePosition = FVector2D(CurrentMousePosInt);
 
+		//THIS works for now, but results in slight drift. Unsure of how to fix this.
+		if (bPendingMouseWrap)
+		{
+			bPendingMouseWrap = false;
+			return;
+		}
+
+		UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), CurrentMousePosition.X, CurrentMousePosition.Y);
+		UE_LOG(LogHAL, Log, TEXT("Last mouse X: %f, Y: %f"), LastMousePosition.X, LastMousePosition.Y);
+
 		const FVector2D CurrentFrameDelta = CurrentMousePosition - LastMousePosition;
-		
+
 		VirtualMousePosition += CurrentFrameDelta;
 		UnscaledMouseDelta += CurrentFrameDelta;
 		MouseDelta += CurrentFrameDelta * CurrentPrecisionFactor;
-		UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), CurrentMousePosition.X, CurrentMousePosition.Y);
-		UE_LOG(LogHAL, Log, TEXT("Last mouse X: %f, Y: %f"), LastMousePosition.X, LastMousePosition.Y);
+		// UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), VirtualMousePosition.X, VirtualMousePosition.Y);
 		UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 		LastMousePosition = CurrentMousePosition;
 	}
@@ -432,6 +444,11 @@ namespace BlenderControls
 	void FBlenderToolBase::ApplyNumeric(float Value)
 	{
 		// Base implementation does nothing
+	}
+
+	void FBlenderToolBase::NotifyMouseWrap()
+	{
+		bPendingMouseWrap = true;
 	}
 
 	void FBlenderToolBase::CaptureSelection()

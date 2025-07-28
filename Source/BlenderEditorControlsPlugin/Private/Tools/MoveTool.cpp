@@ -22,9 +22,9 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		constexpr float PARALLEL_COS = 0.990f;
+		constexpr float ParallelCos = 0.990f;
 		float CosAngle = SMALL_NUMBER;
-		//If HelperAxisDir is 0 then we aren't in single axis lock. 
+		//If HelperAxisDir is not 0 then we are in single axis lock. 
 		if (!GrabContext.HelperAxisDir.IsNearlyZero())
 		{
 			CosAngle = FMath::Abs(FVector::DotProduct(ViewForward.GetSafeNormal(),
@@ -32,7 +32,7 @@ namespace BlenderControls
 		}
 
 		FVector FinalTotalDelta;
-		if (CosAngle <= PARALLEL_COS)
+		if (CosAngle <= ParallelCos)
 		{
 			const FVector UnconstrainedMouseDelta3d = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
 				(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
@@ -155,11 +155,11 @@ namespace BlenderControls
 		{
 			const float DistanceAlongU = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisU);
 			const float DistanceAlongV = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisV);
-			
+
 			const float SnappedDistanceU = FMath::GridSnap(DistanceAlongU, GridSize);
 			const float SnappedDistanceV = FMath::GridSnap(DistanceAlongV, GridSize);
-			
-			SnapOffset = (GrabContext. PlaneAxisU * SnappedDistanceU) + (GrabContext.PlaneAxisV * SnappedDistanceV);
+
+			SnapOffset = (GrabContext.PlaneAxisU * SnappedDistanceU) + (GrabContext.PlaneAxisV * SnappedDistanceV);
 		}
 		else
 		{

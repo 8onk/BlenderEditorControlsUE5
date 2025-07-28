@@ -2,7 +2,7 @@
 #include "LevelEditorViewport.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO When mouse wraps around, zooming into the object doesn't scale it down to 0 fully. 
+//TODO When mouse wraps around, zooming into the object doesn't scale it down to 0 fully. (This has to do with mouse drift)
 //GLOBAL WORLD SCALING DOESN'T WORK, ONLY LOCAL
 
 namespace BlenderControls

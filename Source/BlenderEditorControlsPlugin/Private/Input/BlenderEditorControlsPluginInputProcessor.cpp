@@ -143,7 +143,7 @@ namespace BlenderControls
 
 		if (CurrentTool->IsSingleAxisLocked())
 		{
-			//Numer input, although dual axis should also work
+			//Number input, although dual axis should also work
 		}
 
 		if (KeyEvent.GetKey() == EKeys::Escape)
@@ -171,7 +171,7 @@ namespace BlenderControls
 		}
 
 		FVector2D CurrentViewportMousePosition;
-		MathHelper::GetMousePosToViewportPos(MouseEvent.GetScreenSpacePosition(),
+		MathHelper::GetMousePosToViewportPos(FSlateApplication::Get().GetCursorPos(),
 		                                     CurrentViewportMousePosition);
 
 		CurrentTool->OnActive(CurrentViewportMousePosition);
@@ -338,9 +338,17 @@ namespace BlenderControls
 			{
 				NewY += ViewportSizeY;
 			}
-			
+
+			const FVector2D NewMousePosition = FVector2D(NewX, NewY);
+			FIntPoint MousePos;
 			EditorViewport->SetMouse(NewX, NewY);
+			CurrentTool->SetViewportMousePosition(NewMousePosition);
+			EditorViewport->GetMousePos(MousePos, true);
+			UE_LOG(LogBlenderEditorControls, Log, TEXT("Set wrap pos: X %d Y %d"), NewX, NewY);
+			UE_LOG(LogBlenderEditorControls, Log, TEXT("Mouse Pos: X %d Y %d"), MousePos.X, MousePos.Y);
+			
 			CurrentTool->SetLastMousePosition(FVector2D(NewX, NewY));
+			CurrentTool->NotifyMouseWrap();
 		}
 	}
 } // namespace BlenderControls

@@ -50,6 +50,7 @@ namespace BlenderControls
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
+		void SetViewportMousePosition (FVector2D InViewportMousePosition) {CurrentViewportMousePos = InViewportMousePosition;}
 
 		virtual void SetTrackballRotationMode(const bool bEnabled);
 		virtual bool GetTrackballRotationMode();
@@ -58,7 +59,10 @@ namespace BlenderControls
 		bool IsSingleAxisLocked() const;
 		void FlushDrawnAxisLines() const;
 
-		void SetLastMousePosition(const FVector2D NewLastMousePosition)  { LastMousePosition = NewLastMousePosition; }
+		void SetLastMousePosition(const FVector2D NewLastMousePosition) { LastMousePosition = NewLastMousePosition; }
+		FVector2D GetLastMousePosition() const { return LastMousePosition; }
+		void AddMouseDelta(const FVector2D NewDelta) { MouseDelta += NewDelta; }
+		void NotifyMouseWrap();
 
 	private:
 		void CaptureSelection();
@@ -71,7 +75,7 @@ namespace BlenderControls
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
 		void DrawAxisLine(const EAxisLock InAxis) const;
 		float CalculateDynamicThickness(const FVector& Origin) const;
-		
+
 		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
 		float FallbackLineThickness = 2.0f;
 		const float MinLineThickness = 1.0f;

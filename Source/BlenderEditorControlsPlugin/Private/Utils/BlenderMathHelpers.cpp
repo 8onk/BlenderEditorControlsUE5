@@ -37,6 +37,15 @@ namespace BlenderControls::MathHelper
 
 		FVector IntersectionPoint = FMath::LinePlaneIntersection(MouseRayStart, MouseRayEnd, PlaneOrigin,
 		                                                         GC.HelperPlaneN);
+
+		UE_LOG(LogTemp, Warning, TEXT("PlaneOrigin: %s"), *PlaneOrigin.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("RayOrigin:   %s"), *RayOrigin.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("RayDir (unit): %s"), *RayDir.GetSafeNormal().ToString());
+		UE_LOG(LogTemp, Warning, TEXT("HelperPlaneN (normal): %s"), *GC.HelperPlaneN.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("MouseRayStart: %s"), *MouseRayStart.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("MouseRayEnd:   %s"), *MouseRayEnd.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("IntersectionPoint: %s"), *IntersectionPoint.ToString());
+		
 		if (GC.HelperType == FGrabContext::EHelperType::AxisLine)
 		{
 			const FVector AxisLineStart = GC.StartLocation - (GC.HelperAxisDir * WORLD_MAX);
