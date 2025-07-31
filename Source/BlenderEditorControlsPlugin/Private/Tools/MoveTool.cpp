@@ -46,15 +46,34 @@ namespace BlenderControls
 			{
 				RayOrigin = ViewLocation;
 				RayDir = (GhostPos - RayOrigin).GetSafeNormal();
+				const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
+				FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
 			}
 			else
 			{
 				RayOrigin = GhostPos;
 				RayDir = ViewForward.GetSafeNormal();
+
+				if (GrabContext.HelperType == FGrabContext::EHelperType::AxisPlane)
+				{
+					const float PlaneViewDot = FVector::DotProduct(RayDir, GrabContext.HelperPlaneN);
+
+					//If view forward and plane normal vectors are parallel
+					if (FMath::IsNearlyZero(PlaneViewDot, KINDA_SMALL_NUMBER))
+					{
+						const FVector VisibleAxis = MathHelper::SelectMostPerpendicularAxis(
+							GrabContext.PlaneAxisU, GrabContext.PlaneAxisV,
+							ViewForward.GetSafeNormal());
+
+						FinalTotalDelta = UnconstrainedMouseDelta3d.ProjectOnToNormal(VisibleAxis);
+					}
+				}
+				else
+				{
+					const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
+					FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
+				}
 			}
-			
-			const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
-			FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
 		}
 		else
 		{

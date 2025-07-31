@@ -45,7 +45,7 @@ namespace BlenderControls::MathHelper
 		UE_LOG(LogTemp, Warning, TEXT("MouseRayStart: %s"), *MouseRayStart.ToString());
 		UE_LOG(LogTemp, Warning, TEXT("MouseRayEnd:   %s"), *MouseRayEnd.ToString());
 		UE_LOG(LogTemp, Warning, TEXT("IntersectionPoint: %s"), *IntersectionPoint.ToString());
-		
+
 		if (GC.HelperType == FGrabContext::EHelperType::AxisLine)
 		{
 			const FVector AxisLineStart = GC.StartLocation - (GC.HelperAxisDir * WORLD_MAX);
@@ -81,6 +81,14 @@ namespace BlenderControls::MathHelper
 		const float DotA = FMath::Abs(FVector::DotProduct(ViewForward, A));
 		const float DotB = FMath::Abs(FVector::DotProduct(ViewForward, B));
 		return (DotA > DotB) ? A : B;
+	}
+
+	FVector SelectMostPerpendicularAxis(const FVector& A, const FVector& B,
+	                                    const FVector& ViewForward)
+	{
+		const float DotA = FMath::Abs(FVector::DotProduct(ViewForward, A));
+		const float DotB = FMath::Abs(FVector::DotProduct(ViewForward, B));
+		return (DotA < DotB) ? A : B;
 	}
 
 	float GetSignedAngle2D(const FVector2D& From, const FVector2D& To)

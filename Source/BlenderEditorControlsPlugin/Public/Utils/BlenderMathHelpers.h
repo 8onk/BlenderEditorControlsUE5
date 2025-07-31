@@ -22,6 +22,8 @@ namespace BlenderControls::MathHelper
 	                        const FVector& PlaneNormal);
 
 	FVector SelectMostParallelPlaneNormal(const FVector& A, const FVector& B, const FVector& ViewForward);
+	FVector SelectMostPerpendicularAxis(const FVector& A, const FVector& B,
+	                                    const FVector& ViewForward);
 	bool IsRayParallelToNormal(const float Denom);
 
 	float GetSignedAngle2D(const FVector2D& From, const FVector2D& To);
