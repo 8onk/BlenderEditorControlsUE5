@@ -67,6 +67,11 @@ namespace BlenderControls
 
 						FinalTotalDelta = UnconstrainedMouseDelta3d.ProjectOnToNormal(VisibleAxis);
 					}
+					else
+					{
+						const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
+						FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
+					}
 				}
 				else
 				{
