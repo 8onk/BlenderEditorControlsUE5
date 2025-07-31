@@ -2,6 +2,7 @@
 #include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO TRANSLATION MODE NOT WORKING AT ALL IN ORTHOGRAPHIC VIEWS
+//translation in orthographic mode sometimes gives nand intersection point?
 
 namespace BlenderControls
 {
@@ -39,8 +40,19 @@ namespace BlenderControls
 
 			//Intersect ghost pos to get the blender "feel", NOT the current mouse pos. 
 			const FVector GhostPos = VirtualPivot->GetStartTransform().GetLocation() + UnconstrainedMouseDelta3d;
-			const FVector RayOrigin = ViewLocation;
-			const FVector RayDir = (GhostPos - RayOrigin).GetSafeNormal();
+
+			FVector RayOrigin, RayDir;
+			if (ViewportClient->IsPerspective())
+			{
+				RayOrigin = ViewLocation;
+				RayDir = (GhostPos - RayOrigin).GetSafeNormal();
+			}
+			else
+			{
+				RayOrigin = GhostPos;
+				RayDir = ViewForward.GetSafeNormal();
+			}
+			
 			const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
 			FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
 		}
