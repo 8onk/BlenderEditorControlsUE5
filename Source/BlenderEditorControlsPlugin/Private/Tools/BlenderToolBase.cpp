@@ -128,7 +128,7 @@ namespace BlenderControls
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
-		if (bIsUsingLocalSpace)
+		if (bUsingLocalSpace)
 		{
 			AxisVector = VirtualPivot->GetStartTransform().TransformVectorNoScale(AxisVector);
 		}
@@ -243,7 +243,7 @@ namespace BlenderControls
 		CurrentMousePosition = MousePos;
 		bPendingMouseWrap = false;
 		bIsAxisLockActive = false;
-		bIsUsingLocalSpace = bLocalSpaceDefault;
+		bUsingLocalSpace = bLocalSpaceDefault;
 		LockedAxis = EAxisLock::All;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
@@ -372,7 +372,7 @@ namespace BlenderControls
 	{
 		LockedAxis = NewAxis;
 		bIsAxisLockActive = true;
-		bIsUsingLocalSpace = bLocalSpaceDefault;
+		bUsingLocalSpace = bLocalSpaceDefault;
 	}
 
 	void FBlenderToolBase::HandleAxisLock(const EAxisLock AxisPressed)
@@ -383,10 +383,10 @@ namespace BlenderControls
 		}
 		else
 		{
-			if (bIsUsingLocalSpace == bLocalSpaceDefault)
+			if (bUsingLocalSpace == bLocalSpaceDefault)
 			{
 				// Second Press
-				bIsUsingLocalSpace = !bLocalSpaceDefault;
+				bUsingLocalSpace = !bLocalSpaceDefault;
 			}
 			else
 			{

@@ -1,8 +1,7 @@
 #include "Tools/MoveTool.h"
 #include "LevelEditorViewport.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO TRANSLATION MODE NOT WORKING AT ALL IN ORTHOGRAPHIC VIEWS
-//translation in orthographic mode sometimes gives nand intersection point?
+//TODO Cleanup on active?
 
 namespace BlenderControls
 {
@@ -116,9 +115,9 @@ namespace BlenderControls
 			return;
 		}
 		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
-		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
-		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
-		const FVector Z = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+		const FVector X = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
+		const FVector Y = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
+		const FVector Z = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
 
 		switch (AxisLock)
 		{

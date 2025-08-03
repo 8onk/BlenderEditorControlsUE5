@@ -116,7 +116,7 @@ namespace BlenderControls
 		bool bSnappingEnabled = false;
 		FLevelEditorViewportClient* ViewportClient = nullptr;
 		bool bIsAxisLockActive = false;
-		bool bIsUsingLocalSpace = false;
+		bool bUsingLocalSpace = false;
 		bool bLocalSpaceDefault;
 		FGrabContext GrabContext;
 		FVector2D MouseDelta;

@@ -23,7 +23,6 @@ namespace BlenderControls
 		FTransform StartPivotTransform;
 		FVector PivotStartPosition;
 		FVector2D PivotViewportPosition;
-		FVector NewScale;
 		FVector StartHit;
 		FVector StartScale;
 		FVector2D InitialMousePosition;

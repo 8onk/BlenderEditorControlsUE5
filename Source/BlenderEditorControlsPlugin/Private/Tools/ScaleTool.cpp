@@ -3,7 +3,6 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO When mouse wraps around, zooming into the object doesn't scale it down to 0 fully. (This has to do with mouse drift)
-//GLOBAL WORLD SCALING DOESN'T WORK, ONLY LOCAL
 
 namespace BlenderControls
 {
@@ -38,55 +37,82 @@ namespace BlenderControls
 		{
 			return;
 		}
-		
+
 		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(VirtualMousePosition, PivotViewportPosition);
-		
+
 		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)
 		{
 			ScaleFactor = CurrentMouseToPivotDistance / InitialMouseToPivotDistance;
 		}
-		
-		FVector FinalScaleVector = StartScale; //Default to no scaling
+
+		FTransform CurrentTransform = VirtualPivot->GetStartTransform();
+		FVector FinalScaleMultiplier(1.0f);
+
 		switch (LockedAxis)
 		{
 		case EAxisLock::X:
-			FinalScaleVector.X = ScaleFactor;
+			FinalScaleMultiplier.X = ScaleFactor;
 			break;
 		case EAxisLock::Y:
-			FinalScaleVector.Y = ScaleFactor;
+			FinalScaleMultiplier.Y = ScaleFactor;
 			break;
 		case EAxisLock::Z:
-			FinalScaleVector.Z = ScaleFactor;
+			FinalScaleMultiplier.Z = ScaleFactor;
 			break;
 		case EAxisLock::XY:
-			FinalScaleVector.X = ScaleFactor;
-			FinalScaleVector.Y = ScaleFactor;
+			FinalScaleMultiplier.X = ScaleFactor;
+			FinalScaleMultiplier.Y = ScaleFactor;
 			break;
 		case EAxisLock::XZ:
-			FinalScaleVector.X = ScaleFactor;
-			FinalScaleVector.Z = ScaleFactor;
+			FinalScaleMultiplier.X = ScaleFactor;
+			FinalScaleMultiplier.Z = ScaleFactor;
 			break;
 		case EAxisLock::YZ:
-			FinalScaleVector.Y = ScaleFactor;
-			FinalScaleVector.Z = ScaleFactor;
+			FinalScaleMultiplier.Y = ScaleFactor;
+			FinalScaleMultiplier.Z = ScaleFactor;
 			break;
-		default:
-			FinalScaleVector = FVector(ScaleFactor, ScaleFactor, ScaleFactor);
+		default: // EAxisLock::All
+			FinalScaleMultiplier = FVector(ScaleFactor);
 			break;
 		}
-		NewScale = StartScale * FinalScaleVector;
 
-		if (bSnappingEnabled)
+		if (bUsingLocalSpace || LockedAxis == EAxisLock::All)
 		{
-			const float SnappingIncrement = GEditor->GetScaleGridSize();
-			NewScale.X = FMath::GridSnap(NewScale.X, SnappingIncrement);
-			NewScale.Y = FMath::GridSnap(NewScale.Y, SnappingIncrement);
-			NewScale.Z = FMath::GridSnap(NewScale.Z, SnappingIncrement);
+			FVector NewLocalScale = StartScale * FinalScaleMultiplier;
+
+			if (bSnappingEnabled)
+			{
+				const float SnappingIncrement = GEditor->GetScaleGridSize();
+				NewLocalScale.X = FMath::GridSnap(NewLocalScale.X, SnappingIncrement);
+				NewLocalScale.Y = FMath::GridSnap(NewLocalScale.Y, SnappingIncrement);
+				NewLocalScale.Z = FMath::GridSnap(NewLocalScale.Z, SnappingIncrement);
+			}
+
+			CurrentTransform.SetScale3D(NewLocalScale);
+		}
+		else
+		{
+			// 1. Get the actor's rotation as a matrix
+			const FQuat InitialRotation = CurrentTransform.GetRotation();
+			const FRotator Rot = InitialRotation.Rotator();
+			const FMatrix RotationMatrix = FRotationMatrix(Rot);
+
+			// 2. Create the global scale operation as a matrix
+			const FMatrix GlobalScaleMatrix = FScaleMatrix(FinalScaleMultiplier);
+			
+			// S_local = R_inverse * S_global * R
+			const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
+
+			// 4. Extract the pure scale vector from the resulting local matrix
+			const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
+
+			// 5. Apply this calculated local scale to the actor's start scale
+			const FVector NewScale = StartScale * LocalScaleToAdd;
+
+			CurrentTransform.SetScale3D(NewScale);
 		}
 
-		FTransform NewTransform = VirtualPivot->GetStartTransform();
-		NewTransform.SetScale3D(NewScale);
-		VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+		VirtualPivot->GetTransformProxy()->SetTransform(CurrentTransform);
 	}
 
 	void FScaleTool::ApplyNumeric(float Value)
@@ -101,9 +127,9 @@ namespace BlenderControls
 	void FScaleTool::SetGrabContextAxisLock(EAxisLock AxisLock)
 	{
 		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
-		const FVector X = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
-		const FVector Y = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
-		const FVector Z = bIsUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+		const FVector X = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
+		const FVector Y = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
+		const FVector Z = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
 
 		switch (AxisLock)
 		{
