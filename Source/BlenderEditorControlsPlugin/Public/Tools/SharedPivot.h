@@ -25,7 +25,10 @@ namespace BlenderControls
 		FVector GetCurrentLocation() const { return TransformProxy->GetTransform().GetLocation(); }
 		UTransformProxy* GetTransformProxy() const { return TransformProxy; }
 		const FTransform& GetStartTransform() const { return StartPivotTransform; }
-
+		const FChildInfo& GetActiveElement() const { return ActiveChild; }
+		TArray<AActor*> GetSelectedActors() const;
+		const TArray<FChildInfo>& GetChildren() const { return Children; }
+		
 		void SetPosition(const FVector& NewPosition);
 		void RotateBy(const FQuat& Delta);
 		void ScaleBy(const FVector& Scale, bool bUniform);
@@ -39,6 +42,7 @@ namespace BlenderControls
 		FTransform PivotTransform;
 		FTransform StartPivotTransform;
 		TArray<FChildInfo> Children;
+		FChildInfo ActiveChild;
 		UTransformGizmo* Gizmo = nullptr;
 		UTransformProxy* TransformProxy = nullptr;
 	};

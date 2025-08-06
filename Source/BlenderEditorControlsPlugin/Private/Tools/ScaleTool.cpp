@@ -2,7 +2,6 @@
 #include "LevelEditorViewport.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO When mouse wraps around, zooming into the object doesn't scale it down to 0 fully. (This has to do with mouse drift)
 
 namespace BlenderControls
 {
@@ -92,21 +91,13 @@ namespace BlenderControls
 		}
 		else
 		{
-			// 1. Get the actor's rotation as a matrix
 			const FQuat InitialRotation = CurrentTransform.GetRotation();
 			const FRotator Rot = InitialRotation.Rotator();
 			const FMatrix RotationMatrix = FRotationMatrix(Rot);
 
-			// 2. Create the global scale operation as a matrix
 			const FMatrix GlobalScaleMatrix = FScaleMatrix(FinalScaleMultiplier);
-			
-			// S_local = R_inverse * S_global * R
 			const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
-
-			// 4. Extract the pure scale vector from the resulting local matrix
 			const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
-
-			// 5. Apply this calculated local scale to the actor's start scale
 			const FVector NewScale = StartScale * LocalScaleToAdd;
 
 			CurrentTransform.SetScale3D(NewScale);

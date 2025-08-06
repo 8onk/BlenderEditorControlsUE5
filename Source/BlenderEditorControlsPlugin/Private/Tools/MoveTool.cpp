@@ -37,8 +37,10 @@ namespace BlenderControls
 			const FVector UnconstrainedMouseDelta3d = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
 				(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
 
+			const FVector ActiveObjectLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
+
 			//Intersect ghost pos to get the blender "feel", NOT the current mouse pos. 
-			const FVector GhostPos = VirtualPivot->GetStartTransform().GetLocation() + UnconstrainedMouseDelta3d;
+			const FVector GhostPos = ActiveObjectLocation + UnconstrainedMouseDelta3d;
 
 			FVector RayOrigin, RayDir;
 			if (ViewportClient->IsPerspective())
@@ -46,7 +48,7 @@ namespace BlenderControls
 				RayOrigin = ViewLocation;
 				RayDir = (GhostPos - RayOrigin).GetSafeNormal();
 				const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
-				FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
+				FinalTotalDelta = FinalHit - ActiveObjectLocation;
 			}
 			else
 			{
@@ -69,13 +71,13 @@ namespace BlenderControls
 					else
 					{
 						const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
-						FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
+						FinalTotalDelta = FinalHit - ActiveObjectLocation;
 					}
 				}
 				else
 				{
 					const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
-					FinalTotalDelta = FinalHit - VirtualPivot->GetStartTransform().GetLocation();
+					FinalTotalDelta = FinalHit - ActiveObjectLocation;
 				}
 			}
 		}
@@ -89,14 +91,38 @@ namespace BlenderControls
 		}
 
 		FVector LiveDelta = FinalTotalDelta;
-
 		if (bSnappingEnabled)
 		{
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
 
-		const FVector NewPos = VirtualPivot->GetStartTransform().GetLocation() + LiveDelta;
-		VirtualPivot->SetPosition(NewPos);
+		UE_LOG(LogHAL, Log, TEXT("LiveDelta X:%f, Y:%f"), LiveDelta.X, LiveDelta.Y);
+
+		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
+		{
+			const FQuat ActiveObjectStartRotation = VirtualPivot->GetActiveElement().Transform.GetRotation();
+			FVector LocalSpaceDelta = ActiveObjectStartRotation.UnrotateVector(LiveDelta);
+
+			for (FChildInfo Child : VirtualPivot->GetChildren())
+			{
+				FTransform StartTransform = Child.Transform;
+				FVector WorldOffset = StartTransform.TransformPositionNoScale(LocalSpaceDelta);
+
+				if (Child.Actor == VirtualPivot->GetActiveElement().Actor)
+				{
+					Child.Actor->SetActorLocation(StartTransform.GetLocation() + LiveDelta);
+				}
+				else
+				{
+					Child.Actor->SetActorLocation(WorldOffset);
+				}
+			}
+		}
+		else
+		{
+			const FVector NewPos = VirtualPivot->GetStartTransform().GetLocation() + LiveDelta;
+			VirtualPivot->SetPosition(NewPos);
+		}
 	}
 
 	void FMoveTool::ApplyNumeric(float Value)
@@ -114,10 +140,10 @@ namespace BlenderControls
 		{
 			return;
 		}
-		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
-		const FVector X = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
-		const FVector Y = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
-		const FVector Z = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+		const FTransform ActiveObjectTransform = VirtualPivot->GetActiveElement().Transform;
+		const FVector X = bUsingLocalSpace ? ActiveObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
+		const FVector Y = bUsingLocalSpace ? ActiveObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
+		const FVector Z = bUsingLocalSpace ? ActiveObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
 
 		switch (AxisLock)
 		{

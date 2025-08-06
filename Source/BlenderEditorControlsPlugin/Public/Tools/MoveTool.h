@@ -20,5 +20,9 @@ namespace BlenderControls
     private:
         virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
         virtual FVector GetSnapOffset(const FVector OffsetFromStart) override;
+
+        FVector StartActiveLocation;
+        FVector StartVirtualPivotLocation;
+        FVector ActiveToPivotOffset;
     };
 } // namespace BlenderControls

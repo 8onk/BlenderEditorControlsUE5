@@ -8,7 +8,7 @@
 #include "DrawDebugHelpers.h"
 
 //TODO: make GetSnapOffset abstract
-//make local rotation for all tools with multiple object selection work correctly 
+//Draw helper axis in orthographic. 
 namespace BlenderControls
 {
 	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
@@ -86,7 +86,7 @@ namespace BlenderControls
 		{
 			const FVector AxisDir = GetAxisVector(InAxis);
 			const FVector Origin = VirtualPivot->GetStartTransform().GetLocation();
-			constexpr float LineLength = WORLD_MAX;
+			constexpr float LineLength = 10000.f;
 
 			const FVector LineStart = Origin - AxisDir * LineLength;
 			const FVector LineEnd = Origin + AxisDir * LineLength;
@@ -251,7 +251,7 @@ namespace BlenderControls
 		GrabContext.StartMousePos = MousePos;
 		CurrentViewportMousePos = MousePos;
 		const FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
-		GrabContext.StartLocation = VirtualPivot->GetStartTransform().GetLocation();
+		GrabContext.StartLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
 		GrabContext.HelperAxisDir = FVector::ZeroVector;
 
 		FVector MousePosBOrigin, MousePosBDirection;
@@ -289,8 +289,8 @@ namespace BlenderControls
 			return;
 		}
 
-		UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), CurrentMousePosition.X, CurrentMousePosition.Y);
-		UE_LOG(LogHAL, Log, TEXT("Last mouse X: %f, Y: %f"), LastMousePosition.X, LastMousePosition.Y);
+		// UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), CurrentMousePosition.X, CurrentMousePosition.Y);
+		// UE_LOG(LogHAL, Log, TEXT("Last mouse X: %f, Y: %f"), LastMousePosition.X, LastMousePosition.Y);
 
 		const FVector2D CurrentFrameDelta = CurrentMousePosition - LastMousePosition;
 
@@ -322,8 +322,9 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			const FVector CurrentPivotLocation = VirtualPivot->GetCurrentLocation();
-			const FVector StartPivotLocation = VirtualPivot->GetStartTransform().GetLocation();
+			const FVector Delta = VirtualPivot->GetCurrentLocation() - VirtualPivot->GetStartTransform().GetLocation();
+			const FVector CurrentPivotLocation = Delta + VirtualPivot->GetActiveElement().Transform.GetLocation();
+			const FVector StartPivotLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
 			const FVector NewPivotPosition = bApply ? CurrentPivotLocation : StartPivotLocation;
 
 			constexpr bool bSnapPivotToGrid = false;

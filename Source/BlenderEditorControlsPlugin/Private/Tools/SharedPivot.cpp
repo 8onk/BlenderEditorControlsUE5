@@ -27,6 +27,7 @@ namespace BlenderControls
 				TransformProxy->AddComponent(Actor->GetRootComponent(), bModifyComponentOnTransform);
 			}
 		}
+		ActiveChild = Children.Last();
 
 		ComputePivotTransform(PivotMode);
 	}
@@ -64,14 +65,13 @@ namespace BlenderControls
 
 		if (Children.Num() == 1)
 		{
-			PivotTransform.SetScale3D(Children[0].Transform.GetScale3D());
 			PivotTransform.SetRotation(Children[0].Rotation);
 		}
 		else
 		{
-			PivotTransform.SetScale3D(FVector::OneVector);
 			PivotTransform.SetRotation(FQuat::Identity);
 		}
+		PivotTransform.SetScale3D(Children[0].Transform.GetScale3D());
 
 		TransformProxy->SetTransform(PivotTransform);
 		StartPivotTransform = TransformProxy->GetTransform();
@@ -113,14 +113,30 @@ namespace BlenderControls
 		}
 	}
 
+	TArray<AActor*> FSharedPivot::GetSelectedActors() const
+	{
+		TArray<AActor*> Result;
+		Result.Reserve(Children.Num());
+
+		for (const FChildInfo& Child : Children)
+		{
+			if (Child.Actor)
+			{
+				Result.Add(Child.Actor);
+			}
+		}
+
+		return Result;
+	}
+
 	void FSharedPivot::SetPosition(const FVector& NewPosition)
 	{
 		if (IsValid(TransformProxy))
 		{
-			const FTransform Current = TransformProxy->GetTransform();
+			const FTransform CurrentTransform = TransformProxy->GetTransform();
 			PivotTransform.SetLocation(NewPosition);
-			PivotTransform.SetRotation(Current.GetRotation());
-			PivotTransform.SetScale3D(Current.GetScale3D());
+			PivotTransform.SetRotation(CurrentTransform.GetRotation());
+			PivotTransform.SetScale3D(CurrentTransform.GetScale3D());
 			TransformProxy->SetTransform(PivotTransform);
 		}
 	}
