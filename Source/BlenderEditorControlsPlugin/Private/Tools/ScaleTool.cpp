@@ -41,8 +41,16 @@ namespace BlenderControls
 
 		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)
 		{
-			ScaleFactor = CurrentMouseToPivotDistance / InitialMouseToPivotDistance;
+			// Vector from pivot to initial/current mouse positions
+			FVector2D StartVec   = InitialMousePosition - PivotViewportPosition;
+			FVector2D CurrentVec = VirtualMousePosition - PivotViewportPosition;
+
+			// Dot product sign check
+			float Sign = FMath::Sign(FVector2D::DotProduct(CurrentVec, StartVec));
+			ScaleFactor = Sign * (CurrentMouseToPivotDistance / InitialMouseToPivotDistance);
 		}
+
+		UE_LOG(LogBlenderEditorControls, Log, TEXT("Scale factor: %f"), ScaleFactor);
 
 		FTransform CurrentTransform = VirtualPivot->GetStartTransform();
 		FVector FinalScaleMultiplier(1.0f);
@@ -70,8 +78,10 @@ namespace BlenderControls
 			FinalScaleMultiplier.Y = ScaleFactor;
 			FinalScaleMultiplier.Z = ScaleFactor;
 			break;
-		default: // EAxisLock::All
+		case EAxisLock::All:
 			FinalScaleMultiplier = FVector(ScaleFactor);
+			break;
+		default:
 			break;
 		}
 

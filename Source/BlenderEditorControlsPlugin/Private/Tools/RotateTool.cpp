@@ -1,5 +1,6 @@
 #include "Tools/RotateTool.h"
 #include "LevelEditorViewport.h"
+#include "EntitySystem/MovieSceneEntitySystemRunner.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO draw the rotation gizmo handle
 
@@ -90,14 +91,58 @@ namespace BlenderControls
 			float SnappedAngleRad = FMath::DegreesToRadians(SnappedAngleDeg);
 			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : SignedAccum;
 
+			//Calculate target rotation
 			const FQuat TargetRotation = FQuat(RotationAxis, DegreesToRotate);
 			FTransform StartTransform = StartPivotTransform;
 			FTransform NewTransform = StartTransform;
 			FQuat ResultQuat = TargetRotation * NewTransform.GetRotation();
-
 			ResultQuat.Normalize();
-			NewTransform.SetRotation(ResultQuat);
-			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+
+			if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
+			{
+				for (FChildInfo Child : VirtualPivot->GetChildren())
+				{
+					const FTransform ChildTransform = Child.Transform;
+					const FVector X = ChildTransform.GetUnitAxis(EAxis::X);
+					const FVector Y = ChildTransform.GetUnitAxis(EAxis::Y);
+					const FVector Z = ChildTransform.GetUnitAxis(EAxis::Z);
+
+					FVector LocalRotationAxis;
+					switch (LockedAxis)
+					{
+					case EAxisLock::X: LocalRotationAxis = X;
+						break;
+					case EAxisLock::Y: LocalRotationAxis = Y;
+						break;
+					case EAxisLock::Z: LocalRotationAxis = Z;
+						break;
+
+					case EAxisLock::XY: LocalRotationAxis = Z;
+						break;
+					case EAxisLock::YZ: LocalRotationAxis = X;
+						break;
+					case EAxisLock::XZ: LocalRotationAxis = Y;
+						break;
+						
+					case EAxisLock::All: LocalRotationAxis = GrabContext.ViewForward;
+						break;
+					}
+					const FQuat TargetRot(LocalRotationAxis, DegreesToRotate);
+						
+					const FVector CurrentLocation = ChildTransform.GetLocation();
+					const FVector NewLocation = PivotPosition + TargetRot.RotateVector(CurrentLocation - PivotPosition);
+					const FQuat NewRotation = (TargetRot * ChildTransform.GetRotation()).GetNormalized();
+					
+					NewTransform.SetLocation(NewLocation);
+					NewTransform.SetRotation(NewRotation);
+					Child.Actor->SetActorTransform(NewTransform);
+				}
+			}
+			else
+			{
+				NewTransform.SetRotation(ResultQuat);
+				VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+			}
 
 			LastDragVector = CurrentDragVector;
 		}

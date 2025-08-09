@@ -95,9 +95,7 @@ namespace BlenderControls
 		{
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
-
-		UE_LOG(LogHAL, Log, TEXT("LiveDelta X:%f, Y:%f"), LiveDelta.X, LiveDelta.Y);
-
+		
 		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
 		{
 			const FQuat ActiveObjectStartRotation = VirtualPivot->GetActiveElement().Transform.GetRotation();
@@ -105,8 +103,8 @@ namespace BlenderControls
 
 			for (FChildInfo Child : VirtualPivot->GetChildren())
 			{
-				FTransform StartTransform = Child.Transform;
-				FVector WorldOffset = StartTransform.TransformPositionNoScale(LocalSpaceDelta);
+				const FTransform StartTransform = Child.Transform;
+				const FVector WorldOffset = StartTransform.TransformPositionNoScale(LocalSpaceDelta);
 
 				if (Child.Actor == VirtualPivot->GetActiveElement().Actor)
 				{
