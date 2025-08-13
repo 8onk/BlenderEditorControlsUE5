@@ -3,6 +3,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Utils/BlenderMathHelpers.h"
 
+//NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
+
 namespace BlenderControls
 {
 	FScaleTool::FScaleTool(EAxisLock InAxis)
@@ -42,16 +44,14 @@ namespace BlenderControls
 		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)
 		{
 			// Vector from pivot to initial/current mouse positions
-			FVector2D StartVec   = InitialMousePosition - PivotViewportPosition;
+			FVector2D StartVec = InitialMousePosition - PivotViewportPosition;
 			FVector2D CurrentVec = VirtualMousePosition - PivotViewportPosition;
 
 			// Dot product sign check
 			float Sign = FMath::Sign(FVector2D::DotProduct(CurrentVec, StartVec));
 			ScaleFactor = Sign * (CurrentMouseToPivotDistance / InitialMouseToPivotDistance);
 		}
-
-		UE_LOG(LogBlenderEditorControls, Log, TEXT("Scale factor: %f"), ScaleFactor);
-
+		
 		FTransform CurrentTransform = VirtualPivot->GetStartTransform();
 		FVector FinalScaleMultiplier(1.0f);
 
@@ -108,8 +108,22 @@ namespace BlenderControls
 			const FMatrix GlobalScaleMatrix = FScaleMatrix(FinalScaleMultiplier);
 			const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
 			const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
-			const FVector NewScale = StartScale * LocalScaleToAdd;
 
+			FVector LocalScaleToAddSigned = LocalScaleToAdd;
+			if (FinalScaleMultiplier.X < 0)
+			{
+				LocalScaleToAddSigned.X *= -1.f;
+			}
+			if (FinalScaleMultiplier.Y < 0)
+			{
+				LocalScaleToAddSigned.Y *= -1.f;
+			}
+			if (FinalScaleMultiplier.Z < 0)
+			{
+				LocalScaleToAddSigned.Z *= -1.f;
+			}
+
+			const FVector NewScale = StartScale * LocalScaleToAddSigned;
 			CurrentTransform.SetScale3D(NewScale);
 		}
 
@@ -125,7 +139,7 @@ namespace BlenderControls
 		FBlenderToolBase::OnEnd(bApply);
 	}
 
-	void FScaleTool::SetGrabContextAxisLock(EAxisLock AxisLock)
+	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
 		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
 		const FVector X = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
