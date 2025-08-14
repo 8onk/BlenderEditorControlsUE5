@@ -66,12 +66,12 @@ namespace BlenderControls
 		if (Children.Num() == 1)
 		{
 			PivotTransform.SetRotation(Children[0].Rotation);
+			PivotTransform.SetScale3D(Children[0].Transform.GetScale3D());
 		}
 		else
 		{
 			PivotTransform.SetRotation(FQuat::Identity);
 		}
-		//PivotTransform.SetScale3D(Children[0].Transform.GetScale3D());
 
 		TransformProxy->SetTransform(PivotTransform);
 		StartPivotTransform = TransformProxy->GetTransform();

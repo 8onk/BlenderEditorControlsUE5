@@ -50,7 +50,7 @@ namespace BlenderControls
 			const float Sign = FMath::Sign(FVector2D::DotProduct(CurrentVec, StartVec));
 			ScaleFactor = Sign * (CurrentMouseToPivotDistance / InitialMouseToPivotDistance);
 		}
-		
+
 		FVector FinalScaleMultiplier(1.0f);
 		switch (LockedAxis)
 		{
@@ -85,13 +85,19 @@ namespace BlenderControls
 		for (FChildInfo Child : VirtualPivot->GetChildren())
 		{
 			const FTransform ActorInitialTransform = Child.Transform;
+			const FQuat ActorRotation = ActorInitialTransform.GetRotation();
+			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - VirtualPivot->GetLocation();
 			FTransform NewTransform = ActorInitialTransform;
 
-			FVector ScaledRelativePosition;
+			FVector NewPosition, NewScale;
 			if (bUsingLocalSpace)
 			{
-				FVector NewScale = ActorInitialTransform.GetScale3D() * FinalScaleMultiplier;
-				NewTransform.SetScale3D(NewScale);
+				NewScale = ActorInitialTransform.GetScale3D() * FinalScaleMultiplier;
+				
+				const FVector LocalPivotToActorVec = ActorRotation.UnrotateVector(PivotToActorVec);
+				const FVector ScaledLocalPivotToActorVec = LocalPivotToActorVec * FinalScaleMultiplier;
+				const FVector GlobalPivotToActorVec = ActorRotation.RotateVector(ScaledLocalPivotToActorVec);
+				NewPosition = VirtualPivot->GetLocation() + GlobalPivotToActorVec;
 			}
 			else
 			{
@@ -108,15 +114,14 @@ namespace BlenderControls
 				if (FinalScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
 				if (FinalScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
 
-				const FVector NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
-				NewTransform.SetScale3D(NewScale);
+				NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
 
-				//Calculate new position
-				const FVector RelativePosition = ActorInitialTransform.GetLocation() - VirtualPivot->GetLocation();
-				ScaledRelativePosition = RelativePosition * FinalScaleMultiplier;
-				const FVector NewPosition = VirtualPivot->GetLocation() + ScaledRelativePosition;
-				NewTransform.SetLocation(NewPosition);
+				const FVector ScaledRelativePosition = PivotToActorVec * FinalScaleMultiplier;
+				NewPosition = VirtualPivot->GetLocation() + ScaledRelativePosition;
 			}
+
+			NewTransform.SetLocation(NewPosition);
+			NewTransform.SetScale3D(NewScale);
 			
 			Child.Actor->SetActorTransform(NewTransform);
 		}
