@@ -89,34 +89,43 @@ namespace BlenderControls
 			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - VirtualPivot->GetLocation();
 			FTransform NewTransform = ActorInitialTransform;
 
+			FVector SnappedScaleMultiplier = FinalScaleMultiplier;
+			if (bSnappingEnabled)
+			{
+				const float SnappingIncrement = GEditor->GetScaleGridSize();
+				SnappedScaleMultiplier.X = FMath::GridSnap(FinalScaleMultiplier.X, SnappingIncrement);
+				SnappedScaleMultiplier.Y = FMath::GridSnap(FinalScaleMultiplier.Y, SnappingIncrement);
+				SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
+			}
+
 			FVector NewPosition, NewScale;
 			if (bUsingLocalSpace)
 			{
-				NewScale = ActorInitialTransform.GetScale3D() * FinalScaleMultiplier;
-				
 				const FVector LocalPivotToActorVec = ActorRotation.UnrotateVector(PivotToActorVec);
-				const FVector ScaledLocalPivotToActorVec = LocalPivotToActorVec * FinalScaleMultiplier;
+				const FVector ScaledLocalPivotToActorVec = LocalPivotToActorVec * SnappedScaleMultiplier;
 				const FVector GlobalPivotToActorVec = ActorRotation.RotateVector(ScaledLocalPivotToActorVec);
 				NewPosition = VirtualPivot->GetLocation() + GlobalPivotToActorVec;
+
+				NewScale = ActorInitialTransform.GetScale3D() * SnappedScaleMultiplier;
 			}
 			else
 			{
 				const FQuat InitialRotation = ActorInitialTransform.GetRotation();
 				const FMatrix RotationMatrix = FRotationMatrix(InitialRotation.Rotator());
 
-				const FMatrix GlobalScaleMatrix = FScaleMatrix(FinalScaleMultiplier);
+				const FMatrix GlobalScaleMatrix = FScaleMatrix(SnappedScaleMultiplier);
 
 				const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
 				const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
 
 				FVector LocalScaleToAddSigned = LocalScaleToAdd;
-				if (FinalScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
-				if (FinalScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
-				if (FinalScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
+				if (SnappedScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
+				if (SnappedScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
+				if (SnappedScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
 
 				NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
 
-				const FVector ScaledRelativePosition = PivotToActorVec * FinalScaleMultiplier;
+				const FVector ScaledRelativePosition = PivotToActorVec * SnappedScaleMultiplier;
 				NewPosition = VirtualPivot->GetLocation() + ScaledRelativePosition;
 			}
 
