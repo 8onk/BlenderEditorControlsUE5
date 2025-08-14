@@ -4,6 +4,7 @@
 #include "Utils/BlenderMathHelpers.h"
 
 //NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
+//TODO snapping and precision mode now doesn't work, it did previously?
 
 namespace BlenderControls
 {
@@ -43,18 +44,14 @@ namespace BlenderControls
 
 		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)
 		{
-			// Vector from pivot to initial/current mouse positions
-			FVector2D StartVec = InitialMousePosition - PivotViewportPosition;
-			FVector2D CurrentVec = VirtualMousePosition - PivotViewportPosition;
+			const FVector2D StartVec = InitialMousePosition - PivotViewportPosition;
+			const FVector2D CurrentVec = VirtualMousePosition - PivotViewportPosition;
 
-			// Dot product sign check
-			float Sign = FMath::Sign(FVector2D::DotProduct(CurrentVec, StartVec));
+			const float Sign = FMath::Sign(FVector2D::DotProduct(CurrentVec, StartVec));
 			ScaleFactor = Sign * (CurrentMouseToPivotDistance / InitialMouseToPivotDistance);
 		}
 		
-		FTransform CurrentTransform = VirtualPivot->GetStartTransform();
 		FVector FinalScaleMultiplier(1.0f);
-
 		switch (LockedAxis)
 		{
 		case EAxisLock::X:
@@ -85,49 +82,44 @@ namespace BlenderControls
 			break;
 		}
 
-		if (bUsingLocalSpace || LockedAxis == EAxisLock::All)
+		for (FChildInfo Child : VirtualPivot->GetChildren())
 		{
-			FVector NewLocalScale = StartScale * FinalScaleMultiplier;
+			const FTransform ActorInitialTransform = Child.Transform;
+			FTransform NewTransform = ActorInitialTransform;
 
-			if (bSnappingEnabled)
+			FVector ScaledRelativePosition;
+			if (bUsingLocalSpace)
 			{
-				const float SnappingIncrement = GEditor->GetScaleGridSize();
-				NewLocalScale.X = FMath::GridSnap(NewLocalScale.X, SnappingIncrement);
-				NewLocalScale.Y = FMath::GridSnap(NewLocalScale.Y, SnappingIncrement);
-				NewLocalScale.Z = FMath::GridSnap(NewLocalScale.Z, SnappingIncrement);
+				FVector NewScale = ActorInitialTransform.GetScale3D() * FinalScaleMultiplier;
+				NewTransform.SetScale3D(NewScale);
 			}
+			else
+			{
+				const FQuat InitialRotation = ActorInitialTransform.GetRotation();
+				const FMatrix RotationMatrix = FRotationMatrix(InitialRotation.Rotator());
 
-			CurrentTransform.SetScale3D(NewLocalScale);
+				const FMatrix GlobalScaleMatrix = FScaleMatrix(FinalScaleMultiplier);
+
+				const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
+				const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
+
+				FVector LocalScaleToAddSigned = LocalScaleToAdd;
+				if (FinalScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
+				if (FinalScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
+				if (FinalScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
+
+				const FVector NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
+				NewTransform.SetScale3D(NewScale);
+
+				//Calculate new position
+				const FVector RelativePosition = ActorInitialTransform.GetLocation() - VirtualPivot->GetLocation();
+				ScaledRelativePosition = RelativePosition * FinalScaleMultiplier;
+				const FVector NewPosition = VirtualPivot->GetLocation() + ScaledRelativePosition;
+				NewTransform.SetLocation(NewPosition);
+			}
+			
+			Child.Actor->SetActorTransform(NewTransform);
 		}
-		else
-		{
-			const FQuat InitialRotation = CurrentTransform.GetRotation();
-			const FRotator Rot = InitialRotation.Rotator();
-			const FMatrix RotationMatrix = FRotationMatrix(Rot);
-
-			const FMatrix GlobalScaleMatrix = FScaleMatrix(FinalScaleMultiplier);
-			const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
-			const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
-
-			FVector LocalScaleToAddSigned = LocalScaleToAdd;
-			if (FinalScaleMultiplier.X < 0)
-			{
-				LocalScaleToAddSigned.X *= -1.f;
-			}
-			if (FinalScaleMultiplier.Y < 0)
-			{
-				LocalScaleToAddSigned.Y *= -1.f;
-			}
-			if (FinalScaleMultiplier.Z < 0)
-			{
-				LocalScaleToAddSigned.Z *= -1.f;
-			}
-
-			const FVector NewScale = StartScale * LocalScaleToAddSigned;
-			CurrentTransform.SetScale3D(NewScale);
-		}
-
-		VirtualPivot->GetTransformProxy()->SetTransform(CurrentTransform);
 	}
 
 	void FScaleTool::ApplyNumeric(float Value)

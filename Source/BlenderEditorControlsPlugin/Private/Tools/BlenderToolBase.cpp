@@ -322,7 +322,7 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			const FVector Delta = VirtualPivot->GetCurrentLocation() - VirtualPivot->GetStartTransform().GetLocation();
+			const FVector Delta = VirtualPivot->GetLocation() - VirtualPivot->GetStartTransform().GetLocation();
 			const FVector CurrentPivotLocation = Delta + VirtualPivot->GetActiveElement().Transform.GetLocation();
 			const FVector StartPivotLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
 			const FVector NewPivotPosition = bApply ? CurrentPivotLocation : StartPivotLocation;
