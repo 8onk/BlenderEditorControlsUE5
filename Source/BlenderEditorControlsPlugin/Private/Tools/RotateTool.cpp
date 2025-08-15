@@ -1,6 +1,5 @@
 #include "Tools/RotateTool.h"
 #include "LevelEditorViewport.h"
-#include "EntitySystem/MovieSceneEntitySystemRunner.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO draw the rotation gizmo handle
 
@@ -68,7 +67,7 @@ namespace BlenderControls
 		}
 		else
 		{
-			const FVector2D CurrentDragVector = UnscaledMouseDelta - PivotViewportPosition;
+			const FVector2D CurrentDragVector = VirtualMousePosition - PivotViewportPosition;
 			float AngleDeltaRad = MathHelper::GetSignedAngle2D(LastDragVector, CurrentDragVector);
 			AccumulatedAngleRad += AngleDeltaRad * CurrentPrecisionFactor;
 

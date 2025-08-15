@@ -93,7 +93,6 @@ namespace BlenderControls
 		void UpdateAxisLock();
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
-		FVector2D UnscaledMouseDelta;
 		FVector2D VirtualMousePosition;
 
 		float CurrentNonTrackballRotationAngle = 0.0f;

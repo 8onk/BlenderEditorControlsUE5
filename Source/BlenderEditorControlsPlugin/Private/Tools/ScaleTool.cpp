@@ -40,12 +40,13 @@ namespace BlenderControls
 			return;
 		}
 
-		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(VirtualMousePosition, PivotViewportPosition);
+		const FVector2D ScaledVirtualMousePosition = InitialMousePosition + MouseDelta;
+		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(ScaledVirtualMousePosition, PivotViewportPosition);
 
 		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)
 		{
 			const FVector2D StartVec = InitialMousePosition - PivotViewportPosition;
-			const FVector2D CurrentVec = VirtualMousePosition - PivotViewportPosition;
+			const FVector2D CurrentVec = ScaledVirtualMousePosition - PivotViewportPosition;
 
 			const float Sign = FMath::Sign(FVector2D::DotProduct(CurrentVec, StartVec));
 			ScaleFactor = Sign * (CurrentMouseToPivotDistance / InitialMouseToPivotDistance);

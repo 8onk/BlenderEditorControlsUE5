@@ -264,7 +264,6 @@ namespace BlenderControls
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 		GrabContext.ViewForward = ViewForward;
 
-		UnscaledMouseDelta = MousePos;
 		VirtualMousePosition = CurrentMousePosition;
 		SetGrabContextAxisLock(LockedAxis);
 	}
@@ -276,8 +275,7 @@ namespace BlenderControls
 		{
 			return;
 		}
-
-
+		
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X,
 		                                               CurrentViewportMousePosition.Y);
 		CurrentMousePosition = FVector2D(CurrentMousePosInt);
@@ -295,10 +293,9 @@ namespace BlenderControls
 		const FVector2D CurrentFrameDelta = CurrentMousePosition - LastMousePosition;
 
 		VirtualMousePosition += CurrentFrameDelta;
-		UnscaledMouseDelta += CurrentFrameDelta;
 		MouseDelta += CurrentFrameDelta * CurrentPrecisionFactor;
 		// UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), VirtualMousePosition.X, VirtualMousePosition.Y);
-		UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
+		//UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 		LastMousePosition = CurrentMousePosition;
 	}
 

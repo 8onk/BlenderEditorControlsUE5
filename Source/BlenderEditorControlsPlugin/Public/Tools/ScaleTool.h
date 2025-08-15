@@ -28,6 +28,7 @@ namespace BlenderControls
 		FVector2D InitialMousePosition;
 		FVector AxisLockProjectionVector;
 		float InitialMouseToPivotDistance;
+		float LastMouseToPivotDistance;
 		float CurrentMouseToPivotDistance;
 		float ScaleFactor;
 
