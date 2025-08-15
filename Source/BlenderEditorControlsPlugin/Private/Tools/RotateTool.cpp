@@ -129,9 +129,11 @@ namespace BlenderControls
 					const FQuat TargetRot(LocalRotationAxis, DegreesToRotate);
 						
 					const FVector CurrentLocation = ChildTransform.GetLocation();
+					const FVector CurrentScale = ChildTransform.GetScale3D();
 					const FVector NewLocation = PivotPosition + TargetRot.RotateVector(CurrentLocation - PivotPosition);
 					const FQuat NewRotation = (TargetRot * ChildTransform.GetRotation()).GetNormalized();
-					
+
+					NewTransform.SetScale3D(CurrentScale);
 					NewTransform.SetLocation(NewLocation);
 					NewTransform.SetRotation(NewRotation);
 					Child.Actor->SetActorTransform(NewTransform);
