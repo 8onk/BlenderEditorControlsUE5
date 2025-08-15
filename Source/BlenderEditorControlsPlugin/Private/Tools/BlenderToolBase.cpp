@@ -408,8 +408,6 @@ namespace BlenderControls
 
 	void FBlenderToolBase::Accept()
 	{
-		OnEnd(/*bApply=*/true);
-
 		if (ParentTxn)
 		{
 			ParentTxn.Reset();
@@ -423,7 +421,6 @@ namespace BlenderControls
 			return;
 		}
 
-		OnEnd(/*bApply=*/false);
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 
 		// Reset pivot to start location

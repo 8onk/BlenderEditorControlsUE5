@@ -106,7 +106,7 @@ namespace BlenderControls
 
 		if (PressedKey == RotateKey && ActiveMode == ETransformMode::Rotate)
 		{
-			bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
+			const bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
 			CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
 		}
 
@@ -141,14 +141,14 @@ namespace BlenderControls
 			}
 		}
 
-		if (CurrentTool->IsSingleAxisLocked())
+		if (PressedKey == EKeys::SpaceBar)
 		{
-			//Number input, although dual axis should also work
+			EndTool(/*bApply=*/true);
+			return true;
 		}
-
 		if (KeyEvent.GetKey() == EKeys::Escape)
 		{
-			CurrentTool->Cancel();
+			EndTool(/*bApply=*/false);
 			return true;
 		}
 
@@ -325,7 +325,6 @@ namespace BlenderControls
 		if (CurrentViewportMousePosition.X < 0 || CurrentViewportMousePosition.X >= ViewportSizeX ||
 			CurrentViewportMousePosition.Y < 0 || CurrentViewportMousePosition.Y >= ViewportSizeY)
 		{
-			UE_LOG(LogBlenderEditorControls, Log, TEXT("Wrap mouse!"));
 			int NewX = static_cast<int>(CurrentViewportMousePosition.X) % ViewportSizeX;
 
 			if (NewX < 0)
@@ -344,8 +343,6 @@ namespace BlenderControls
 			EditorViewport->SetMouse(NewX, NewY);
 			CurrentTool->SetViewportMousePosition(NewMousePosition);
 			EditorViewport->GetMousePos(MousePos, true);
-			UE_LOG(LogBlenderEditorControls, Log, TEXT("Set wrap pos: X %d Y %d"), NewX, NewY);
-			UE_LOG(LogBlenderEditorControls, Log, TEXT("Mouse Pos: X %d Y %d"), MousePos.X, MousePos.Y);
 			
 			CurrentTool->SetLastMousePosition(FVector2D(NewX, NewY));
 			CurrentTool->NotifyMouseWrap();

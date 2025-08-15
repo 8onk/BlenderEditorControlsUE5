@@ -13,6 +13,12 @@ namespace BlenderControls
 		Scale
 	};
 
+	enum class EInputMode : uint8
+	{
+		Numeric,
+		Mouse,
+	};
+
 	enum class EAxisLock : uint8
 	{
 		X = 1 << 0,

@@ -44,7 +44,6 @@ namespace BlenderControls
         void RotatePressed() { BeginTool(ETransformMode::Rotate); }
         void ScalePressed() { BeginTool(ETransformMode::Scale); }
 
-        /* State */
         bool bActive = true;
         bool bNumericInput = false;
         FString NumericBuffer;
