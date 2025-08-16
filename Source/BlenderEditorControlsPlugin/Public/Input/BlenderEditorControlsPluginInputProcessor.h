@@ -37,6 +37,7 @@ namespace BlenderControls
         void FeedNumeric(const TCHAR Digit);
         void FlushNumeric();
         void WrapMouse(const FVector2D &CurrentViewportMousePosition) const;
+        static bool TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar);
         // void ShowSoftwareGrabCursor();
 
         /* Input handlers for activating transform tools */

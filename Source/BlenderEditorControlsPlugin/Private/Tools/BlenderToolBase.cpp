@@ -438,7 +438,6 @@ namespace BlenderControls
 
 	void FBlenderToolBase::ApplyNumeric(float Value)
 	{
-		// Base implementation does nothing
 	}
 
 	void FBlenderToolBase::NotifyMouseWrap()

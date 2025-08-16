@@ -11,6 +11,7 @@
 #include "Utils/BlenderMathHelpers.h"
 #include "Editor/UnrealEd/Classes/Settings/LevelEditorViewportSettings.h"
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
+#include "Misc/DefaultValueHelper.h"
 //TODO issue with mouse wrapping, sometimes the current mouse pos is stale due to race condition which makes delta incorrect. 
 
 class SLevelViewport;
@@ -141,6 +142,44 @@ namespace BlenderControls
 			}
 		}
 
+		if (TCHAR C; TryMapKeyToNumericChar(PressedKey, C))
+		{
+			if (!bNumericInput)
+			{
+				if (!FChar::IsDigit(C) && C != '-' && C != '.')
+				{
+					return false;
+				}
+
+				bNumericInput = true;
+			}
+
+			if (C == '-')
+			{
+				if (NumericBuffer.Contains(TEXT("-")))
+				{
+					NumericBuffer.RemoveFromStart(TEXT("-"));
+				}
+				else
+				{
+					NumericBuffer.InsertAt(0, TEXT("-"));
+				}
+			}
+			else
+			{
+				NumericBuffer.AppendChar(C);
+			}
+
+			float ParsedValue;
+			if (FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue))
+			{
+				CurrentTool->ApplyNumeric(ParsedValue);
+			}
+			
+			UE_LOG(LogBlenderEditorControls, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
+			return true;
+		}
+
 		if (PressedKey == EKeys::SpaceBar)
 		{
 			EndTool(/*bApply=*/true);
@@ -222,7 +261,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	void FBlenderControlsInputProcessor::BeginTool(ETransformMode Mode)
+	void FBlenderControlsInputProcessor::BeginTool(const ETransformMode Mode)
 	{
 		if (GEditor->GetSelectedActorCount() == 0)
 		{
@@ -271,7 +310,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderControlsInputProcessor::EndTool(bool bApply)
+	void FBlenderControlsInputProcessor::EndTool(const bool bApply)
 	{
 		if (!CurrentTool.IsValid())
 		{
@@ -343,9 +382,131 @@ namespace BlenderControls
 			EditorViewport->SetMouse(NewX, NewY);
 			CurrentTool->SetViewportMousePosition(NewMousePosition);
 			EditorViewport->GetMousePos(MousePos, true);
-			
+
 			CurrentTool->SetLastMousePosition(FVector2D(NewX, NewY));
 			CurrentTool->NotifyMouseWrap();
 		}
+	}
+
+	bool FBlenderControlsInputProcessor::TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar)
+	{
+		// Main row
+		if (Key == EKeys::Zero)
+		{
+			OutChar = '0';
+			return true;
+		}
+		if (Key == EKeys::One)
+		{
+			OutChar = '1';
+			return true;
+		}
+		if (Key == EKeys::Two)
+		{
+			OutChar = '2';
+			return true;
+		}
+		if (Key == EKeys::Three)
+		{
+			OutChar = '3';
+			return true;
+		}
+		if (Key == EKeys::Four)
+		{
+			OutChar = '4';
+			return true;
+		}
+		if (Key == EKeys::Five)
+		{
+			OutChar = '5';
+			return true;
+		}
+		if (Key == EKeys::Six)
+		{
+			OutChar = '6';
+			return true;
+		}
+		if (Key == EKeys::Seven)
+		{
+			OutChar = '7';
+			return true;
+		}
+		if (Key == EKeys::Eight)
+		{
+			OutChar = '8';
+			return true;
+		}
+		if (Key == EKeys::Nine)
+		{
+			OutChar = '9';
+			return true;
+		}
+
+		// Numpad
+		if (Key == EKeys::NumPadZero)
+		{
+			OutChar = '0';
+			return true;
+		}
+		if (Key == EKeys::NumPadOne)
+		{
+			OutChar = '1';
+			return true;
+		}
+		if (Key == EKeys::NumPadTwo)
+		{
+			OutChar = '2';
+			return true;
+		}
+		if (Key == EKeys::NumPadThree)
+		{
+			OutChar = '3';
+			return true;
+		}
+		if (Key == EKeys::NumPadFour)
+		{
+			OutChar = '4';
+			return true;
+		}
+		if (Key == EKeys::NumPadFive)
+		{
+			OutChar = '5';
+			return true;
+		}
+		if (Key == EKeys::NumPadSix)
+		{
+			OutChar = '6';
+			return true;
+		}
+		if (Key == EKeys::NumPadSeven)
+		{
+			OutChar = '7';
+			return true;
+		}
+		if (Key == EKeys::NumPadEight)
+		{
+			OutChar = '8';
+			return true;
+		}
+		if (Key == EKeys::NumPadNine)
+		{
+			OutChar = '9';
+			return true;
+		}
+
+		// Decimal separators
+		if (Key == EKeys::Decimal || Key == EKeys::Period || Key == EKeys::Delete)
+		{
+			OutChar = '.';
+			return true;
+		}
+
+		if (Key == EKeys::Hyphen)
+		{
+			OutChar = '-';
+			return true;
+		}
+
+		return false;
 	}
 } // namespace BlenderControls

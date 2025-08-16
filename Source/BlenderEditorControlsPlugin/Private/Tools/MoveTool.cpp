@@ -125,6 +125,9 @@ namespace BlenderControls
 
 	void FMoveTool::ApplyNumeric(float Value)
 	{
+		FBlenderToolBase::ApplyNumeric(Value);
+
+		
 	}
 
 	void FMoveTool::OnEnd(bool bApply)

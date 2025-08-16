@@ -152,6 +152,7 @@ namespace BlenderControls
 
 	void FRotateTool::ApplyNumeric(float Value)
 	{
+		FBlenderToolBase::ApplyNumeric(Value);
 	}
 
 	void FRotateTool::OnEnd(const bool bApply)

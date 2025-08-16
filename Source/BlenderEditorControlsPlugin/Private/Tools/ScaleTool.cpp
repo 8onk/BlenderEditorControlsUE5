@@ -139,6 +139,7 @@ namespace BlenderControls
 
 	void FScaleTool::ApplyNumeric(float Value)
 	{
+		FBlenderToolBase::ApplyNumeric(Value);
 	}
 
 	void FScaleTool::OnEnd(const bool bApply)
