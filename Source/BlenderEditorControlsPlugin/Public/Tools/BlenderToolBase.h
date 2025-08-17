@@ -64,6 +64,10 @@ namespace BlenderControls
 		void AddMouseDelta(const FVector2D NewDelta) { MouseDelta += NewDelta; }
 		void NotifyMouseWrap();
 
+		void BeginNumericInput();
+		void CycleNumericInputSlot();
+		void UpdateNumericValue(float Value);
+
 	private:
 		void CaptureSelection();
 		void RedrawAxisLines() const;
@@ -97,6 +101,9 @@ namespace BlenderControls
 
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
+
+		FVector NumericInputSlots;
+		int32 CurrentNumericSlotIndex;
 
 		/* Transaction utilities */
 		TUniquePtr<FScopedTransaction> ParentTxn;

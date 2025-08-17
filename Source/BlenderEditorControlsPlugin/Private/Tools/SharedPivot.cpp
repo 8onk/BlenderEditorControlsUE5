@@ -113,6 +113,52 @@ namespace BlenderControls
 		}
 	}
 
+	void FSharedPivot::Translate(const FVector& Delta, const bool bInUsingLocalSpace)
+	{
+		for (const FChildInfo& Child : Children)
+		{
+			FVector WorldSpaceOffset = Delta; 
+
+			if (bInUsingLocalSpace)
+			{
+				const FQuat ChildStartRotation = Child.Transform.GetRotation();
+				WorldSpaceOffset = ChildStartRotation.RotateVector(Delta);
+			}
+
+			const FVector StartPos = Child.Transform.GetLocation();
+			Child.Actor->SetActorLocation(StartPos + WorldSpaceOffset);
+		}
+	}
+
+	void FSharedPivot::Translate(const bool bUsingLocalSpace, const EAxisLock LockedAxis, const FVector& Delta)
+	{
+		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
+		{
+			const FQuat ActiveObjectStartRotation = GetActiveElement().Transform.GetRotation();
+			const FVector LocalSpaceDelta = ActiveObjectStartRotation.UnrotateVector(Delta);
+
+			for (const FChildInfo Child : Children)
+			{
+				const FTransform StartTransform = Child.Transform;
+				const FVector WorldOffset = StartTransform.TransformPositionNoScale(LocalSpaceDelta);
+
+				if (Child.Actor == GetActiveElement().Actor)
+				{
+					Child.Actor->SetActorLocation(StartTransform.GetLocation() + Delta);
+				}
+				else
+				{
+					Child.Actor->SetActorLocation(WorldOffset);
+				}
+			}
+		}
+		else
+		{
+			const FVector NewPos = GetStartTransform().GetLocation() + Delta;
+			SetPosition(NewPos);
+		}
+	}
+
 	TArray<AActor*> FSharedPivot::GetSelectedActors() const
 	{
 		TArray<AActor*> Result;

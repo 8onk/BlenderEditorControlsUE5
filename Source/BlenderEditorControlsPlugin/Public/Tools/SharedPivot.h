@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BlenderEditorControlsEnums.h"
 #include "EditorGizmos/TransformGizmo.h"
 #include "BaseGizmos/TransformProxy.h"
 
@@ -32,6 +33,8 @@ namespace BlenderControls
 		void SetPosition(const FVector& NewPosition);
 		void RotateBy(const FQuat& Delta);
 		void ScaleBy(const FVector& Scale, bool bUniform);
+		void Translate(const FVector& Delta, const bool bInUsingLocalSpace);
+		void Translate(bool bUsingLocalSpace, EAxisLock LockedAxis, const FVector& Delta);
 
 	private:
 		void ComputePivotTransform(EPivotMode InPivotMode);

@@ -243,7 +243,7 @@ namespace BlenderControls
 		CurrentMousePosition = MousePos;
 		bPendingMouseWrap = false;
 		bIsAxisLockActive = false;
-		bUsingLocalSpace = bLocalSpaceDefault;
+		bUsingLocalSpace = false;
 		LockedAxis = EAxisLock::All;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
@@ -275,7 +275,7 @@ namespace BlenderControls
 		{
 			return;
 		}
-		
+
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X,
 		                                               CurrentViewportMousePosition.Y);
 		CurrentMousePosition = FVector2D(CurrentMousePosInt);
@@ -438,11 +438,43 @@ namespace BlenderControls
 
 	void FBlenderToolBase::ApplyNumeric(float Value)
 	{
+		UpdateNumericValue(Value);
 	}
 
 	void FBlenderToolBase::NotifyMouseWrap()
 	{
 		bPendingMouseWrap = true;
+	}
+
+	void FBlenderToolBase::BeginNumericInput()
+	{
+		NumericInputSlots = FVector::ZeroVector;
+		CurrentNumericSlotIndex = 0;
+	}
+
+	void FBlenderToolBase::CycleNumericInputSlot()
+	{
+		CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 3;
+	}
+
+	void FBlenderToolBase::UpdateNumericValue(const float Value)
+	{
+		UE_LOG(LogTemp, Display, TEXT("%f"), Value);
+		
+		switch (CurrentNumericSlotIndex)
+		{
+		case 0:
+			NumericInputSlots.X = Value;
+			break;
+		case 1:
+			NumericInputSlots.Y = Value;
+			break;
+		case 2:
+			NumericInputSlots.Z = Value;
+			break;
+		default:
+			break;
+		}
 	}
 
 	void FBlenderToolBase::CaptureSelection()

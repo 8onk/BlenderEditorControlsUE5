@@ -95,39 +95,52 @@ namespace BlenderControls
 		{
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
-		
-		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
-		{
-			const FQuat ActiveObjectStartRotation = VirtualPivot->GetActiveElement().Transform.GetRotation();
-			FVector LocalSpaceDelta = ActiveObjectStartRotation.UnrotateVector(LiveDelta);
 
-			for (FChildInfo Child : VirtualPivot->GetChildren())
-			{
-				const FTransform StartTransform = Child.Transform;
-				const FVector WorldOffset = StartTransform.TransformPositionNoScale(LocalSpaceDelta);
-
-				if (Child.Actor == VirtualPivot->GetActiveElement().Actor)
-				{
-					Child.Actor->SetActorLocation(StartTransform.GetLocation() + LiveDelta);
-				}
-				else
-				{
-					Child.Actor->SetActorLocation(WorldOffset);
-				}
-			}
-		}
-		else
-		{
-			const FVector NewPos = VirtualPivot->GetStartTransform().GetLocation() + LiveDelta;
-			VirtualPivot->SetPosition(NewPos);
-		}
+		VirtualPivot->Translate(bUsingLocalSpace, LockedAxis, LiveDelta);
 	}
 
 	void FMoveTool::ApplyNumeric(float Value)
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
 
-		
+		FVector Delta = FVector::ZeroVector;
+		const float Slot1 = NumericInputSlots.X;
+		const float Slot2 = NumericInputSlots.Y;
+		const float Slot3 = NumericInputSlots.Z;
+
+		switch (LockedAxis)
+		{
+		case EAxisLock::All:
+			Delta = FVector(Slot1, Slot2, Slot3);
+			break;
+
+		case EAxisLock::X:
+			Delta.X = Slot1;
+			break;
+		case EAxisLock::Y:
+			Delta.Y = Slot1;
+			break;
+		case EAxisLock::Z:
+			Delta.Z = Slot1;
+			break;
+
+		case EAxisLock::XY:
+			Delta.X = Slot1;
+			Delta.Y = Slot2;
+			break;
+		case EAxisLock::XZ:
+			Delta.X = Slot1;
+			Delta.Z = Slot2;
+			break;
+		case EAxisLock::YZ:
+			Delta.Y = Slot1;
+			Delta.Z = Slot2;
+			break;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("MyVar value is: %d"), bUsingLocalSpace);
+
+		VirtualPivot->Translate(Delta, bUsingLocalSpace);
 	}
 
 	void FMoveTool::OnEnd(bool bApply)

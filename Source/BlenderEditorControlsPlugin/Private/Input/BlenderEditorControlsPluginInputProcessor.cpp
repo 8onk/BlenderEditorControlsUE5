@@ -111,6 +111,27 @@ namespace BlenderControls
 			CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
 		}
 
+		if (bNumericInput)
+		{
+			if ((PressedKey == EKeys::BackSpace || PressedKey == EKeys::Delete))
+			{
+				float ParsedValue = 0.0f;
+
+				if (!NumericBuffer.IsEmpty())
+				{
+					NumericBuffer.LeftChopInline(1);
+
+					FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue);
+				}
+
+				CurrentTool->ApplyNumeric(ParsedValue);
+				return true;
+			}
+
+			//  may also want to swallow Esc/Enter/Tab while in numeric mode,
+			// depending on UX (either finish/cancel numeric, or ignore).
+		}
+
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
 			return true; // G/R/S (or remapped key) handled
@@ -124,22 +145,32 @@ namespace BlenderControls
 		if (PressedKey == EKeys::X || PressedKey == EKeys::Y || PressedKey == EKeys::Z)
 		{
 			PressedKeys.Add(PressedKey);
+			bool bKeySwallowed = false;
 
 			if (PressedKey == EKeys::X)
 			{
 				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
-				return true;
+				bKeySwallowed = true;
 			}
 			if (PressedKey == EKeys::Y)
 			{
 				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
-				return true;
+				bKeySwallowed = true;
 			}
 			if (PressedKey == EKeys::Z)
 			{
 				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
-				return true;
+				bKeySwallowed = true;
 			}
+
+			if (bNumericInput)
+			{
+				float ParsedValue = 0.0f;
+				FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue);
+				CurrentTool->ApplyNumeric(ParsedValue);
+			}
+
+			return bKeySwallowed;
 		}
 
 		if (TCHAR C; TryMapKeyToNumericChar(PressedKey, C))
@@ -152,6 +183,7 @@ namespace BlenderControls
 				}
 
 				bNumericInput = true;
+				CurrentTool->BeginNumericInput();
 			}
 
 			if (C == '-')
@@ -176,11 +208,11 @@ namespace BlenderControls
 				CurrentTool->ApplyNumeric(ParsedValue);
 			}
 			
-			UE_LOG(LogBlenderEditorControls, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
+			UE_LOG(LogTemp, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
 			return true;
 		}
 
-		if (PressedKey == EKeys::SpaceBar)
+		if (PressedKey == EKeys::SpaceBar || PressedKey == EKeys::Enter)
 		{
 			EndTool(/*bApply=*/true);
 			return true;
