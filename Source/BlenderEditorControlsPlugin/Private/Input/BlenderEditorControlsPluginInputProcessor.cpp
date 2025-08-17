@@ -113,7 +113,7 @@ namespace BlenderControls
 
 		if (bNumericInput)
 		{
-			if ((PressedKey == EKeys::BackSpace || PressedKey == EKeys::Delete))
+			if (PressedKey == EKeys::BackSpace || PressedKey == EKeys::Delete)
 			{
 				float ParsedValue = 0.0f;
 
@@ -128,8 +128,12 @@ namespace BlenderControls
 				return true;
 			}
 
-			//  may also want to swallow Esc/Enter/Tab while in numeric mode,
-			// depending on UX (either finish/cancel numeric, or ignore).
+			if (PressedKey == EKeys::Tab)
+			{
+				CurrentTool->CycleNumericInputSlot();
+				NumericBuffer.Empty(); 
+				return true;
+			}
 		}
 
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))

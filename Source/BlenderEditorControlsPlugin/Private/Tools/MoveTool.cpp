@@ -139,7 +139,6 @@ namespace BlenderControls
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("MyVar value is: %d"), bUsingLocalSpace);
-
 		VirtualPivot->Translate(Delta, bUsingLocalSpace);
 	}
 

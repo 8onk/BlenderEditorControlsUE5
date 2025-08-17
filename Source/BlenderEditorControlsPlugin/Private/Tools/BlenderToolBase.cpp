@@ -390,6 +390,7 @@ namespace BlenderControls
 			{
 				// Third Press
 				bIsAxisLockActive = false;
+				bUsingLocalSpace = false;
 				LockedAxis = EAxisLock::All;
 			}
 		}
