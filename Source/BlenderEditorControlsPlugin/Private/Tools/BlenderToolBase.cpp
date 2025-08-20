@@ -6,6 +6,7 @@
 #include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
+#include "Tools/SharedPivot.h"
 
 //TODO: make GetSnapOffset abstract
 //Draw helper axis in orthographic. 

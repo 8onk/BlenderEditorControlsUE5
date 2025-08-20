@@ -1,7 +1,7 @@
 #include "Tools/ScaleTool.h"
 #include "LevelEditorViewport.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Utils/BlenderMathHelpers.h"
+#include "Tools/SharedPivot.h"
 
 //NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
 //TODO snapping and precision mode now doesn't work, it did previously?

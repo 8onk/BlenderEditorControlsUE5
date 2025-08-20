@@ -1,5 +1,6 @@
 #include "Tools/MoveTool.h"
 #include "LevelEditorViewport.h"
+#include "Tools/SharedPivot.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO Cleanup on active?
 
@@ -138,7 +139,6 @@ namespace BlenderControls
 			break;
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("MyVar value is: %d"), bUsingLocalSpace);
 		VirtualPivot->Translate(Delta, bUsingLocalSpace);
 	}
 

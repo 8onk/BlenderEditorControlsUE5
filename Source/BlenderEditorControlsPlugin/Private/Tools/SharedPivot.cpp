@@ -117,7 +117,7 @@ namespace BlenderControls
 	{
 		for (const FChildInfo& Child : Children)
 		{
-			FVector WorldSpaceOffset = Delta; 
+			FVector WorldSpaceOffset = Delta;
 
 			if (bInUsingLocalSpace)
 			{
@@ -156,6 +156,66 @@ namespace BlenderControls
 		{
 			const FVector NewPos = GetStartTransform().GetLocation() + Delta;
 			SetPosition(NewPos);
+		}
+	}
+
+	void FSharedPivot::Rotate(FGrabContext GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis)
+	{
+		const FVector PivotPosition = GetLocation();
+		const FVector RotationAxis = GC.HelperAxisDir;
+		
+		const FQuat TargetRotation = FQuat(RotationAxis, AngleToRotateRad);
+		FTransform StartTransform = StartPivotTransform;
+		FTransform NewTransform = StartTransform;
+		FQuat ResultQuat = TargetRotation * NewTransform.GetRotation();
+		ResultQuat.Normalize();
+
+		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
+		{
+			for (FChildInfo Child : Children)
+			{
+				const FTransform ChildTransform = Child.Transform;
+				const FVector X = ChildTransform.GetUnitAxis(EAxis::X);
+				const FVector Y = ChildTransform.GetUnitAxis(EAxis::Y);
+				const FVector Z = ChildTransform.GetUnitAxis(EAxis::Z);
+
+				FVector LocalRotationAxis;
+				switch (LockedAxis)
+				{
+				case EAxisLock::X: LocalRotationAxis = X;
+					break;
+				case EAxisLock::Y: LocalRotationAxis = Y;
+					break;
+				case EAxisLock::Z: LocalRotationAxis = Z;
+					break;
+
+				case EAxisLock::XY: LocalRotationAxis = Z;
+					break;
+				case EAxisLock::YZ: LocalRotationAxis = X;
+					break;
+				case EAxisLock::XZ: LocalRotationAxis = Y;
+					break;
+
+				case EAxisLock::All: LocalRotationAxis = GC.ViewForward;
+					break;
+				}
+				const FQuat TargetRot(LocalRotationAxis, AngleToRotateRad);
+
+				const FVector CurrentLocation = ChildTransform.GetLocation();
+				const FVector CurrentScale = ChildTransform.GetScale3D();
+				const FVector NewLocation = PivotPosition + TargetRot.RotateVector(CurrentLocation - PivotPosition);
+				const FQuat NewRotation = (TargetRot * ChildTransform.GetRotation()).GetNormalized();
+
+				NewTransform.SetScale3D(CurrentScale);
+				NewTransform.SetLocation(NewLocation);
+				NewTransform.SetRotation(NewRotation);
+				Child.Actor->SetActorTransform(NewTransform);
+			}
+		}
+		else
+		{
+			NewTransform.SetRotation(ResultQuat);
+			TransformProxy->SetTransform(NewTransform);
 		}
 	}
 

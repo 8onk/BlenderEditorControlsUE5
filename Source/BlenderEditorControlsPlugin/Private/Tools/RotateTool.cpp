@@ -1,7 +1,9 @@
 #include "Tools/RotateTool.h"
 #include "LevelEditorViewport.h"
+#include "Tools/SharedPivot.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO draw the rotation gizmo handle
+//TODO apply numeric for rotation tool and scale tool
 
 namespace BlenderControls
 {
@@ -79,80 +81,31 @@ namespace BlenderControls
 			float SignedAccum = AccumulatedAngleRad;
 			if (FVector::DotProduct(ViewToPivot, RotationAxis) < 0)
 			{
-				SignedAccum = -SignedAccum;
+				SignedAccum = -AccumulatedAngleRad;
 			}
 
-			//REFACTOR INTO A SNAP OFFSET FUNCTION
-			FRotator RotationGridSize = GEditor->GetRotGridSize();
-			float SnapAngleDeg = RotationGridSize.Yaw;
-			float TotalAngleDeg = FMath::RadiansToDegrees(SignedAccum);
-			float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
-			float SnappedAngleRad = FMath::DegreesToRadians(SnappedAngleDeg);
-			float DegreesToRotate = bSnappingEnabled ? SnappedAngleRad : SignedAccum;
-
-			//Calculate target rotation
-			const FQuat TargetRotation = FQuat(RotationAxis, DegreesToRotate);
-			FTransform StartTransform = StartPivotTransform;
-			FTransform NewTransform = StartTransform;
-			FQuat ResultQuat = TargetRotation * NewTransform.GetRotation();
-			ResultQuat.Normalize();
-
-			if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
+			float AngleToApplyRad = SignedAccum;
+			if (bSnappingEnabled)
 			{
-				for (FChildInfo Child : VirtualPivot->GetChildren())
-				{
-					const FTransform ChildTransform = Child.Transform;
-					const FVector X = ChildTransform.GetUnitAxis(EAxis::X);
-					const FVector Y = ChildTransform.GetUnitAxis(EAxis::Y);
-					const FVector Z = ChildTransform.GetUnitAxis(EAxis::Z);
-
-					FVector LocalRotationAxis;
-					switch (LockedAxis)
-					{
-					case EAxisLock::X: LocalRotationAxis = X;
-						break;
-					case EAxisLock::Y: LocalRotationAxis = Y;
-						break;
-					case EAxisLock::Z: LocalRotationAxis = Z;
-						break;
-
-					case EAxisLock::XY: LocalRotationAxis = Z;
-						break;
-					case EAxisLock::YZ: LocalRotationAxis = X;
-						break;
-					case EAxisLock::XZ: LocalRotationAxis = Y;
-						break;
-						
-					case EAxisLock::All: LocalRotationAxis = GrabContext.ViewForward;
-						break;
-					}
-					const FQuat TargetRot(LocalRotationAxis, DegreesToRotate);
-						
-					const FVector CurrentLocation = ChildTransform.GetLocation();
-					const FVector CurrentScale = ChildTransform.GetScale3D();
-					const FVector NewLocation = PivotPosition + TargetRot.RotateVector(CurrentLocation - PivotPosition);
-					const FQuat NewRotation = (TargetRot * ChildTransform.GetRotation()).GetNormalized();
-
-					NewTransform.SetScale3D(CurrentScale);
-					NewTransform.SetLocation(NewLocation);
-					NewTransform.SetRotation(NewRotation);
-					Child.Actor->SetActorTransform(NewTransform);
-				}
+				const float SnapAngleDeg = GEditor->GetRotGridSize().Yaw;
+				const float TotalAngleDeg = FMath::RadiansToDegrees(SignedAccum);
+				const float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
+				AngleToApplyRad = FMath::DegreesToRadians(SnappedAngleDeg);
 			}
-			else
-			{
-				NewTransform.SetRotation(ResultQuat);
-				VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
-			}
+    
+			VirtualPivot->Rotate(GrabContext, AngleToApplyRad, bUsingLocalSpace, LockedAxis);
 
 			LastDragVector = CurrentDragVector;
 		}
 	}
 
 
-	void FRotateTool::ApplyNumeric(float Value)
+	void FRotateTool::ApplyNumeric(const float Value)
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
+
+		const float DegreesToRotate = FMath::DegreesToRadians(Value);
+		VirtualPivot->Rotate(GrabContext, DegreesToRotate, bUsingLocalSpace, LockedAxis);
 	}
 
 	void FRotateTool::OnEnd(const bool bApply)

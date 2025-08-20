@@ -2,30 +2,12 @@
 
 #include "UObject/WeakObjectPtr.h"
 #include "BlenderEditorControlsEnums.h"
-#include "SharedPivot.h"
+#include "GrabContext.h"
 #include "ScopedTransaction.h"
 
 namespace BlenderControls
 {
-	struct FGrabContext
-	{
-		FVector2D StartMousePos;
-		FVector StartLocation;
-		FVector HelperAxisDir;
-		FVector HelperPlaneN;
-		FVector PlaneAxisU;
-		FVector PlaneAxisV;
-		FVector ViewForward;
-		float ScreenToWorldScale;
-
-		// Helper describing current dragging surface (view-plane, axis-line, dual plane)
-		enum class EHelperType
-		{
-			ViewPlane,
-			AxisLine,
-			AxisPlane
-		} HelperType;
-	};
+	class FSharedPivot;
 
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
 	{
