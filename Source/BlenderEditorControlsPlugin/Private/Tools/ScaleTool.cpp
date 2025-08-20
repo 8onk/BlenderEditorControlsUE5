@@ -4,7 +4,6 @@
 #include "Tools/SharedPivot.h"
 
 //NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
-//TODO snapping and precision mode now doesn't work, it did previously?
 
 namespace BlenderControls
 {
@@ -83,63 +82,58 @@ namespace BlenderControls
 			break;
 		}
 
-		for (FChildInfo Child : VirtualPivot->GetChildren())
+		FVector SnappedScaleMultiplier = FinalScaleMultiplier;
+		if (bSnappingEnabled)
 		{
-			const FTransform ActorInitialTransform = Child.Transform;
-			const FQuat ActorRotation = ActorInitialTransform.GetRotation();
-			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - VirtualPivot->GetLocation();
-			FTransform NewTransform = ActorInitialTransform;
-
-			FVector SnappedScaleMultiplier = FinalScaleMultiplier;
-			if (bSnappingEnabled)
-			{
-				const float SnappingIncrement = GEditor->GetScaleGridSize();
-				SnappedScaleMultiplier.X = FMath::GridSnap(FinalScaleMultiplier.X, SnappingIncrement);
-				SnappedScaleMultiplier.Y = FMath::GridSnap(FinalScaleMultiplier.Y, SnappingIncrement);
-				SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
-			}
-
-			FVector NewPosition, NewScale;
-			if (bUsingLocalSpace)
-			{
-				const FVector LocalPivotToActorVec = ActorRotation.UnrotateVector(PivotToActorVec);
-				const FVector ScaledLocalPivotToActorVec = LocalPivotToActorVec * SnappedScaleMultiplier;
-				const FVector GlobalPivotToActorVec = ActorRotation.RotateVector(ScaledLocalPivotToActorVec);
-				NewPosition = VirtualPivot->GetLocation() + GlobalPivotToActorVec;
-
-				NewScale = ActorInitialTransform.GetScale3D() * SnappedScaleMultiplier;
-			}
-			else
-			{
-				const FQuat InitialRotation = ActorInitialTransform.GetRotation();
-				const FMatrix RotationMatrix = FRotationMatrix(InitialRotation.Rotator());
-
-				const FMatrix GlobalScaleMatrix = FScaleMatrix(SnappedScaleMultiplier);
-
-				const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
-				const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
-
-				FVector LocalScaleToAddSigned = LocalScaleToAdd;
-				if (SnappedScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
-				if (SnappedScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
-				if (SnappedScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
-
-				NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
-
-				const FVector ScaledRelativePosition = PivotToActorVec * SnappedScaleMultiplier;
-				NewPosition = VirtualPivot->GetLocation() + ScaledRelativePosition;
-			}
-
-			NewTransform.SetLocation(NewPosition);
-			NewTransform.SetScale3D(NewScale);
-			
-			Child.Actor->SetActorTransform(NewTransform);
+			const float SnappingIncrement = GEditor->GetScaleGridSize();
+			SnappedScaleMultiplier.X = FMath::GridSnap(FinalScaleMultiplier.X, SnappingIncrement);
+			SnappedScaleMultiplier.Y = FMath::GridSnap(FinalScaleMultiplier.Y, SnappingIncrement);
+			SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
 		}
+
+		VirtualPivot->Scale(SnappedScaleMultiplier, bUsingLocalSpace);
 	}
 
 	void FScaleTool::ApplyNumeric(float Value)
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
+
+		FVector ScaleMultiplier = FVector::OneVector;
+		const float Slot1 = NumericInputSlots.X == 0 ? 1 : NumericInputSlots.X;
+		const float Slot2 = NumericInputSlots.Y == 0 ? 1 : NumericInputSlots.Y;
+		const float Slot3 = NumericInputSlots.Z == 0 ? 1 : NumericInputSlots.Z;
+
+		switch (LockedAxis)
+		{
+		case EAxisLock::All:
+			ScaleMultiplier = FVector(Slot1, Slot2, Slot3);
+			break;
+
+		case EAxisLock::X:
+			ScaleMultiplier.X = Slot1;
+			break;
+		case EAxisLock::Y:
+			ScaleMultiplier.Y = Slot1;
+			break;
+		case EAxisLock::Z:
+			ScaleMultiplier.Z = Slot1;
+			break;
+
+		case EAxisLock::XY:
+			ScaleMultiplier.X = Slot1;
+			ScaleMultiplier.Y = Slot2;
+			break;
+		case EAxisLock::XZ:
+			ScaleMultiplier.X = Slot1;
+			ScaleMultiplier.Z = Slot2;
+			break;
+		case EAxisLock::YZ:
+			ScaleMultiplier.Y = Slot1;
+			ScaleMultiplier.Z = Slot2;
+			break;
+		}
+
+		VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
 	}
 
 	void FScaleTool::OnEnd(const bool bApply)

@@ -163,7 +163,7 @@ namespace BlenderControls
 	{
 		const FVector PivotPosition = GetLocation();
 		const FVector RotationAxis = GC.HelperAxisDir;
-		
+
 		const FQuat TargetRotation = FQuat(RotationAxis, AngleToRotateRad);
 		FTransform StartTransform = StartPivotTransform;
 		FTransform NewTransform = StartTransform;
@@ -216,6 +216,53 @@ namespace BlenderControls
 		{
 			NewTransform.SetRotation(ResultQuat);
 			TransformProxy->SetTransform(NewTransform);
+		}
+	}
+
+	void FSharedPivot::Scale(FVector ScaleMultiplier, bool bUsingLocalSpace)
+	{
+		for (FChildInfo Child : Children)
+		{
+			const FTransform ActorInitialTransform = Child.Transform;
+			const FQuat ActorRotation = ActorInitialTransform.GetRotation();
+			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - GetLocation();
+			FTransform NewTransform = ActorInitialTransform;
+
+			FVector NewPosition, NewScale;
+			if (bUsingLocalSpace)
+			{
+				const FVector LocalPivotToActorVec = ActorRotation.UnrotateVector(PivotToActorVec);
+				const FVector ScaledLocalPivotToActorVec = LocalPivotToActorVec * ScaleMultiplier;
+				const FVector GlobalPivotToActorVec = ActorRotation.RotateVector(ScaledLocalPivotToActorVec);
+				NewPosition = GetLocation() + GlobalPivotToActorVec;
+
+				NewScale = ActorInitialTransform.GetScale3D() * ScaleMultiplier;
+			}
+			else
+			{
+				const FQuat InitialRotation = ActorInitialTransform.GetRotation();
+				const FMatrix RotationMatrix = FRotationMatrix(InitialRotation.Rotator());
+
+				const FMatrix GlobalScaleMatrix = FScaleMatrix(ScaleMultiplier);
+
+				const FMatrix LocalEquivalentMatrix = RotationMatrix.Inverse() * GlobalScaleMatrix * RotationMatrix;
+				const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
+
+				FVector LocalScaleToAddSigned = LocalScaleToAdd;
+				if (ScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
+				if (ScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
+				if (ScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
+
+				NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
+
+				const FVector ScaledRelativePosition = PivotToActorVec * ScaleMultiplier;
+				NewPosition = GetLocation() + ScaledRelativePosition;
+			}
+
+			NewTransform.SetLocation(NewPosition);
+			NewTransform.SetScale3D(NewScale);
+
+			Child.Actor->SetActorTransform(NewTransform);
 		}
 	}
 

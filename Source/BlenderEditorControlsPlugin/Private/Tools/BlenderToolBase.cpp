@@ -456,13 +456,24 @@ namespace BlenderControls
 
 	void FBlenderToolBase::CycleNumericInputSlot()
 	{
-		CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 3;
+		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::Z)
+		{
+			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 1;
+		}
+		else if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::YZ || LockedAxis == EAxisLock::XZ)
+		{
+			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 2;
+		}
+		else
+		{
+			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 3;
+		}
 	}
 
 	void FBlenderToolBase::UpdateNumericValue(const float Value)
 	{
 		UE_LOG(LogTemp, Display, TEXT("%f"), Value);
-		
+
 		switch (CurrentNumericSlotIndex)
 		{
 		case 0:

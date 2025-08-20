@@ -37,6 +37,7 @@ namespace BlenderControls
 		void Translate(const FVector& Delta, const bool bInUsingLocalSpace);
 		void Translate(bool bUsingLocalSpace, EAxisLock LockedAxis, const FVector& Delta);
 		void Rotate(FGrabContext GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis);
+		void Scale(FVector ScaleMultiplier, bool bUsingLocalSpace);
 
 	private:
 		void ComputePivotTransform(EPivotMode InPivotMode);
