@@ -62,7 +62,7 @@ namespace BlenderControls
 			const FQuat TargetRotation = FQuat(RotationAxis.GetSafeNormal(), RotationAngle);
 
 			FTransform NewTransform = StartPivotTransform;
-			FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
+			const FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
 			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
@@ -92,7 +92,7 @@ namespace BlenderControls
 				const float SnappedAngleDeg = FMath::GridSnap(TotalAngleDeg, SnapAngleDeg);
 				AngleToApplyRad = FMath::DegreesToRadians(SnappedAngleDeg);
 			}
-    
+
 			VirtualPivot->Rotate(GrabContext, AngleToApplyRad, bUsingLocalSpace, LockedAxis);
 
 			LastDragVector = CurrentDragVector;
@@ -104,8 +104,36 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
 
-		const float DegreesToRotate = FMath::DegreesToRadians(Value);
-		VirtualPivot->Rotate(GrabContext, DegreesToRotate, bUsingLocalSpace, LockedAxis);
+		if (bTrackballModeEnabled)
+		{
+			const float Slot1 = NumericInputSlots.X;
+			const float Slot2 = NumericInputSlots.Y;
+
+			const float AngleXRad = FMath::DegreesToRadians(Slot2);
+			const float AngleYRad = FMath::DegreesToRadians(Slot1);
+			
+			const FVector RotationAxis = (-ViewUp * AngleXRad) + (-ViewRight * AngleYRad);
+			const float RotationAngle = RotationAxis.Length();
+
+			// Check for zero rotation to avoid issues with GetSafeNormal()
+			if (FMath::IsNearlyZero(RotationAngle))
+			{
+				return;
+			}
+
+			const FQuat TargetRotation = FQuat(RotationAxis.GetSafeNormal(), RotationAngle);
+
+			FTransform NewTransform = StartPivotTransform;
+			const FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
+			NewTransform.SetRotation(FinalRotation);
+			NewTransform.NormalizeRotation();
+			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+		}
+		else
+		{
+			const float DegreesToRotate = FMath::DegreesToRadians(Value);
+			VirtualPivot->Rotate(GrabContext, DegreesToRotate, bUsingLocalSpace, LockedAxis);
+		}
 	}
 
 	void FRotateTool::OnEnd(const bool bApply)
