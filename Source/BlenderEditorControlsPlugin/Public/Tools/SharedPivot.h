@@ -39,6 +39,8 @@ namespace BlenderControls
 		void Rotate(FGrabContext GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis);
 		void Scale(FVector ScaleMultiplier, bool bUsingLocalSpace);
 
+		void RevertToStartState();
+
 	private:
 		void ComputePivotTransform(EPivotMode InPivotMode);
 		void ComputeMedianPivot();

@@ -1,4 +1,6 @@
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
+
+#include "Selection.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Tools/BlenderToolBase.h"
 #include "Tools/MoveTool.h"
@@ -12,6 +14,7 @@
 #include "Editor/UnrealEd/Classes/Settings/LevelEditorViewportSettings.h"
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
 #include "Misc/DefaultValueHelper.h"
+#include "Tools/SharedPivot.h"
 //TODO issue with mouse wrapping, sometimes the current mouse pos is stale due to race condition which makes delta incorrect. 
 
 class SLevelViewport;
@@ -131,7 +134,7 @@ namespace BlenderControls
 			if (PressedKey == EKeys::Tab)
 			{
 				CurrentTool->CycleNumericInputSlot();
-				NumericBuffer.Empty(); 
+				NumericBuffer.Empty();
 				return true;
 			}
 		}
@@ -211,7 +214,7 @@ namespace BlenderControls
 			{
 				CurrentTool->ApplyNumeric(ParsedValue);
 			}
-			
+
 			UE_LOG(LogTemp, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
 			return true;
 		}
@@ -304,24 +307,48 @@ namespace BlenderControls
 			return;
 		}
 
-		if (CurrentTool.IsValid())
+		if (!CurrentSession.IsValid())
 		{
-			return;
-			//CurrentTool.Reset();
+			// 1. Create the session object FIRST.
+			CurrentSession = MakeShared<FTransformSession>();
+			
+			if (FViewport* Viewport = GEditor->GetActiveViewport())
+			{
+				// Capture the mouse position relative to this viewport.
+				FIntPoint MousePosInt;
+				Viewport->GetMousePos(MousePosInt);
+				CurrentSession->StartMousePos = FVector2D(MousePosInt);
+			}
+
+			constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
+			CaptureSelection();
+			CurrentSession->VirtualPivot = MakeShared<FSharedPivot>(CurrentSession->SelectedActors, PivotMode);
+
+			CurrentSession->LockedAxis = EAxisLock::All;
+			CurrentSession->bUsingLocalSpace = false;
+			
+			CurrentSession->bIsNumericInputActive = false;
+			CurrentSession->NumericBuffer.Reset();
+			CurrentSession->NumericInputSlots = FVector::ZeroVector;
+		}
+		else
+		{
+			CurrentSession->VirtualPivot->RevertToStartState();
 		}
 
-		constexpr EAxisLock InitialAxis = EAxisLock::All;
+		// Use the session's axis lock as the initial axis for the new tool.
+		const EAxisLock InitialAxis = CurrentSession->LockedAxis;
 
 		switch (Mode)
 		{
 		case ETransformMode::Translate:
-			CurrentTool = MakeShared<FMoveTool>(InitialAxis);
+			CurrentTool = MakeShared<FMoveTool>(CurrentSession, InitialAxis);
 			break;
 		case ETransformMode::Rotate:
-			CurrentTool = MakeShared<FRotateTool>(InitialAxis);
+			CurrentTool = MakeShared<FRotateTool>(CurrentSession, InitialAxis);
 			break;
 		case ETransformMode::Scale:
-			CurrentTool = MakeShared<FScaleTool>(InitialAxis);
+			CurrentTool = MakeShared<FScaleTool>(CurrentSession, InitialAxis);
 			break;
 		case ETransformMode::None:
 			return;
@@ -330,19 +357,40 @@ namespace BlenderControls
 		}
 
 		ActiveMode = Mode;
-		bNumericInput = false;
-		NumericBuffer.Reset();
-		StartMousePos = FSlateApplication::Get().GetCursorPos();
 
+		CurrentTool->OnBegin();
+		
+		if (FViewport* Viewport = GEditor->GetActiveViewport())
+		{
+			FIntPoint MousePosInt;
+			Viewport->GetMousePos(MousePosInt);
+			const FVector2D CurrentMousePos(MousePosInt);
+
+			//Force an immediate visual update after tool creation
+			CurrentTool->OnActive(CurrentMousePos);
+		}
+		
 		// Tell overlay to start drawing guides for this tool (Axis lines in level)
 		// if (Overlay.IsValid())
 		// {
 		// 	Overlay->SetContext(CurrentTool);
 		// }
+	}
 
-		if (CurrentTool.IsValid())
+	void FBlenderControlsInputProcessor::CaptureSelection() const
+	{
+		CurrentSession->SelectedActors.Empty();
+
+		if (GEditor)
 		{
-			CurrentTool->OnBegin();
+			USelection* ActorSelection = GEditor->GetSelectedActors();
+			for (FSelectionIterator It(*ActorSelection); It; ++It)
+			{
+				if (AActor* Actor = Cast<AActor>(*It))
+				{
+					CurrentSession->SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
+				}
+			}
 		}
 	}
 
@@ -370,13 +418,13 @@ namespace BlenderControls
 		ActiveMode = ETransformMode::None;
 		bNumericInput = false;
 		NumericBuffer.Reset();
-		StartMousePos = FVector2D::ZeroVector;
 
 		// stop drawing
 		if (Overlay.IsValid())
 		{
 			Overlay->SetContext(nullptr);
 		}
+		CurrentSession.Reset();
 
 		// FSlateApplication::Get().GetPlatformCursor()->Show(true);
 	}

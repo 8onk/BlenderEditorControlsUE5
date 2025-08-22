@@ -7,8 +7,8 @@
 
 namespace BlenderControls
 {
-	FRotateTool::FRotateTool(EAxisLock InAxis)
-		: FBlenderToolBase(ETransformMode::Rotate, InAxis, TEXT("Rotate"))
+	FRotateTool::FRotateTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis)
+		: FBlenderToolBase(InSession, ETransformMode::Rotate, InAxis, TEXT("Rotate"))
 	{
 	}
 
@@ -201,6 +201,7 @@ namespace BlenderControls
 		{
 			LockedAxis = PreviousAxisLock;
 		}
+		Session->LockedAxis = LockedAxis;
 		bTrackballModeEnabled = bEnabled;
 		UpdateAxisLock();
 	}

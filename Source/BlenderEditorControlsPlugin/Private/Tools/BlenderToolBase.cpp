@@ -3,7 +3,6 @@
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
 #include "Components/LineBatchComponent.h"
-#include "Engine/Selection.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
 #include "Tools/SharedPivot.h"
@@ -12,8 +11,8 @@
 //Draw helper axis in orthographic. 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
-		: Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
+		: Session(InSession), Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
 
@@ -159,11 +158,9 @@ namespace BlenderControls
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
-
-		CaptureSelection();
-		constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
-		VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
-
+		
+		VirtualPivot = Session->VirtualPivot;
+		
 		// Start transaction for undo
 		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
 		for (auto Actor : SelectedActors)
@@ -190,11 +187,15 @@ namespace BlenderControls
 		{
 			return;
 		}
-
+		
 		FIntPoint MousePosInt;
 		Viewport->GetMousePos(MousePosInt);
-		const FVector2D MousePos = FVector2D(MousePosInt);
+		const FVector2D TestMousePos = FVector2D(MousePosInt);
 
+		UE_LOG(LogTemp, Log, TEXT("Test mouse pos X: %f, Y: %f"), TestMousePos.X, TestMousePos.Y);
+
+		const FVector2D MousePos = Session->StartMousePos;
+		UE_LOG(LogTemp, Log, TEXT("Session mouse pos X: %f, Y: %f"), MousePos.X, MousePos.Y);
 		FVector StartRayOrigin, StartRayDirection;
 		SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
 
@@ -242,10 +243,10 @@ namespace BlenderControls
 		MouseDelta = FVector2D::ZeroVector;
 		LastMousePosition = MousePos;
 		CurrentMousePosition = MousePos;
-		bPendingMouseWrap = false;
-		bIsAxisLockActive = false;
-		bUsingLocalSpace = false;
-		LockedAxis = EAxisLock::All;
+		//bPendingMouseWrap = false; Should this be reset here?
+		bIsAxisLockActive = Session->bIsAxisLockActive;
+		bUsingLocalSpace = Session->bUsingLocalSpace;
+		LockedAxis = Session->LockedAxis;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewForward;
@@ -298,6 +299,8 @@ namespace BlenderControls
 		// UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), VirtualMousePosition.X, VirtualMousePosition.Y);
 		//UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 		LastMousePosition = CurrentMousePosition;
+
+		UE_LOG(LogTemp, Log, TEXT("MouseDelta: X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 	}
 
 	void FBlenderToolBase::OnEnd(const bool bApply)
@@ -372,6 +375,9 @@ namespace BlenderControls
 		LockedAxis = NewAxis;
 		bIsAxisLockActive = true;
 		bUsingLocalSpace = bLocalSpaceDefault;
+
+		Session->LockedAxis = LockedAxis;
+		Session->bUsingLocalSpace = bLocalSpaceDefault;
 	}
 
 	void FBlenderToolBase::HandleAxisLock(const EAxisLock AxisPressed)
@@ -395,6 +401,10 @@ namespace BlenderControls
 				LockedAxis = EAxisLock::All;
 			}
 		}
+
+		Session->LockedAxis = LockedAxis;
+		Session->bUsingLocalSpace = bUsingLocalSpace;
+		Session->bIsAxisLockActive = bIsAxisLockActive;
 
 		UpdateAxisLock();
 	}
@@ -487,23 +497,6 @@ namespace BlenderControls
 			break;
 		default:
 			break;
-		}
-	}
-
-	void FBlenderToolBase::CaptureSelection()
-	{
-		SelectedActors.Empty();
-
-		if (GEditor)
-		{
-			USelection* ActorSelection = GEditor->GetSelectedActors();
-			for (FSelectionIterator It(*ActorSelection); It; ++It)
-			{
-				if (AActor* Actor = Cast<AActor>(*It))
-				{
-					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
-				}
-			}
 		}
 	}
 

@@ -4,6 +4,7 @@
 #include "BlenderEditorControlsEnums.h"
 #include "GrabContext.h"
 #include "ScopedTransaction.h"
+#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
 namespace BlenderControls
 {
@@ -12,7 +13,7 @@ namespace BlenderControls
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
 	{
 	public:
-		FBlenderToolBase(ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName);
+		FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName);
 		virtual ~FBlenderToolBase();
 
 		/** Per-frame update from input-processor */
@@ -51,7 +52,6 @@ namespace BlenderControls
 		void UpdateNumericValue(float Value);
 
 	private:
-		void CaptureSelection();
 		void RedrawAxisLines() const;
 
 		FLinearColor CachedSelectionColor;
@@ -87,9 +87,9 @@ namespace BlenderControls
 		FVector NumericInputSlots;
 		int32 CurrentNumericSlotIndex;
 
-		/* Transaction utilities */
 		TUniquePtr<FScopedTransaction> ParentTxn;
-
+		
+		TSharedPtr<FTransformSession> Session;
 		ETransformMode Mode;
 		EAxisLock LockedAxis;
 		FString DisplayName;

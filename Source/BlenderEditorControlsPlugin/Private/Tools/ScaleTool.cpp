@@ -7,8 +7,8 @@
 
 namespace BlenderControls
 {
-	FScaleTool::FScaleTool(EAxisLock InAxis)
-		: FBlenderToolBase(ETransformMode::Scale, InAxis, TEXT("Scale"))
+	FScaleTool::FScaleTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis)
+		: FBlenderToolBase(InSession, ETransformMode::Scale, InAxis, TEXT("Scale"))
 	{
 	}
 

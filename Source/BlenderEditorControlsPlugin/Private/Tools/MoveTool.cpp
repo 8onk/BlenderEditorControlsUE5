@@ -6,8 +6,8 @@
 
 namespace BlenderControls
 {
-	FMoveTool::FMoveTool(EAxisLock InAxis)
-		: FBlenderToolBase(ETransformMode::Translate, InAxis, TEXT("Move"))
+	FMoveTool::FMoveTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis)
+		: FBlenderToolBase(InSession, ETransformMode::Translate, InAxis, TEXT("Move"))
 	{
 	}
 

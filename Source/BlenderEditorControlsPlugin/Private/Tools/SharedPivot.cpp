@@ -266,6 +266,19 @@ namespace BlenderControls
 		}
 	}
 
+	void FSharedPivot::RevertToStartState()
+	{
+		for (const FChildInfo& Child : Children)
+		{
+			if (Child.Actor)
+			{
+				Child.Actor->SetActorTransform(Child.Transform);
+			}
+		}
+
+		TransformProxy->SetTransform(StartPivotTransform);
+	}
+
 	TArray<AActor*> FSharedPivot::GetSelectedActors() const
 	{
 		TArray<AActor*> Result;
@@ -286,7 +299,7 @@ namespace BlenderControls
 	{
 		if (IsValid(TransformProxy))
 		{
-			const FTransform CurrentTransform = TransformProxy->GetTransform();
+			const FTransform CurrentTransform = StartPivotTransform;
 			PivotTransform.SetLocation(NewPosition);
 			PivotTransform.SetRotation(CurrentTransform.GetRotation());
 			PivotTransform.SetScale3D(CurrentTransform.GetScale3D());
