@@ -11,7 +11,8 @@
 //Draw helper axis in orthographic. 
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis, const FString& InDisplayName)
+	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,
+	                                   const FString& InDisplayName)
 		: Session(InSession), Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
 	{
 	}
@@ -41,7 +42,35 @@ namespace BlenderControls
 	void FBlenderToolBase::RedrawAxisLines() const
 	{
 		FlushDrawnAxisLines();
-		if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::XZ || LockedAxis == EAxisLock::YZ)
+
+		if (bUsingLocalSpace)
+		{
+			for (const FChildInfo& Child : VirtualPivot->GetChildren())
+			{
+				if (!Child.Actor) continue;
+
+				if (LockedAxis == EAxisLock::XY)
+				{
+					DrawAxisLine(EAxisLock::X, &Child);
+					DrawAxisLine(EAxisLock::Y, &Child);
+				}
+				else if (LockedAxis == EAxisLock::XZ)
+				{
+					DrawAxisLine(EAxisLock::X, &Child);
+					DrawAxisLine(EAxisLock::Z, &Child);
+				}
+				else if (LockedAxis == EAxisLock::YZ)
+				{
+					DrawAxisLine(EAxisLock::Y, &Child);
+					DrawAxisLine(EAxisLock::Z, &Child);
+				}
+				else if (LockedAxis != EAxisLock::All)
+				{
+					DrawAxisLine(LockedAxis, &Child);
+				}
+			}
+		}
+		else
 		{
 			if (LockedAxis == EAxisLock::XY)
 			{
@@ -58,10 +87,10 @@ namespace BlenderControls
 				DrawAxisLine(EAxisLock::Y);
 				DrawAxisLine(EAxisLock::Z);
 			}
-		}
-		else if (LockedAxis != EAxisLock::All)
-		{
-			DrawAxisLine(LockedAxis);
+			else if (LockedAxis != EAxisLock::All)
+			{
+				DrawAxisLine(LockedAxis);
+			}
 		}
 	}
 
@@ -80,41 +109,41 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::DrawAxisLine(const EAxisLock InAxis) const
+	void FBlenderToolBase::DrawAxisLine(const EAxisLock InAxis, const FChildInfo* ChildInfo /*= nullptr*/) const
 	{
-		if (CachedBatcher.IsValid())
+		if (!CachedBatcher.IsValid()) return;
+
+		FVector Origin;
+		FVector AxisDir;
+
+		// Use the provided ChildInfo for local space drawing
+		if (ChildInfo && bUsingLocalSpace)
 		{
-			const FVector AxisDir = GetAxisVector(InAxis);
-			const FVector Origin = VirtualPivot->GetStartTransform().GetLocation();
-			constexpr float LineLength = 10000.f;
+			// Use the SAVED start transform from the FChildInfo struct
+			const FTransform& StartTransform = ChildInfo->Transform;
 
-			const FVector LineStart = Origin - AxisDir * LineLength;
-			const FVector LineEnd = Origin + AxisDir * LineLength;
-
-			constexpr float Lifetime = 0.f; // persistent
-			const FLinearColor Color = GetAxisColor(InAxis);
-
-			CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, 2.0f, Lifetime);
-			CachedBatcher->MarkRenderStateDirty();
+			Origin = StartTransform.GetLocation();
+			const FVector WorldAxis = (InAxis == EAxisLock::X)
+				                          ? FVector::XAxisVector
+				                          : (InAxis == EAxisLock::Y)
+				                          ? FVector::YAxisVector
+				                          : FVector::ZAxisVector;
+			AxisDir = StartTransform.TransformVectorNoScale(WorldAxis);
 		}
-	}
+		else
+		{
+			// GLOBAL: Fall back to the shared pivot's start transform
+			Origin = VirtualPivot->GetStartTransform().GetLocation();
+			AxisDir = GetAxisVector(InAxis);
+		}
 
-	float FBlenderToolBase::CalculateDynamicThickness(const FVector& Origin) const
-	{
-		return 0.f;
-		// if (!SceneView)
-		// {
-		// 	return FallbackLineThickness;
-		// }
-		//
-		// const FVector CameraLocation = SceneView->ViewLocation;
-		// const float Distance = FVector::Dist(CameraLocation, Origin);
-		//
-		// // Linear scaling: thickness grows with distance
-		// float Scaled = FallbackLineThickness * (Distance / ReferenceDistance);
-		//
-		// // Clamp to reasonable bounds
-		// return FMath::Clamp(Scaled, MinLineThickness, MaxLineThickness);
+		constexpr float LineLength = 10000.f;
+		const FVector LineStart = Origin - AxisDir.GetSafeNormal() * LineLength;
+		const FVector LineEnd = Origin + AxisDir.GetSafeNormal() * LineLength;
+
+		const FLinearColor Color = GetAxisColor(InAxis);
+		CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, 2.0f, 0.f);
+		CachedBatcher->MarkRenderStateDirty();
 	}
 
 	FVector FBlenderToolBase::GetAxisVector(const EAxisLock InAxis) const
@@ -158,9 +187,9 @@ namespace BlenderControls
 		{
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
-		
+
 		VirtualPivot = Session->VirtualPivot;
-		
+
 		// Start transaction for undo
 		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
 		for (auto Actor : SelectedActors)
@@ -187,7 +216,7 @@ namespace BlenderControls
 		{
 			return;
 		}
-		
+
 		FIntPoint MousePosInt;
 		Viewport->GetMousePos(MousePosInt);
 		const FVector2D TestMousePos = FVector2D(MousePosInt);

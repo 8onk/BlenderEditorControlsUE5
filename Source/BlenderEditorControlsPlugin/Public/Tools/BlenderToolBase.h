@@ -8,6 +8,7 @@
 
 namespace BlenderControls
 {
+	struct FChildInfo;
 	class FSharedPivot;
 
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
@@ -59,8 +60,7 @@ namespace BlenderControls
 
 		void StartNewLock(EAxisLock NewAxis);
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
-		void DrawAxisLine(const EAxisLock InAxis) const;
-		float CalculateDynamicThickness(const FVector& Origin) const;
+		void DrawAxisLine(const EAxisLock InAxis, const FChildInfo* ChildInfo = nullptr) const;
 
 		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
 		float FallbackLineThickness = 2.0f;

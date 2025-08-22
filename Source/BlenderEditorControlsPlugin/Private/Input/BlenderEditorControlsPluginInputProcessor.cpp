@@ -302,7 +302,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BeginTool(const ETransformMode Mode)
 	{
-		if (GEditor->GetSelectedActorCount() == 0)
+		if (GEditor->GetSelectedActorCount() == 0 || Mode == ActiveMode)
 		{
 			return;
 		}
