@@ -64,6 +64,8 @@ namespace BlenderControls
 		void RotatePressed() { BeginTool(ETransformMode::Rotate); }
 		void ScalePressed() { BeginTool(ETransformMode::Scale); }
 
+		void DuplicateAndMovePressed();
+
 		TSharedPtr<FTransformSession> CurrentSession;
 		bool bActive = true;
 		bool bNumericInput = false;

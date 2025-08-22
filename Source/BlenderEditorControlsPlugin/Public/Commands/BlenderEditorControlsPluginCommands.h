@@ -24,5 +24,7 @@ namespace BlenderControls
 
         TSharedPtr<FUICommandInfo> CommandAccept;
         TSharedPtr<FUICommandInfo> CommandCancel;
+
+        TSharedPtr<FUICommandInfo> CommandDuplicateAndMove;
     };
 } // namespace BlenderControls

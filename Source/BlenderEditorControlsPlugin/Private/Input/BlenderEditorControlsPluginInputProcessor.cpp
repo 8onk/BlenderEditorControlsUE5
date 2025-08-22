@@ -51,6 +51,11 @@ namespace BlenderControls
 			Commands.CommandScale,
 			FExecuteAction::CreateSP(SharedThis(this), &FBlenderControlsInputProcessor::ScalePressed),
 			FCanExecuteAction());
+
+		CommandList->MapAction(
+			Commands.CommandDuplicateAndMove,
+			FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::DuplicateAndMovePressed),
+			FCanExecuteAction());
 	}
 
 	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
@@ -600,5 +605,28 @@ namespace BlenderControls
 		}
 
 		return false;
+	}
+
+	void FBlenderControlsInputProcessor::DuplicateAndMovePressed()
+	{
+		if (CurrentTool.IsValid() || GEditor->GetSelectedActorCount() == 0)
+		{
+			return;
+		}
+
+		const FScopedTransaction Transaction(FText::FromString(TEXT("Duplicate and Move Actors")));
+
+		USelection* SelectedActorsSet = GEditor->GetSelectedActors();
+		TArray<AActor*> ActorsToDuplicate;
+		SelectedActorsSet->GetSelectedObjects<AActor>(ActorsToDuplicate);
+
+		if (ActorsToDuplicate.Num() > 0)
+		{
+			ULevel* Level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
+			constexpr bool bOffsetLocations = false;
+			GEditor->edactDuplicateSelected(Level, bOffsetLocations);
+		}
+		
+		BeginTool(ETransformMode::Translate);
 	}
 } // namespace BlenderControls
