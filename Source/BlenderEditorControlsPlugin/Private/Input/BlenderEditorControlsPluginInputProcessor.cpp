@@ -190,6 +190,7 @@ namespace BlenderControls
 				}
 
 				bNumericInput = true;
+				CurrentSession->bIsNumericInputActive = true;
 				CurrentTool->BeginNumericInput();
 			}
 
@@ -215,6 +216,7 @@ namespace BlenderControls
 				CurrentTool->ApplyNumeric(ParsedValue);
 			}
 
+			CurrentSession->NumericBuffer = NumericBuffer;
 			UE_LOG(LogTemp, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
 			return true;
 		}
@@ -309,12 +311,10 @@ namespace BlenderControls
 
 		if (!CurrentSession.IsValid())
 		{
-			// 1. Create the session object FIRST.
 			CurrentSession = MakeShared<FTransformSession>();
-			
+
 			if (FViewport* Viewport = GEditor->GetActiveViewport())
 			{
-				// Capture the mouse position relative to this viewport.
 				FIntPoint MousePosInt;
 				Viewport->GetMousePos(MousePosInt);
 				CurrentSession->StartMousePos = FVector2D(MousePosInt);
@@ -326,7 +326,7 @@ namespace BlenderControls
 
 			CurrentSession->LockedAxis = EAxisLock::All;
 			CurrentSession->bUsingLocalSpace = false;
-			
+
 			CurrentSession->bIsNumericInputActive = false;
 			CurrentSession->NumericBuffer.Reset();
 			CurrentSession->NumericInputSlots = FVector::ZeroVector;
@@ -357,9 +357,8 @@ namespace BlenderControls
 		}
 
 		ActiveMode = Mode;
-
 		CurrentTool->OnBegin();
-		
+
 		if (FViewport* Viewport = GEditor->GetActiveViewport())
 		{
 			FIntPoint MousePosInt;
@@ -369,12 +368,21 @@ namespace BlenderControls
 			//Force an immediate visual update after tool creation
 			CurrentTool->OnActive(CurrentMousePos);
 		}
-		
-		// Tell overlay to start drawing guides for this tool (Axis lines in level)
-		// if (Overlay.IsValid())
-		// {
-		// 	Overlay->SetContext(CurrentTool);
-		// }
+
+		if (CurrentSession->bIsNumericInputActive)
+		{
+			// Restore the state in the Input Processor
+			bNumericInput = true;
+			NumericBuffer = CurrentSession->NumericBuffer;
+
+			CurrentTool->BeginNumericInput();
+
+			float ParsedValue;
+			if (FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue))
+			{
+				CurrentTool->ApplyNumeric(ParsedValue);
+			}
+		}
 	}
 
 	void FBlenderControlsInputProcessor::CaptureSelection() const

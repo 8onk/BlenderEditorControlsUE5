@@ -480,6 +480,7 @@ namespace BlenderControls
 	void FBlenderToolBase::ApplyNumeric(float Value)
 	{
 		UpdateNumericValue(Value);
+		UE_LOG(LogTemp, Log, TEXT("APPLYING NUMMERIC!"));
 	}
 
 	void FBlenderToolBase::NotifyMouseWrap()
@@ -489,8 +490,8 @@ namespace BlenderControls
 
 	void FBlenderToolBase::BeginNumericInput()
 	{
-		NumericInputSlots = FVector::ZeroVector;
-		CurrentNumericSlotIndex = 0;
+		NumericInputSlots = Session->NumericInputSlots;
+		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
 	}
 
 	void FBlenderToolBase::CycleNumericInputSlot()
@@ -507,6 +508,8 @@ namespace BlenderControls
 		{
 			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 3;
 		}
+
+		Session->CurrentNumericSlotIndex = CurrentNumericSlotIndex;
 	}
 
 	void FBlenderToolBase::UpdateNumericValue(const float Value)
@@ -527,6 +530,8 @@ namespace BlenderControls
 		default:
 			break;
 		}
+
+		Session->NumericInputSlots = NumericInputSlots;
 	}
 
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
