@@ -6,8 +6,10 @@
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
 #include "Tools/SharedPivot.h"
+#include "UI/TransformHUD.h"
 
 //TODO: make GetSnapOffset abstract
+//Holding control should immediately snap even without moving mouse?
 //Draw helper axis in orthographic. 
 namespace BlenderControls
 {
@@ -27,6 +29,7 @@ namespace BlenderControls
 		RedrawAxisLines();
 
 		// Refresh
+		UpdateHud();
 		OnActive(CurrentViewportMousePos);
 	}
 
@@ -219,12 +222,7 @@ namespace BlenderControls
 
 		FIntPoint MousePosInt;
 		Viewport->GetMousePos(MousePosInt);
-		const FVector2D TestMousePos = FVector2D(MousePosInt);
-
-		UE_LOG(LogTemp, Log, TEXT("Test mouse pos X: %f, Y: %f"), TestMousePos.X, TestMousePos.Y);
-
 		const FVector2D MousePos = Session->StartMousePos;
-		UE_LOG(LogTemp, Log, TEXT("Session mouse pos X: %f, Y: %f"), MousePos.X, MousePos.Y);
 		FVector StartRayOrigin, StartRayDirection;
 		SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
 
@@ -276,6 +274,7 @@ namespace BlenderControls
 		bIsAxisLockActive = Session->bIsAxisLockActive;
 		bUsingLocalSpace = Session->bUsingLocalSpace;
 		LockedAxis = Session->LockedAxis;
+		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewForward;
@@ -297,6 +296,10 @@ namespace BlenderControls
 
 		VirtualMousePosition = CurrentMousePosition;
 		SetGrabContextAxisLock(LockedAxis);
+
+		HudWidget = SNew(STransformHUD);
+		HudWidget->Attach();
+		UpdateHud();
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -329,7 +332,8 @@ namespace BlenderControls
 		//UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 		LastMousePosition = CurrentMousePosition;
 
-		UE_LOG(LogTemp, Log, TEXT("MouseDelta: X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
+		UpdateHud();
+		//UE_LOG(LogTemp, Log, TEXT("MouseDelta: X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 	}
 
 	void FBlenderToolBase::OnEnd(const bool bApply)
@@ -366,6 +370,7 @@ namespace BlenderControls
 		ViewportClient->SetWidgetMode(InitialWidgetMode);
 		constexpr bool bShowWidget = true;
 		ViewportClient->ShowWidget(bShowWidget);
+		HudWidget->Detach();
 		ViewportClient->Invalidate();
 
 		FlushDrawnAxisLines();
@@ -480,7 +485,6 @@ namespace BlenderControls
 	void FBlenderToolBase::ApplyNumeric(float Value)
 	{
 		UpdateNumericValue(Value);
-		UE_LOG(LogTemp, Log, TEXT("APPLYING NUMMERIC!"));
 	}
 
 	void FBlenderToolBase::NotifyMouseWrap()
@@ -490,7 +494,11 @@ namespace BlenderControls
 
 	void FBlenderToolBase::BeginNumericInput()
 	{
-		NumericInputSlots = Session->NumericInputSlots;
+		for (int i = 0; i < 3; ++i)
+		{
+			NumericInputSlots[i] = Session->NumericInputSlots[i];
+		}
+
 		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
 	}
 
@@ -510,28 +518,18 @@ namespace BlenderControls
 		}
 
 		Session->CurrentNumericSlotIndex = CurrentNumericSlotIndex;
+		UpdateHud();
 	}
 
 	void FBlenderToolBase::UpdateNumericValue(const float Value)
 	{
-		UE_LOG(LogTemp, Display, TEXT("%f"), Value);
-
-		switch (CurrentNumericSlotIndex)
+		if (Value == 0.0f && NumericInputSlots[CurrentNumericSlotIndex].IsSet())
 		{
-		case 0:
-			NumericInputSlots.X = Value;
-			break;
-		case 1:
-			NumericInputSlots.Y = Value;
-			break;
-		case 2:
-			NumericInputSlots.Z = Value;
-			break;
-		default:
-			break;
+			return;
 		}
 
-		Session->NumericInputSlots = NumericInputSlots;
+		NumericInputSlots[CurrentNumericSlotIndex] = Value;
+		Session->NumericInputSlots[CurrentNumericSlotIndex] = NumericInputSlots[CurrentNumericSlotIndex];
 	}
 
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)

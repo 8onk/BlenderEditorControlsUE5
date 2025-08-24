@@ -13,6 +13,7 @@ namespace BlenderControls
         /* FBlenderToolBase */
         virtual void OnActive(const FVector2D &CurrentViewportMousePosition) override;
         virtual void ApplyNumeric(float Value) override;
+        virtual void UpdateHud() override;
 
         virtual void OnBegin() override;
         virtual void OnEnd(bool bApply) override;

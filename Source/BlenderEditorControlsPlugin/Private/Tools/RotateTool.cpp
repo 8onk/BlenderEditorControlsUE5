@@ -66,6 +66,7 @@ namespace BlenderControls
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
 			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+			UpdateHud();
 		}
 		else
 		{
@@ -94,6 +95,7 @@ namespace BlenderControls
 			}
 
 			VirtualPivot->Rotate(GrabContext, AngleToApplyRad, bUsingLocalSpace, LockedAxis);
+			UpdateHud();
 
 			LastDragVector = CurrentDragVector;
 		}
@@ -106,8 +108,8 @@ namespace BlenderControls
 
 		if (bTrackballModeEnabled)
 		{
-			const float Slot1 = NumericInputSlots.X;
-			const float Slot2 = NumericInputSlots.Y;
+			const float Slot1 = NumericInputSlots[0].GetValue();
+			const float Slot2 = NumericInputSlots[1].GetValue();
 
 			const float AngleXRad = FMath::DegreesToRadians(Slot2);
 			const float AngleYRad = FMath::DegreesToRadians(Slot1);
@@ -128,12 +130,33 @@ namespace BlenderControls
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
 			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+			UpdateHud();
 		}
 		else
 		{
 			const float DegreesToRotate = FMath::DegreesToRadians(Value);
 			VirtualPivot->Rotate(GrabContext, DegreesToRotate, bUsingLocalSpace, LockedAxis);
+			UpdateHud();
 		}
+	}
+
+	void FRotateTool::UpdateHud()
+	{
+		// if (!VirtualPivot)
+		// {
+		// 	HudString = TEXT("No selection");
+		// 	return;
+		// }
+		//
+		// const FQuat CurrentRotation = VirtualPivot->GetActiveElement().Transform.GetRotation();
+		// const FQuat StartRotation = VirtualPivot->GetStartTransform().GetRotation();
+		// const FQuat DeltaRotation = CurrentRotation * StartRotation.Inverse();
+		//
+		// FVector EulerAngles = DeltaRotation.Euler();
+		//
+		// // Format the HUD string with rotation angles
+		// HudString = FString::Printf(TEXT("Rx: %.1f°   Ry: %.1f°   Rz: %.1f°"), 
+		// 	EulerAngles.X, EulerAngles.Y, EulerAngles.Z);
 	}
 
 	void FRotateTool::OnEnd(const bool bApply)

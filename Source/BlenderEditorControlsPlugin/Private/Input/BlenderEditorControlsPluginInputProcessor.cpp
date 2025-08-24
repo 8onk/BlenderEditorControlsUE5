@@ -123,13 +123,11 @@ namespace BlenderControls
 		{
 			if (PressedKey == EKeys::BackSpace || PressedKey == EKeys::Delete)
 			{
-				float ParsedValue = 0.0f;
-
+				double ParsedValue = 0.0f;
 				if (!NumericBuffer.IsEmpty())
 				{
 					NumericBuffer.LeftChopInline(1);
-
-					FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue);
+					FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue);
 				}
 
 				CurrentTool->ApplyNumeric(ParsedValue);
@@ -177,8 +175,8 @@ namespace BlenderControls
 
 			if (bNumericInput)
 			{
-				float ParsedValue = 0.0f;
-				FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue);
+				double ParsedValue = 0.0f;
+				FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue);
 				CurrentTool->ApplyNumeric(ParsedValue);
 			}
 
@@ -215,8 +213,8 @@ namespace BlenderControls
 				NumericBuffer.AppendChar(C);
 			}
 
-			float ParsedValue;
-			if (FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue))
+			double ParsedValue;
+			if (FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue))
 			{
 				CurrentTool->ApplyNumeric(ParsedValue);
 			}
@@ -334,7 +332,8 @@ namespace BlenderControls
 
 			CurrentSession->bIsNumericInputActive = false;
 			CurrentSession->NumericBuffer.Reset();
-			CurrentSession->NumericInputSlots = FVector::ZeroVector;
+			CurrentSession->CurrentNumericSlotIndex = 0;
+			CurrentSession->NumericInputSlots->Reset();
 		}
 		else
 		{
@@ -382,8 +381,8 @@ namespace BlenderControls
 
 			CurrentTool->BeginNumericInput();
 
-			float ParsedValue;
-			if (FDefaultValueHelper::ParseFloat(NumericBuffer, ParsedValue))
+			double ParsedValue;
+			if (FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue))
 			{
 				CurrentTool->ApplyNumeric(ParsedValue);
 			}

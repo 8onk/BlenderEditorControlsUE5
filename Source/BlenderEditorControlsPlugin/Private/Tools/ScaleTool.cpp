@@ -3,7 +3,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Tools/SharedPivot.h"
 
-//NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
+// NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
 
 namespace BlenderControls
 {
@@ -30,7 +30,7 @@ namespace BlenderControls
 		ViewportClient->Invalidate();
 	}
 
-	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)
+	void FScaleTool::OnActive(const FVector2D &CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
@@ -92,48 +92,67 @@ namespace BlenderControls
 		}
 
 		VirtualPivot->Scale(SnappedScaleMultiplier, bUsingLocalSpace);
+		UpdateHud();
 	}
 
 	void FScaleTool::ApplyNumeric(float Value)
 	{
-		FBlenderToolBase::ApplyNumeric(Value);
+		// FBlenderToolBase::ApplyNumeric(Value);
+		//
+		// FVector ScaleMultiplier = FVector::OneVector;
+		// const float Slot1 = NumericInputSlots.X == 0 ? 1 : NumericInputSlots.X;
+		// const float Slot2 = NumericInputSlots.Y == 0 ? 1 : NumericInputSlots.Y;
+		// const float Slot3 = NumericInputSlots.Z == 0 ? 1 : NumericInputSlots.Z;
+		//
+		// switch (LockedAxis)
+		// {
+		// case EAxisLock::All:
+		// 	ScaleMultiplier = FVector(Slot1, Slot2, Slot3);
+		// 	break;
+		//
+		// case EAxisLock::X:
+		// 	ScaleMultiplier.X = Slot1;
+		// 	break;
+		// case EAxisLock::Y:
+		// 	ScaleMultiplier.Y = Slot1;
+		// 	break;
+		// case EAxisLock::Z:
+		// 	ScaleMultiplier.Z = Slot1;
+		// 	break;
+		//
+		// case EAxisLock::XY:
+		// 	ScaleMultiplier.X = Slot1;
+		// 	ScaleMultiplier.Y = Slot2;
+		// 	break;
+		// case EAxisLock::XZ:
+		// 	ScaleMultiplier.X = Slot1;
+		// 	ScaleMultiplier.Z = Slot2;
+		// 	break;
+		// case EAxisLock::YZ:
+		// 	ScaleMultiplier.Y = Slot1;
+		// 	ScaleMultiplier.Z = Slot2;
+		// 	break;
+		// }
+		//
+		// VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
+		// UpdateHud();
+	}
 
-		FVector ScaleMultiplier = FVector::OneVector;
-		const float Slot1 = NumericInputSlots.X == 0 ? 1 : NumericInputSlots.X;
-		const float Slot2 = NumericInputSlots.Y == 0 ? 1 : NumericInputSlots.Y;
-		const float Slot3 = NumericInputSlots.Z == 0 ? 1 : NumericInputSlots.Z;
-
-		switch (LockedAxis)
-		{
-		case EAxisLock::All:
-			ScaleMultiplier = FVector(Slot1, Slot2, Slot3);
-			break;
-
-		case EAxisLock::X:
-			ScaleMultiplier.X = Slot1;
-			break;
-		case EAxisLock::Y:
-			ScaleMultiplier.Y = Slot1;
-			break;
-		case EAxisLock::Z:
-			ScaleMultiplier.Z = Slot1;
-			break;
-
-		case EAxisLock::XY:
-			ScaleMultiplier.X = Slot1;
-			ScaleMultiplier.Y = Slot2;
-			break;
-		case EAxisLock::XZ:
-			ScaleMultiplier.X = Slot1;
-			ScaleMultiplier.Z = Slot2;
-			break;
-		case EAxisLock::YZ:
-			ScaleMultiplier.Y = Slot1;
-			ScaleMultiplier.Z = Slot2;
-			break;
-		}
-
-		VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
+	void FScaleTool::UpdateHud()
+	{
+		// if (!VirtualPivot)
+		// {
+		// 	HudString = TEXT("No selection");
+		// 	return;
+		// }
+		//
+		// const FVector CurrentScale = VirtualPivot->GetActiveElement().Transform.GetScale3D();
+		// const FVector StartScale = VirtualPivot->GetStartTransform().GetScale3D();
+		// const FVector ScaleMultiplier = CurrentScale / StartScale;
+		//
+		// // Format the HUD string with scale values
+		// HudString = FString::Printf(TEXT("Sx: %.3f   Sy: %.3f   Sz: %.3f"),
+		// 							ScaleMultiplier.X, ScaleMultiplier.Y, ScaleMultiplier.Z);
 	}
 
 	void FScaleTool::OnEnd(const bool bApply)
@@ -150,21 +169,28 @@ namespace BlenderControls
 
 		switch (AxisLock)
 		{
-		case EAxisLock::X: GrabContext.HelperAxisDir = X;
+		case EAxisLock::X:
+			GrabContext.HelperAxisDir = X;
 			break;
-		case EAxisLock::Y: GrabContext.HelperAxisDir = Y;
+		case EAxisLock::Y:
+			GrabContext.HelperAxisDir = Y;
 			break;
-		case EAxisLock::Z: GrabContext.HelperAxisDir = Z;
-			break;
-
-		case EAxisLock::XY: GrabContext.HelperAxisDir = Z;
-			break;
-		case EAxisLock::YZ: GrabContext.HelperAxisDir = X;
-			break;
-		case EAxisLock::XZ: GrabContext.HelperAxisDir = Y;
+		case EAxisLock::Z:
+			GrabContext.HelperAxisDir = Z;
 			break;
 
-		case EAxisLock::All: GrabContext.HelperAxisDir = GrabContext.ViewForward;
+		case EAxisLock::XY:
+			GrabContext.HelperAxisDir = Z;
+			break;
+		case EAxisLock::YZ:
+			GrabContext.HelperAxisDir = X;
+			break;
+		case EAxisLock::XZ:
+			GrabContext.HelperAxisDir = Y;
+			break;
+
+		case EAxisLock::All:
+			GrabContext.HelperAxisDir = GrabContext.ViewForward;
 			break;
 		}
 	}

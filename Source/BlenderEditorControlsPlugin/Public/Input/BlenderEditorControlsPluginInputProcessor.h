@@ -18,11 +18,27 @@ namespace BlenderControls
 
 		bool bUsingLocalSpace = false;
 		bool bIsAxisLockActive = false;
-		
+
 		FString NumericBuffer;
-		FVector NumericInputSlots = FVector::ZeroVector;
+		TOptional<double> NumericInputSlots[3];
 		int32 CurrentNumericSlotIndex = 0;
 		bool bIsNumericInputActive = false;
+	};
+
+	struct FNumericSlotData
+	{
+		TOptional<double> BaseValue;
+		TOptional<double> AdditiveValue;
+
+		double GetTotal() const
+		{
+			return AdditiveValue.Get(0.0f) + BaseValue.Get(0.0f);
+		}
+
+		bool IsAdditiveMode() const
+		{
+			return AdditiveValue.IsSet();
+		}
 	};
 
 	class FBlenderControlsInputProcessor : public IInputProcessor,
