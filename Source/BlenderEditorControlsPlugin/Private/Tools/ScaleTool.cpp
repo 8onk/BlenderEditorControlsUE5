@@ -95,7 +95,7 @@ namespace BlenderControls
 		UpdateHud();
 	}
 
-	void FScaleTool::ApplyNumeric(float Value)
+	void FScaleTool::ApplyNumeric(double Value)
 	{
 		// FBlenderToolBase::ApplyNumeric(Value);
 		//

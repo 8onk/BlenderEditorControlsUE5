@@ -1,10 +1,14 @@
 #include "Tools/BlenderToolBase.h"
+
+#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
+
 #include "Editor.h"
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
 #include "Components/LineBatchComponent.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "DrawDebugHelpers.h"
+#include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 
@@ -162,7 +166,8 @@ namespace BlenderControls
 
 		if (bUsingLocalSpace)
 		{
-			AxisVector = VirtualPivot->GetStartTransform().TransformVectorNoScale(AxisVector);
+			//AxisVector = VirtualPivot->GetStartTransform().TransformVectorNoScale(AxisVector);
+			AxisVector = VirtualPivot->GetActiveElement().Transform.TransformVectorNoScale(AxisVector);
 		}
 		return AxisVector.GetSafeNormal();
 	}
@@ -304,12 +309,12 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		CurrentViewportMousePos = CurrentViewportMousePosition;
 		if (!Viewport || !ViewportClient || !VirtualPivot)
 		{
 			return;
 		}
 
+		CurrentViewportMousePos = CurrentViewportMousePosition;
 		const FIntPoint CurrentMousePosInt = FIntPoint(CurrentViewportMousePosition.X,
 		                                               CurrentViewportMousePosition.Y);
 		CurrentMousePosition = FVector2D(CurrentMousePosInt);
@@ -482,7 +487,7 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::ApplyNumeric(float Value)
+	void FBlenderToolBase::ApplyNumeric(double Value)
 	{
 		UpdateNumericValue(Value);
 	}
@@ -492,11 +497,11 @@ namespace BlenderControls
 		bPendingMouseWrap = true;
 	}
 
-	void FBlenderToolBase::BeginNumericInput()
+	void FBlenderToolBase::BeginNumericMode()
 	{
 		for (int i = 0; i < 3; ++i)
 		{
-			NumericInputSlots[i] = Session->NumericInputSlots[i];
+			NumericSlots[i] = Session->NumericSlots[i];
 		}
 
 		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
@@ -504,6 +509,15 @@ namespace BlenderControls
 
 	void FBlenderToolBase::CycleNumericInputSlot()
 	{
+		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		if (Slot.LiveValue.IsSet())
+		{
+			Slot.CommittedValue = Slot.GetTotal();
+			Slot.LiveValue.Reset();
+		}
+
+		Session->NumericSlots[CurrentNumericSlotIndex] = NumericSlots[CurrentNumericSlotIndex];
+
 		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::Z)
 		{
 			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 1;
@@ -521,15 +535,97 @@ namespace BlenderControls
 		UpdateHud();
 	}
 
-	void FBlenderToolBase::UpdateNumericValue(const float Value)
+	void FBlenderToolBase::UpdateNumericValue(const double Value)
 	{
-		if (Value == 0.0f && NumericInputSlots[CurrentNumericSlotIndex].IsSet())
+		NumericSlots[CurrentNumericSlotIndex].LiveValue = Value;
+
+		Session->NumericSlots[CurrentNumericSlotIndex] = NumericSlots[CurrentNumericSlotIndex];
+	}
+
+	void FBlenderToolBase::ExitNumericMode()
+	{
+		if (!Session.IsValid())
 		{
 			return;
 		}
 
-		NumericInputSlots[CurrentNumericSlotIndex] = Value;
-		Session->NumericInputSlots[CurrentNumericSlotIndex] = NumericInputSlots[CurrentNumericSlotIndex];
+		Session->bIsNumericInputActive = false;
+		Session->NumericBuffer.Empty();
+		Session->CurrentNumericSlotIndex = 0;
+		for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+		{
+			Session->NumericSlots[i] = FNumericSlotData();
+		}
+
+		CurrentNumericSlotIndex = 0;
+		for (int i = 0; i < UE_ARRAY_COUNT(NumericSlots); ++i)
+		{
+			NumericSlots[i] = FNumericSlotData();
+		}
+
+		//UpdateHud();
+		OnActive(CurrentViewportMousePos);
+	}
+
+	bool FBlenderToolBase::SubtractFromCommittedValue()
+	{
+		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+
+		double CurrentValue = Slot.CommittedValue.Get(0.0);
+
+		if (FMath::IsNearlyZero(CurrentValue))
+		{
+			return true;
+		}
+
+		FString ValueString = FString::SanitizeFloat(CurrentValue);
+
+		UE_LOG(LogHAL, Log, TEXT("value string before %s"), *ValueString);
+
+		if (ValueString.EndsWith(TEXT(".0")))
+		{
+			ValueString.LeftChopInline(3);
+		}
+		else
+		{
+			ValueString.LeftChopInline(1);
+		}
+
+		if (ValueString.EndsWith(TEXT(".")))
+		{
+			ValueString.LeftChopInline(1);
+		}
+
+		UE_LOG(LogHAL, Log, TEXT("value string: %s"), *ValueString);
+
+		// 4. Convert the modified string back to a double.
+		double NewValue = 0.0;
+		// An empty string (from "5") or a lone "-" (from "-5") will correctly result in NewValue being 0.
+		if (!ValueString.IsEmpty() && !ValueString.Equals(TEXT("-")))
+		{
+			FDefaultValueHelper::ParseDouble(ValueString, NewValue);
+		}
+
+		// 5. Update the slot with the new value.
+		Slot.CommittedValue = NewValue;
+		UE_LOG(LogHAL, Log, TEXT("NewValue: %f"), NewValue);
+		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+
+		// Trigger a HUD update to show the change immediately.
+		UpdateHud();
+
+		// We don't exit yet; we've just changed the value.
+		return false;
+	}
+
+	void FBlenderToolBase::ClearLiveNumericValue()
+	{
+		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+
+		Slot.LiveValue.Reset();
+
+		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		UpdateHud();
 	}
 
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)

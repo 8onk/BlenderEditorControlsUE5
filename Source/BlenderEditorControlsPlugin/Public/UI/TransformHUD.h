@@ -4,42 +4,45 @@
 
 class SLevelViewport;
 
-class STransformHUD : public SCompoundWidget
+namespace BlenderControls
 {
-public:
-	SLATE_BEGIN_ARGS(STransformHUD)
+	struct FNumericSlotData;
+
+	class STransformHUD : public SCompoundWidget
+	{
+	public:
+		SLATE_BEGIN_ARGS(STransformHUD)
 		{
 		}
 
-	SLATE_END_ARGS()
+		SLATE_END_ARGS()
 
-	void Construct(const FArguments&);
+		void Construct(const FArguments&);
 
-	void SetReadout(const FText& In);
-	void SetNumericEcho(const FString& In);
+		void SetReadout(const FText& In);
+		void SetNumericEcho(const FString& In);
 
-	void Attach();
-	void Update(const FText& Readout, const FString& NumericEcho = TEXT(""));
-	void Detach();
+		void Attach();
+		void Update(const FText& Readout, const FString& NumericEcho = TEXT(""));
+		void Detach();
 
-	FString FormatOneField(
-		const TCHAR* Label,
-		const TOptional<double>& ValueOpt,
-		bool bNumericMode,
-		int SlotBeingModified,
-		int32 ValueIndex,
-		const TCHAR* Unit);
+		FString FormatOneField(
+			const FString& Label,
+			const FNumericSlotData& SlotData,
+			bool bIsSlotBeingEdited,
+			const FString& Unit);
 
-	FString FormatMagnitude(float Magnitude, const TCHAR* Unit);
+		FString FormatMagnitude(float Magnitude, const TCHAR* Unit);
 
-	static FString ToTrimmed3(float InValue);
+		static FString ToTrimmed3(double InValue);
 
-private:
-	TSharedPtr<class STextBlock> ReadoutText;
-	TSharedPtr<class STextBlock> NumericText;
+	private:
+		TSharedPtr<class STextBlock> ReadoutText;
+		TSharedPtr<class STextBlock> NumericText;
 
-	TWeakPtr<SLevelViewport> AttachedViewport;
-	TSharedPtr<SWidget> OverlayWrapper;
+		TWeakPtr<SLevelViewport> AttachedViewport;
+		TSharedPtr<SWidget> OverlayWrapper;
 
-	TSharedPtr<SLevelViewport> GetActiveLevelViewportWidget();
-};
+		TSharedPtr<SLevelViewport> GetActiveLevelViewportWidget();
+	};
+}

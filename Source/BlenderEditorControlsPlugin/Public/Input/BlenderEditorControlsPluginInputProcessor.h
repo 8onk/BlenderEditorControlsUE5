@@ -9,6 +9,22 @@ namespace BlenderControls
 {
 	class FSharedPivot;
 
+	struct FNumericSlotData
+	{
+		TOptional<double> CommittedValue;
+		TOptional<double> LiveValue;
+
+		double GetTotal() const
+		{
+			return LiveValue.Get(0.0f) + CommittedValue.Get(0.0f);
+		}
+
+		bool IsAdditiveMode() const
+		{
+			return CommittedValue.IsSet() && LiveValue.IsSet();
+		}
+	};
+
 	struct FTransformSession
 	{
 		TSharedPtr<FSharedPivot> VirtualPivot;
@@ -20,25 +36,9 @@ namespace BlenderControls
 		bool bIsAxisLockActive = false;
 
 		FString NumericBuffer;
-		TOptional<double> NumericInputSlots[3];
+		FNumericSlotData NumericSlots[3];
 		int32 CurrentNumericSlotIndex = 0;
 		bool bIsNumericInputActive = false;
-	};
-
-	struct FNumericSlotData
-	{
-		TOptional<double> BaseValue;
-		TOptional<double> AdditiveValue;
-
-		double GetTotal() const
-		{
-			return AdditiveValue.Get(0.0f) + BaseValue.Get(0.0f);
-		}
-
-		bool IsAdditiveMode() const
-		{
-			return AdditiveValue.IsSet();
-		}
 	};
 
 	class FBlenderControlsInputProcessor : public IInputProcessor,

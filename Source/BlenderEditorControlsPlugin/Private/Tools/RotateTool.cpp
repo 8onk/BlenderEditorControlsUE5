@@ -102,14 +102,14 @@ namespace BlenderControls
 	}
 
 
-	void FRotateTool::ApplyNumeric(const float Value)
+	void FRotateTool::ApplyNumeric(const double Value)
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
 
 		if (bTrackballModeEnabled)
 		{
-			const float Slot1 = NumericInputSlots[0].GetValue();
-			const float Slot2 = NumericInputSlots[1].GetValue();
+			const float Slot1 = NumericSlots[0].CommittedValue.Get(0.0f);
+			const float Slot2 = NumericSlots[1].CommittedValue.Get(0.0f);
 
 			const float AngleXRad = FMath::DegreesToRadians(Slot2);
 			const float AngleYRad = FMath::DegreesToRadians(Slot1);

@@ -6,10 +6,9 @@
 #include "ScopedTransaction.h"
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
-class STransformHUD;
-
 namespace BlenderControls
 {
+	class STransformHUD;
 	struct FChildInfo;
 	class FSharedPivot;
 
@@ -26,7 +25,7 @@ namespace BlenderControls
 		virtual void Cancel();
 
 		/** Numeric entry apply */
-		virtual void ApplyNumeric(float Value);
+		virtual void ApplyNumeric(double Value);
 
 		/** Set HUD string - must be implemented by inheriting classes */
 		virtual void UpdateHud() = 0;
@@ -53,9 +52,12 @@ namespace BlenderControls
 		void AddMouseDelta(const FVector2D NewDelta) { MouseDelta += NewDelta; }
 		void NotifyMouseWrap();
 
-		void BeginNumericInput();
+		void BeginNumericMode();
 		void CycleNumericInputSlot();
-		void UpdateNumericValue(float Value);
+		void UpdateNumericValue(double Value);
+		void ExitNumericMode();
+		bool SubtractFromCommittedValue();
+		void ClearLiveNumericValue();
 
 	private:
 		void RedrawAxisLines() const;
@@ -90,7 +92,7 @@ namespace BlenderControls
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
 
-		TOptional<double> NumericInputSlots[3];
+		FNumericSlotData NumericSlots[3];
 		int32 CurrentNumericSlotIndex;
 
 		FString HudString;

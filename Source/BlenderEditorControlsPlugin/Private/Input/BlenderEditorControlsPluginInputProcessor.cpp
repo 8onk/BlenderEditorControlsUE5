@@ -111,7 +111,6 @@ namespace BlenderControls
 
 		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
 		const FKey RotateKey = Commands.CommandRotate->GetActiveChord(EMultipleKeyBindingIndex::Primary)->Key;
-		// UE_LOG(LogBlenderEditorControls, Log, TEXT("Primary key bound to Rotate: %s"), *RotateKey.ToString());
 
 		if (PressedKey == RotateKey && ActiveMode == ETransformMode::Rotate)
 		{
@@ -121,16 +120,36 @@ namespace BlenderControls
 
 		if (bNumericInput)
 		{
-			if (PressedKey == EKeys::BackSpace || PressedKey == EKeys::Delete)
+			if (PressedKey == EKeys::BackSpace)
 			{
-				double ParsedValue = 0.0f;
+				double ParsedValue = 0.0;
 				if (!NumericBuffer.IsEmpty())
 				{
 					NumericBuffer.LeftChopInline(1);
-					FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue);
+					if (NumericBuffer.IsEmpty())
+					{
+						CurrentTool->ClearLiveNumericValue();
+					}
+					else
+					{
+						FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue);
+						CurrentTool->UpdateNumericValue(ParsedValue);
+					}
+				}
+				else
+				{
+					const bool bShouldExit = CurrentTool->SubtractFromCommittedValue();
+
+					if (bShouldExit)
+					{
+						bNumericInput = false;
+						CurrentTool->ExitNumericMode();
+						return true;
+					}
 				}
 
 				CurrentTool->ApplyNumeric(ParsedValue);
+				UE_LOG(LogTemp, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
 				return true;
 			}
 
@@ -194,7 +213,7 @@ namespace BlenderControls
 
 				bNumericInput = true;
 				CurrentSession->bIsNumericInputActive = true;
-				CurrentTool->BeginNumericInput();
+				CurrentTool->BeginNumericMode();
 			}
 
 			if (C == '-')
@@ -333,7 +352,11 @@ namespace BlenderControls
 			CurrentSession->bIsNumericInputActive = false;
 			CurrentSession->NumericBuffer.Reset();
 			CurrentSession->CurrentNumericSlotIndex = 0;
-			CurrentSession->NumericInputSlots->Reset();
+
+			for (int i = 0; i < UE_ARRAY_COUNT(CurrentSession->NumericSlots); ++i)
+			{
+				CurrentSession->NumericSlots[i] = FNumericSlotData();
+			}
 		}
 		else
 		{
@@ -379,7 +402,7 @@ namespace BlenderControls
 			bNumericInput = true;
 			NumericBuffer = CurrentSession->NumericBuffer;
 
-			CurrentTool->BeginNumericInput();
+			CurrentTool->BeginNumericMode();
 
 			double ParsedValue;
 			if (FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue))
@@ -625,7 +648,7 @@ namespace BlenderControls
 			constexpr bool bOffsetLocations = false;
 			GEditor->edactDuplicateSelected(Level, bOffsetLocations);
 		}
-		
+
 		BeginTool(ETransformMode::Translate);
 	}
 } // namespace BlenderControls

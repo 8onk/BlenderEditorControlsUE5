@@ -100,17 +100,16 @@ namespace BlenderControls
 		}
 
 		VirtualPivot->Translate(bUsingLocalSpace, LockedAxis, LiveDelta);
-		UpdateHud();
 	}
 
-	void FMoveTool::ApplyNumeric(float Value)
+	void FMoveTool::ApplyNumeric(double Value)
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
 
 		FVector Delta = FVector::ZeroVector;
-		const float Slot1 = NumericInputSlots[0].Get(0.0f);
-		const float Slot2 = NumericInputSlots[1].Get(0.0f);
-		const float Slot3 = NumericInputSlots[2].Get(0.0f);
+		const double Slot1 = NumericSlots[0].GetTotal();
+		const double Slot2 = NumericSlots[1].GetTotal();
+		const double Slot3 = NumericSlots[2].GetTotal();
 
 		switch (LockedAxis)
 		{
@@ -167,7 +166,9 @@ namespace BlenderControls
 		// Helper to choose between live value and numeric input
 		auto Opt = [&](EValueSlot Slot, double LiveValue) -> TOptional<double>
 		{
-			return bNumeric ? NumericInputSlots[static_cast<int32>(Slot)] : TOptional<double>(LiveValue);
+			return bNumeric
+				       ? TOptional<double>(NumericSlots[static_cast<int32>(Slot)].GetTotal())
+				       : TOptional<double>(LiveValue);
 		};
 
 		struct FHudFieldData
@@ -188,7 +189,6 @@ namespace BlenderControls
 			HudFields.Add({TEXT("Dy"), LiveDeltaCM.Y, EValueSlot::Y});
 			HudFields.Add({TEXT("Dz"), LiveDeltaCM.Z, EValueSlot::Z});
 			SignedMag = LiveDeltaCM.Size();
-			UE_LOG(LogHAL, Log, TEXT("Current numeric slot index: %d"), CurrentNumericSlotIndex);
 			break;
 
 		case EAxisLock::X:
@@ -260,14 +260,23 @@ namespace BlenderControls
 		for (const FHudFieldData& FieldData : HudFields)
 		{
 			const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
-			const TOptional<double> ValueOpt = Opt(FieldData.SlotIndex, FieldData.LiveValue);
+    
+			FNumericSlotData DataToFormat;
+			if (bNumeric)
+			{
+				DataToFormat = Session->NumericSlots[SlotIndexInt];
+			}
+			else
+			{
+				DataToFormat.CommittedValue = FieldData.LiveValue;
+			}
+    
+			const bool bIsSlotActive = bNumeric && (SlotIndexInt == CurrentNumericSlotIndex);
 
 			FormattedFields.Add(HudWidget->FormatOneField(
-				*FieldData.Label,
-				ValueOpt.IsSet() ? ValueOpt.GetValue() : TOptional<double>(),
-				bNumeric,
-				CurrentNumericSlotIndex,
-				SlotIndexInt,
+				FieldData.Label,
+				DataToFormat, 
+				bIsSlotActive, 
 				Unit
 			));
 		}
