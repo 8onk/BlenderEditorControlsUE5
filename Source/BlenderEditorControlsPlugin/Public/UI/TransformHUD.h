@@ -29,8 +29,8 @@ namespace BlenderControls
 		FString FormatOneField(
 			const FString& Label,
 			const FNumericSlotData& SlotData,
-			bool bIsSlotBeingEdited,
-			const FString& Unit);
+			const FString& Unit,
+			bool bIsActiveSlot);
 
 		FString FormatMagnitude(float Magnitude, const TCHAR* Unit);
 

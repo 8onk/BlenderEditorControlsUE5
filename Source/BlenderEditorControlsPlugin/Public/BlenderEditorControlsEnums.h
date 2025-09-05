@@ -19,6 +19,15 @@ namespace BlenderControls
 		Mouse,
 	};
 
+	enum class ESlotState
+	{
+		Pristine,
+		FirstEdit,
+		Committed,
+		Additive,
+		InvalidInput
+	};
+
 	enum class EAxisLock : uint8
 	{
 		X = 1 << 0,

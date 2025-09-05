@@ -132,9 +132,6 @@ namespace BlenderControls
 
 	void FSharedPivot::Translate(const bool bUsingLocalSpace, const EAxisLock LockedAxis, const FVector& Delta)
 	{
-		UE_LOG(LogHAL, Log, TEXT("VIRTUAL PIVOT: TRANSLATE CALLED"));
-		UE_LOG(LogHAL, Log, TEXT("DELTA: %f %f %f"), Delta.X, Delta.Y, Delta.Z);
-		
 		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
 		{
 			const FQuat ActiveObjectStartRotation = GetActiveElement().Transform.GetRotation();
@@ -154,12 +151,9 @@ namespace BlenderControls
 					Child.Actor->SetActorLocation(WorldOffset);
 				}
 			}
-
-			UE_LOG(LogHAL, Log, TEXT("running if "));
 		}
 		else
 		{
-			UE_LOG(LogHAL, Log, TEXT("running else "));
 			const FVector NewPos = GetStartTransform().GetLocation() + Delta;
 			SetPosition(NewPos);
 		}

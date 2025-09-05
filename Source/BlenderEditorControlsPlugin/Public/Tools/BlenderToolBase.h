@@ -15,11 +15,12 @@ namespace BlenderControls
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
 	{
 	public:
-		FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis, const FString &InDisplayName);
+		FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,
+		                 const FString& InDisplayName);
 		virtual ~FBlenderToolBase();
 
 		/** Per-frame update from input-processor */
-		virtual void OnActive(const FVector2D &CurrentViewportMousePosition) = 0;
+		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;
 
 		virtual void Accept();
 		virtual void Cancel();
@@ -31,14 +32,18 @@ namespace BlenderControls
 		virtual void UpdateHud() = 0;
 
 		// Getter for DisplayName
-		const FString &GetDisplayName() const { return DisplayName; }
+		const FString& GetDisplayName() const { return DisplayName; }
 
 		virtual void OnBegin();
 		virtual void OnEnd(bool bApply);
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
-		void SetViewportMousePosition(FVector2D InViewportMousePosition) { CurrentViewportMousePos = InViewportMousePosition; }
+
+		void SetViewportMousePosition(FVector2D InViewportMousePosition)
+		{
+			CurrentViewportMousePos = InViewportMousePosition;
+		}
 
 		virtual void SetTrackballRotationMode(const bool bEnabled);
 		virtual bool GetTrackballRotationMode();
@@ -56,8 +61,11 @@ namespace BlenderControls
 		void CycleNumericInputSlot();
 		void UpdateNumericValue(double Value);
 		void ExitNumericMode();
-		bool SubtractFromCommittedValue();
 		void ClearLiveNumericValue();
+		void UpdateActiveNumericSlot(TCHAR Character);
+		void HandleBackspace();
+		void ToggleNegation();
+		void ToggleReciprocal();
 
 	private:
 		void RedrawAxisLines() const;
@@ -67,7 +75,7 @@ namespace BlenderControls
 
 		void StartNewLock(EAxisLock NewAxis);
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
-		void DrawAxisLine(const EAxisLock InAxis, const FChildInfo *ChildInfo = nullptr) const;
+		void DrawAxisLine(const EAxisLock InAxis, const FChildInfo* ChildInfo = nullptr) const;
 
 		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
 		float FallbackLineThickness = 2.0f;
@@ -83,7 +91,10 @@ namespace BlenderControls
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock);
+		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const;
 		void UpdateAxisLock();
+		bool IsInputInvalid(const FString& Input) const;
+
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
 		FVector2D VirtualMousePosition;
@@ -93,6 +104,7 @@ namespace BlenderControls
 		float CachedNonTrackballRotationAngle = 0.0f;
 
 		FNumericSlotData NumericSlots[3];
+		int32 FirstEditedSlotIndex = -1;
 		int32 CurrentNumericSlotIndex;
 
 		FString HudString;
@@ -104,15 +116,15 @@ namespace BlenderControls
 		EAxisLock LockedAxis;
 		FString DisplayName;
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
-		FViewport *Viewport = nullptr;
+		FViewport* Viewport = nullptr;
 		TSharedPtr<FSharedPivot> VirtualPivot;
-		FSceneView *SceneView = nullptr;
+		FSceneView* SceneView = nullptr;
 		float PrecisionFactor = 0.1f;
 		float CurrentPrecisionFactor = 1.0f;
 		bool bPrecisionModeActive = false;
 		bool bWasPrecisionModeActive = false;
 		bool bSnappingEnabled = false;
-		FLevelEditorViewportClient *ViewportClient = nullptr;
+		FLevelEditorViewportClient* ViewportClient = nullptr;
 		bool bIsAxisLockActive = false;
 		bool bUsingLocalSpace = false;
 		bool bLocalSpaceDefault;

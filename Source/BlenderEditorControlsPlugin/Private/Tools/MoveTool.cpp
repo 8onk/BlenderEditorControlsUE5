@@ -21,6 +21,18 @@ namespace BlenderControls
 		ViewportClient->Invalidate();
 	}
 
+	FString FMoveTool::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
+	{
+		if (Slot.CommittedValue.IsSet())
+		{
+			static const TCHAR* Unit = TEXT("cm");
+			const FString ValueString = FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
+
+			return FString::Printf(TEXT("%s %s"), *ValueString, Unit);
+		}
+		return FString();
+	}
+
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
@@ -260,24 +272,28 @@ namespace BlenderControls
 		for (const FHudFieldData& FieldData : HudFields)
 		{
 			const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
-    
 			FNumericSlotData DataToFormat;
+
 			if (bNumeric)
 			{
+				// CORRECT: Just get the authoritative data from the session/tool.
 				DataToFormat = Session->NumericSlots[SlotIndexInt];
 			}
 			else
 			{
+				// SIMPLIFIED: When not in numeric mode, display the live mouse value.
+				// We create a temporary struct for formatting, but we use a simple state.
+				DataToFormat.SlotState = ESlotState::Committed; // Just display as a simple value
 				DataToFormat.CommittedValue = FieldData.LiveValue;
 			}
-    
-			const bool bIsSlotActive = bNumeric && (SlotIndexInt == CurrentNumericSlotIndex);
+
+			const bool bIsActive = bNumeric && (SlotIndexInt == Session->CurrentNumericSlotIndex);
 
 			FormattedFields.Add(HudWidget->FormatOneField(
 				FieldData.Label,
-				DataToFormat, 
-				bIsSlotActive, 
-				Unit
+				DataToFormat,
+				Unit,
+				bIsActive
 			));
 		}
 
@@ -287,8 +303,16 @@ namespace BlenderControls
 		HudString = FString::Printf(TEXT("%s%s %s"), *FieldsString, *MagString, *Suffix).TrimEnd();
 
 		HudWidget->Update(FText::FromString(HudString));
-	}
 
+		if (bNumeric)
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				Session->NumericSlots[i].Print();
+				UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
+			}
+		}
+	}
 
 	void FMoveTool::OnEnd(bool bApply)
 	{

@@ -11,17 +11,71 @@ namespace BlenderControls
 
 	struct FNumericSlotData
 	{
+		ESlotState SlotState = ESlotState::Pristine;
 		TOptional<double> CommittedValue;
 		TOptional<double> LiveValue;
+		bool bIsNegated = false;
+		bool bIsReciprocal = false;
+		FString Display = "";
 
 		double GetTotal() const
 		{
-			return LiveValue.Get(0.0f) + CommittedValue.Get(0.0f);
+			if (SlotState == ESlotState::InvalidInput)
+			{
+				return 0.0;
+			}
+
+			double Total = CommittedValue.Get(0.0) + LiveValue.Get(0.0);
+
+			if (bIsReciprocal)
+			{
+				if (!FMath::IsNearlyZero(Total))
+				{
+					Total = 1.0 / Total;
+				}
+				else
+				{
+					Total = 0.0;
+				}
+			}
+
+			// Apply negation
+			if (bIsNegated)
+			{
+				Total *= -1.0;
+			}
+
+			return Total;
 		}
 
-		bool IsAdditiveMode() const
+		// Convert SlotState to string
+		static const TCHAR* SlotStateToString(ESlotState State)
 		{
-			return CommittedValue.IsSet() && LiveValue.IsSet();
+			switch (State)
+			{
+			case ESlotState::Pristine: return TEXT("Pristine");
+			case ESlotState::FirstEdit: return TEXT("FirstEdit");
+			case ESlotState::Committed: return TEXT("Committed");
+			case ESlotState::Additive: return TEXT("Additive");
+			case ESlotState::InvalidInput: return TEXT("InvalidInput");
+			default: return TEXT("Unknown");
+			}
+		}
+
+		// Debug print
+		void Print() const
+		{
+			const FString CommittedStr = CommittedValue.IsSet()
+				                             ? FString::SanitizeFloat(*CommittedValue)
+				                             : TEXT("None");
+			const FString LiveStr = LiveValue.IsSet() ? FString::SanitizeFloat(*LiveValue) : TEXT("None");
+
+			UE_LOG(LogTemp, Log, TEXT("FNumericSlotData { State=%s, Committed=%s, Live=%s, Display=\"%s\", Total=%f }"),
+			       SlotStateToString(SlotState),
+			       *CommittedStr,
+			       *LiveStr,
+			       *Display,
+			       GetTotal());
 		}
 	};
 

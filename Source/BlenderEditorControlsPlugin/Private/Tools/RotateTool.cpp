@@ -142,19 +142,20 @@ namespace BlenderControls
 
 	void FRotateTool::UpdateHud()
 	{
-		// if (!VirtualPivot)
-		// {
-		// 	HudString = TEXT("No selection");
-		// 	return;
-		// }
-		//
-		// const FQuat CurrentRotation = VirtualPivot->GetActiveElement().Transform.GetRotation();
-		// const FQuat StartRotation = VirtualPivot->GetStartTransform().GetRotation();
-		// const FQuat DeltaRotation = CurrentRotation * StartRotation.Inverse();
-		//
-		// FVector EulerAngles = DeltaRotation.Euler();
-		//
-		// // Format the HUD string with rotation angles
+		if (!VirtualPivot)
+		{
+			HudString = TEXT("No selection");
+			return;
+		}
+		
+		const FQuat CurrentRotation = VirtualPivot->GetActiveElement().Transform.GetRotation();
+		const FQuat StartRotation = VirtualPivot->GetStartTransform().GetRotation();
+		const FQuat DeltaRotation = CurrentRotation * StartRotation.Inverse();
+		
+		FVector EulerAngles = DeltaRotation.Euler();
+		HudString = "Hello world!";
+		
+		// Format the HUD string with rotation angles
 		// HudString = FString::Printf(TEXT("Rx: %.1f°   Ry: %.1f°   Rz: %.1f°"), 
 		// 	EulerAngles.X, EulerAngles.Y, EulerAngles.Z);
 	}

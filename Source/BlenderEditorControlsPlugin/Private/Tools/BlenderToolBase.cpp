@@ -497,6 +497,24 @@ namespace BlenderControls
 		bPendingMouseWrap = true;
 	}
 
+	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
+	{
+		return FVector::ZeroVector;
+	}
+
+	void FBlenderToolBase::SetGrabContextAxisLock(EAxisLock AxisLock)
+	{
+	}
+
+	FString FBlenderToolBase::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
+	{
+		if (Slot.CommittedValue.IsSet())
+		{
+			return FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
+		}
+		return FString();
+	}
+
 	void FBlenderToolBase::BeginNumericMode()
 	{
 		for (int i = 0; i < 3; ++i)
@@ -504,16 +522,21 @@ namespace BlenderControls
 			NumericSlots[i] = Session->NumericSlots[i];
 		}
 
+		Session->bIsNumericInputActive = true;
 		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
 	}
 
 	void FBlenderToolBase::CycleNumericInputSlot()
 	{
-		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
-		if (Slot.LiveValue.IsSet())
+		FNumericSlotData& CurrentSlot = NumericSlots[CurrentNumericSlotIndex];
+		const double LiveValue = FCString::Atod(*CurrentSlot.Display);
+		if (!CurrentSlot.Display.IsEmpty())
 		{
-			Slot.CommittedValue = Slot.GetTotal();
-			Slot.LiveValue.Reset();
+			const double BaseValue = CurrentSlot.CommittedValue.Get(0.0);
+			CurrentSlot.CommittedValue = BaseValue + LiveValue;
+
+			CurrentSlot.SlotState = ESlotState::Committed;
+			CurrentSlot.Display.Empty();
 		}
 
 		Session->NumericSlots[CurrentNumericSlotIndex] = NumericSlots[CurrentNumericSlotIndex];
@@ -537,9 +560,9 @@ namespace BlenderControls
 
 	void FBlenderToolBase::UpdateNumericValue(const double Value)
 	{
-		NumericSlots[CurrentNumericSlotIndex].LiveValue = Value;
-
-		Session->NumericSlots[CurrentNumericSlotIndex] = NumericSlots[CurrentNumericSlotIndex];
+		// NumericSlots[CurrentNumericSlotIndex].LiveValue = Value;
+		//
+		// Session->NumericSlots[CurrentNumericSlotIndex] = NumericSlots[CurrentNumericSlotIndex];
 	}
 
 	void FBlenderToolBase::ExitNumericMode()
@@ -563,59 +586,9 @@ namespace BlenderControls
 			NumericSlots[i] = FNumericSlotData();
 		}
 
-		//UpdateHud();
 		OnActive(CurrentViewportMousePos);
-	}
-
-	bool FBlenderToolBase::SubtractFromCommittedValue()
-	{
-		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
-
-		double CurrentValue = Slot.CommittedValue.Get(0.0);
-
-		if (FMath::IsNearlyZero(CurrentValue))
-		{
-			return true;
-		}
-
-		FString ValueString = FString::SanitizeFloat(CurrentValue);
-
-		UE_LOG(LogHAL, Log, TEXT("value string before %s"), *ValueString);
-
-		if (ValueString.EndsWith(TEXT(".0")))
-		{
-			ValueString.LeftChopInline(3);
-		}
-		else
-		{
-			ValueString.LeftChopInline(1);
-		}
-
-		if (ValueString.EndsWith(TEXT(".")))
-		{
-			ValueString.LeftChopInline(1);
-		}
-
-		UE_LOG(LogHAL, Log, TEXT("value string: %s"), *ValueString);
-
-		// 4. Convert the modified string back to a double.
-		double NewValue = 0.0;
-		// An empty string (from "5") or a lone "-" (from "-5") will correctly result in NewValue being 0.
-		if (!ValueString.IsEmpty() && !ValueString.Equals(TEXT("-")))
-		{
-			FDefaultValueHelper::ParseDouble(ValueString, NewValue);
-		}
-
-		// 5. Update the slot with the new value.
-		Slot.CommittedValue = NewValue;
-		UE_LOG(LogHAL, Log, TEXT("NewValue: %f"), NewValue);
-		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
-
-		// Trigger a HUD update to show the change immediately.
 		UpdateHud();
-
-		// We don't exit yet; we've just changed the value.
-		return false;
+		UE_LOG(LogHAL, Log, TEXT("Exit numeric mode!"));
 	}
 
 	void FBlenderToolBase::ClearLiveNumericValue()
@@ -628,12 +601,100 @@ namespace BlenderControls
 		UpdateHud();
 	}
 
-	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
+	void FBlenderToolBase::UpdateActiveNumericSlot(const TCHAR Character)
 	{
-		return FVector::ZeroVector;
+		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+
+		switch (Slot.SlotState)
+		{
+		case ESlotState::Pristine:
+			Slot.SlotState = ESlotState::FirstEdit;
+			FirstEditedSlotIndex = CurrentNumericSlotIndex;
+			break;
+		case ESlotState::Committed:
+			Slot.SlotState = ESlotState::Additive;
+			break;
+		default:
+			break;
+		}
+
+		Slot.Display.AppendChar(Character);
+		double CurrentLiveValue = 0.0;
+		FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue);
+		Slot.LiveValue = CurrentLiveValue;
+		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		ApplyNumeric(0.0);
+		UpdateHud();
 	}
 
-	void FBlenderToolBase::SetGrabContextAxisLock(EAxisLock AxisLock)
+	void FBlenderToolBase::HandleBackspace()
 	{
+		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+
+		if (!Slot.Display.IsEmpty())
+		{
+			Slot.Display.RemoveAt(Slot.Display.Len() - 1);
+		}
+		else
+		{
+			switch (Slot.SlotState)
+			{
+			case ESlotState::FirstEdit:
+				{
+					bool bOtherSlotsHaveValues = false;
+					for (int32 i = 0; i < 3; ++i)
+					{
+						if (i == CurrentNumericSlotIndex) continue;
+
+						if (NumericSlots[i].SlotState != ESlotState::Pristine)
+						{
+							bOtherSlotsHaveValues = true;
+							break;
+						}
+					}
+
+					if (bOtherSlotsHaveValues)
+					{
+						Slot.SlotState = ESlotState::Pristine;
+					}
+					else
+					{
+						ExitNumericMode();
+						return;
+					}
+					break;
+				}
+
+			case ESlotState::Pristine:
+				ExitNumericMode();
+				return;
+
+			case ESlotState::Additive:
+				Slot.SlotState = ESlotState::Committed;
+				break;
+
+			case ESlotState::Committed:
+				if (const FString DisplayString = GetFormattedValueForEditing(Slot); !DisplayString.IsEmpty())
+				{
+					Slot.Display = DisplayString;
+					Slot.Display.LeftChopInline(1);
+					Slot.CommittedValue.Reset();
+					Slot.SlotState = ESlotState::FirstEdit;
+				}
+				break;
+			}
+		}
+
+		// This final block updates the state and transform after the logic above runs.
+		double CurrentLiveValue = 0.0;
+		if (!Slot.Display.IsEmpty() && !Slot.Display.Equals(TEXT("-")))
+		{
+			FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue);
+		}
+		Slot.LiveValue = CurrentLiveValue;
+
+		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+
+		ApplyNumeric(0.0);
 	}
 } // namespace BlenderControls

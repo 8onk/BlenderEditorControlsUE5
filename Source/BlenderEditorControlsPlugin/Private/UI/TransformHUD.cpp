@@ -151,55 +151,84 @@ namespace BlenderControls
 		AttachedViewport.Reset();
 	}
 
-	FString STransformHUD::FormatOneField(const FString& Label, const FNumericSlotData& SlotData,
-	                                      bool bIsSlotBeingEdited, const FString& Unit)
+	FString STransformHUD::FormatOneField(const FString& Label, const FNumericSlotData& SlotData, const FString& Unit,
+	                                      bool bIsActiveSlot)
 	{
-		// --- Case 1: This slot is currently being edited ---
-		if (bIsSlotBeingEdited)
+		FString ValueString; // This will hold the core value to be displayed.
+
+		// 1. CALCULATE STAGE: Determine the base value string, assuming the slot is NOT active.
+		// This switch has no knowledge of bIsActiveSlot.
+		switch (SlotData.SlotState)
 		{
-			// Subcase 1a: The user is in additive mode (e.g., typing "5" after "50")
-			if (SlotData.IsAdditiveMode())
+		case ESlotState::Pristine:
+			ValueString = TEXT("NONE");
+			break;
+
+		case ESlotState::Committed:
+			ValueString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit);
+			break;
+
+		case ESlotState::FirstEdit:
 			{
-				const float Base = SlotData.CommittedValue.Get(0.0f);
-				const float Additive = SlotData.LiveValue.Get(0.0f);
-				const float Total = SlotData.GetTotal();
-
-				FString AdditiveString;
-				FString Operator;
-
-				// Handle the negative formatting for the additive part
-				if (Additive < 0.0f)
-				{
-					Operator = TEXT("-");
-					AdditiveString = FString::Printf(TEXT("(%s%s)"), *ToTrimmed3(FMath::Abs(Additive)), *Unit);
-				}
-				else
-				{
-					Operator = TEXT("+");
-					AdditiveString = FString::Printf(TEXT("%s%s"), *ToTrimmed3(Additive), *Unit);
-				}
-
-				// This builds the string from your image: "Dx: [50cm + 5cm|] = 55cm"
-				return FString::Printf(TEXT("%s: [%s %s %s %s|] = %s %s"),
-				                       *Label,
-				                       *ToTrimmed3(Base), *Unit,
-				                       *Operator,
-				                       *AdditiveString,
-				                       *ToTrimmed3(Total), *Unit
-				);
+				const double LiveValue = FCString::Atod(*SlotData.Display);
+				ValueString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(LiveValue), *Unit);
 			}
-			// Subcase 1b: The user is typing a new value from scratch
-			else
-			{
-				const float Total = SlotData.GetTotal();
-				const FString Num = ToTrimmed3(Total);
+			break;
 
-				// This is your original active format: "Dx: [12.3|] = 12.3 cm"
-				return FString::Printf(TEXT("%s: [%s|] = %s%s"), *Label, *Num, *Num, *Unit);
+		case ESlotState::Additive:
+			{
+				const double Total = SlotData.CommittedValue.Get(0.0) + FCString::Atod(*SlotData.Display);
+				ValueString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(Total), *Unit);
+			}
+			break;
+
+		case ESlotState::InvalidInput:
+			ValueString = TEXT("INVALID");
+			break;
+
+		default:
+			return TEXT("ERROR");
+		}
+
+		if (bIsActiveSlot)
+		{
+			// A second, smaller switch handles the specific "active" formatting.
+			switch (SlotData.SlotState)
+			{
+			case ESlotState::Pristine:
+				ValueString = TEXT("|NONE|");
+				break;
+
+			case ESlotState::Committed:
+				// For Committed, we show the value ready to be edited additively.
+				ValueString = FString::Printf(TEXT("[%s|] = %s"), *ValueString, *ValueString);
+				break;
+
+			case ESlotState::FirstEdit:
+				// Here, ValueString already holds the "= Result" part. We just prepend the input part.
+				ValueString = FString::Printf(TEXT("[%s|] = %s"), *SlotData.Display, *ValueString);
+				break;
+
+			case ESlotState::Additive:
+				// ValueString holds the total. We prepend the additive input format.
+				{
+					const FString CommittedString = FString::Printf(
+						TEXT("%s %s"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit);
+					ValueString = FString::Printf(TEXT("[%s %s|] = %s"), *CommittedString, *SlotData.Display,
+					                              *ValueString);
+				}
+				break;
+
+			case ESlotState::InvalidInput:
+				ValueString = FString::Printf(TEXT("[%s|] = INVALID"), *SlotData.Display);
+				break;
+
+				// Note: The 'Live' state has no special active formatting, so we don't need a case for it here.
 			}
 		}
 
-		return FString::Printf(TEXT("%s: %s %s"), *Label, *ToTrimmed3(SlotData.GetTotal()), *Unit);
+		// Finally, combine the label and the final (potentially decorated) value string.
+		return FString::Printf(TEXT("%s: %s"), *Label, *ValueString);
 	}
 
 	FString STransformHUD::FormatMagnitude(float Magnitude, const TCHAR* Unit)
@@ -214,8 +243,8 @@ namespace BlenderControls
 			InValue = 0.f;
 		}
 		FNumberFormattingOptions Opts;
-		Opts.MinimumFractionalDigits = 0; 
-		Opts.MaximumFractionalDigits = 3; 
+		Opts.MinimumFractionalDigits = 0;
+		Opts.MaximumFractionalDigits = 3;
 		return FText::AsNumber(InValue, &Opts).ToString();
 	}
 }

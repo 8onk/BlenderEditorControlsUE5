@@ -5,25 +5,26 @@
 
 namespace BlenderControls
 {
-    class FMoveTool : public FBlenderToolBase
-    {
-    public:
-        FMoveTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis);
+	class FMoveTool : public FBlenderToolBase
+	{
+	public:
+		FMoveTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis);
 
-        /* FBlenderToolBase */
-        virtual void OnActive(const FVector2D &CurrentViewportMousePosition) override;
-        virtual void ApplyNumeric(double Value) override;
-        virtual void UpdateHud() override;
+		/* FBlenderToolBase */
+		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
+		virtual void ApplyNumeric(double Value) override;
+		virtual void UpdateHud() override;
 
-        virtual void OnBegin() override;
-        virtual void OnEnd(bool bApply) override;
+		virtual void OnBegin() override;
+		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const override;
+		virtual void OnEnd(bool bApply) override;
 
-    private:
-        virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
-        virtual FVector GetSnapOffset(const FVector OffsetFromStart) override;
+	private:
+		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
+		virtual FVector GetSnapOffset(const FVector OffsetFromStart) override;
 
-        FVector StartActiveLocation;
-        FVector StartVirtualPivotLocation;
-        FVector ActiveToPivotOffset;
-    };
+		FVector StartActiveLocation;
+		FVector StartVirtualPivotLocation;
+		FVector ActiveToPivotOffset;
+	};
 } // namespace BlenderControls

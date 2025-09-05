@@ -118,45 +118,63 @@ namespace BlenderControls
 			CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
 		}
 
+		if (TCHAR Char; TryMapKeyToNumericChar(PressedKey, Char))
+		{
+			if (!bNumericInput)
+			{
+				if (!FChar::IsDigit(Char) && Char != '-' && Char != '.')
+				{
+					return false;
+				}
+
+				bNumericInput = true;
+				CurrentTool->BeginNumericMode();
+			}
+
+			if (Char == '-')
+			{
+				if (NumericBuffer.Contains(TEXT("-")))
+				{
+					NumericBuffer.RemoveFromStart(TEXT("-"));
+				}
+				else
+				{
+					NumericBuffer.InsertAt(0, TEXT("-"));
+				}
+			}
+			else
+			{
+				NumericBuffer.AppendChar(Char);
+			}
+
+			CurrentTool->UpdateActiveNumericSlot(Char);
+			return true;
+		}
+
 		if (bNumericInput)
 		{
 			if (PressedKey == EKeys::BackSpace)
 			{
-				double ParsedValue = 0.0;
-				if (!NumericBuffer.IsEmpty())
-				{
-					NumericBuffer.LeftChopInline(1);
-					if (NumericBuffer.IsEmpty())
-					{
-						CurrentTool->ClearLiveNumericValue();
-					}
-					else
-					{
-						FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue);
-						CurrentTool->UpdateNumericValue(ParsedValue);
-					}
-				}
-				else
-				{
-					const bool bShouldExit = CurrentTool->SubtractFromCommittedValue();
+				CurrentTool->HandleBackspace();
+				bNumericInput = CurrentSession->bIsNumericInputActive;
+				return true;
+			}
 
-					if (bShouldExit)
-					{
-						bNumericInput = false;
-						CurrentTool->ExitNumericMode();
-						return true;
-					}
-				}
+			if (PressedKey == EKeys::Hyphen || PressedKey == EKeys::Subtract)
+			{
+				CurrentTool->ToggleNegation();
+				return true;
+			}
 
-				CurrentTool->ApplyNumeric(ParsedValue);
-				UE_LOG(LogTemp, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
+			if (PressedKey == EKeys::Slash || PressedKey == EKeys::Divide)
+			{
+				CurrentTool->ToggleReciprocal();
 				return true;
 			}
 
 			if (PressedKey == EKeys::Tab)
 			{
 				CurrentTool->CycleNumericInputSlot();
-				NumericBuffer.Empty();
 				return true;
 			}
 		}
@@ -200,47 +218,6 @@ namespace BlenderControls
 			}
 
 			return bKeySwallowed;
-		}
-
-		if (TCHAR C; TryMapKeyToNumericChar(PressedKey, C))
-		{
-			if (!bNumericInput)
-			{
-				if (!FChar::IsDigit(C) && C != '-' && C != '.')
-				{
-					return false;
-				}
-
-				bNumericInput = true;
-				CurrentSession->bIsNumericInputActive = true;
-				CurrentTool->BeginNumericMode();
-			}
-
-			if (C == '-')
-			{
-				if (NumericBuffer.Contains(TEXT("-")))
-				{
-					NumericBuffer.RemoveFromStart(TEXT("-"));
-				}
-				else
-				{
-					NumericBuffer.InsertAt(0, TEXT("-"));
-				}
-			}
-			else
-			{
-				NumericBuffer.AppendChar(C);
-			}
-
-			double ParsedValue;
-			if (FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue))
-			{
-				CurrentTool->ApplyNumeric(ParsedValue);
-			}
-
-			CurrentSession->NumericBuffer = NumericBuffer;
-			UE_LOG(LogTemp, Log, TEXT("Numeric buffer: %s"), *NumericBuffer);
-			return true;
 		}
 
 		if (PressedKey == EKeys::SpaceBar || PressedKey == EKeys::Enter)
