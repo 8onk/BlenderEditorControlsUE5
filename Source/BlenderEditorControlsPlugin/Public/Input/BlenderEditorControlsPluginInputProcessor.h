@@ -20,11 +20,6 @@ namespace BlenderControls
 
 		double GetTotal() const
 		{
-			if (SlotState == ESlotState::InvalidInput)
-			{
-				return 0.0;
-			}
-
 			double Total = CommittedValue.Get(0.0) + LiveValue.Get(0.0);
 
 			if (bIsReciprocal)

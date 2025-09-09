@@ -101,6 +101,16 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
+		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
+		{
+			return true; // G/R/S (or remapped key) handled
+		}
+
+		if (!CurrentTool.IsValid())
+		{
+			return false;
+		}
+
 		const FKey PressedKey = KeyEvent.GetKey();
 		const bool bShift = KeyEvent.IsShiftDown();
 		if (PressedKeys.Contains(PressedKey))
@@ -160,7 +170,10 @@ namespace BlenderControls
 				return true;
 			}
 
-			if (PressedKey == EKeys::Hyphen || PressedKey == EKeys::Subtract)
+			if (PressedKey == EKeys::Hyphen // main keyboard "-"
+				|| PressedKey == EKeys::Subtract // numpad "-"
+				|| PressedKey == EKeys::Underscore // (covers some layouts with Shift)
+			)
 			{
 				CurrentTool->ToggleNegation();
 				return true;
@@ -177,16 +190,6 @@ namespace BlenderControls
 				CurrentTool->CycleNumericInputSlot();
 				return true;
 			}
-		}
-
-		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
-		{
-			return true; // G/R/S (or remapped key) handled
-		}
-
-		if (!CurrentTool.IsValid())
-		{
-			return false;
 		}
 
 		if (PressedKey == EKeys::X || PressedKey == EKeys::Y || PressedKey == EKeys::Z)
@@ -597,11 +600,11 @@ namespace BlenderControls
 			return true;
 		}
 
-		if (Key == EKeys::Hyphen)
-		{
-			OutChar = '-';
-			return true;
-		}
+		// if (Key == EKeys::Hyphen)
+		// {
+		// 	OutChar = '-';
+		// 	return true;
+		// }
 
 		return false;
 	}

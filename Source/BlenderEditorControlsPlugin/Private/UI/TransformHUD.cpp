@@ -154,81 +154,59 @@ namespace BlenderControls
 	FString STransformHUD::FormatOneField(const FString& Label, const FNumericSlotData& SlotData, const FString& Unit,
 	                                      bool bIsActiveSlot)
 	{
-		FString ValueString; // This will hold the core value to be displayed.
+		// 1. First, determine the final resulting value string (e.g., "= -9.0 cm")
+		FString ResultString;
+		if (SlotData.SlotState == ESlotState::InvalidInput)
+		{
+			ResultString = TEXT("INVALID");
+		}
+		else
+		{
+			// Use the GetTotal() function which correctly handles negation
+			const double TotalValue = SlotData.GetTotal();
+			ResultString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(TotalValue), *Unit);
+		}
 
-		// 1. CALCULATE STAGE: Determine the base value string, assuming the slot is NOT active.
-		// This switch has no knowledge of bIsActiveSlot.
+		// If the slot isn't being actively edited, we're done. Just show the result.
+		if (!bIsActiveSlot)
+		{
+			return FString::Printf(TEXT("%s: %s"), *Label, *ResultString);
+		}
+
+		// 2. Build the live "input" part of the string (the content inside "[...]")
+		FString InputString;
 		switch (SlotData.SlotState)
 		{
-		case ESlotState::Pristine:
-			ValueString = TEXT("NONE");
-			break;
-
-		case ESlotState::Committed:
-			ValueString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit);
-			break;
-
 		case ESlotState::FirstEdit:
-			{
-				const double LiveValue = FCString::Atod(*SlotData.Display);
-				ValueString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(LiveValue), *Unit);
-			}
-			break;
-
-		case ESlotState::Additive:
-			{
-				const double Total = SlotData.CommittedValue.Get(0.0) + FCString::Atod(*SlotData.Display);
-				ValueString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(Total), *Unit);
-			}
-			break;
-
 		case ESlotState::InvalidInput:
-			ValueString = TEXT("INVALID");
+			InputString = FString::Printf(TEXT("%s|"), *SlotData.Display);
 			break;
-
+		case ESlotState::Additive:
+			InputString = FString::Printf(TEXT("%s %s%s|"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit,
+			                              *SlotData.Display);
+			break;
+		case ESlotState::Committed:
+			InputString = FString::Printf(TEXT("%s %s|"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit);
+			break;
+		case ESlotState::Pristine:
 		default:
-			return TEXT("ERROR");
+			InputString = TEXT("|");
+			break;
 		}
 
-		if (bIsActiveSlot)
+		if (SlotData.bIsReciprocal)
 		{
-			// A second, smaller switch handles the specific "active" formatting.
-			switch (SlotData.SlotState)
-			{
-			case ESlotState::Pristine:
-				ValueString = TEXT("|NONE|");
-				break;
-
-			case ESlotState::Committed:
-				// For Committed, we show the value ready to be edited additively.
-				ValueString = FString::Printf(TEXT("[%s|] = %s"), *ValueString, *ValueString);
-				break;
-
-			case ESlotState::FirstEdit:
-				// Here, ValueString already holds the "= Result" part. We just prepend the input part.
-				ValueString = FString::Printf(TEXT("[%s|] = %s"), *SlotData.Display, *ValueString);
-				break;
-
-			case ESlotState::Additive:
-				// ValueString holds the total. We prepend the additive input format.
-				{
-					const FString CommittedString = FString::Printf(
-						TEXT("%s %s"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit);
-					ValueString = FString::Printf(TEXT("[%s %s|] = %s"), *CommittedString, *SlotData.Display,
-					                              *ValueString);
-				}
-				break;
-
-			case ESlotState::InvalidInput:
-				ValueString = FString::Printf(TEXT("[%s|] = INVALID"), *SlotData.Display);
-				break;
-
-				// Note: The 'Live' state has no special active formatting, so we don't need a case for it here.
-			}
+			InputString = FString::Printf(TEXT("1/(%s)"), *InputString);
 		}
 
-		// Finally, combine the label and the final (potentially decorated) value string.
-		return FString::Printf(TEXT("%s: %s"), *Label, *ValueString);
+		if (SlotData.bIsNegated)
+		{
+			InputString = FString::Printf(TEXT("-(%s)"), *InputString);
+		}
+
+		// 4. Combine everything into the final string
+		FString FinalValueString = FString::Printf(TEXT("[%s] = %s"), *InputString, *ResultString);
+		return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
 	}
 
 	FString STransformHUD::FormatMagnitude(float Magnitude, const TCHAR* Unit)

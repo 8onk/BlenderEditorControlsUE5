@@ -535,6 +535,11 @@ namespace BlenderControls
 			const double BaseValue = CurrentSlot.CommittedValue.Get(0.0);
 			CurrentSlot.CommittedValue = BaseValue + LiveValue;
 
+			if (CurrentSlot.LiveValue.IsSet())
+			{
+				CurrentSlot.LiveValue.Reset();
+			}
+
 			CurrentSlot.SlotState = ESlotState::Committed;
 			CurrentSlot.Display.Empty();
 		}
@@ -588,7 +593,6 @@ namespace BlenderControls
 
 		OnActive(CurrentViewportMousePos);
 		UpdateHud();
-		UE_LOG(LogHAL, Log, TEXT("Exit numeric mode!"));
 	}
 
 	void FBlenderToolBase::ClearLiveNumericValue()
@@ -618,10 +622,21 @@ namespace BlenderControls
 			break;
 		}
 
+		if (Character != TEXT('-'))
+		{
+		}
 		Slot.Display.AppendChar(Character);
+
 		double CurrentLiveValue = 0.0;
-		FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue);
-		Slot.LiveValue = CurrentLiveValue;
+		if (FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
+		{
+			Slot.LiveValue = CurrentLiveValue;
+		}
+		else
+		{
+			Slot.SlotState = ESlotState::InvalidInput;
+		}
+
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
 		ApplyNumeric(0.0);
 		UpdateHud();
@@ -674,27 +689,82 @@ namespace BlenderControls
 				break;
 
 			case ESlotState::Committed:
-				if (const FString DisplayString = GetFormattedValueForEditing(Slot); !DisplayString.IsEmpty())
 				{
-					Slot.Display = DisplayString;
-					Slot.Display.LeftChopInline(1);
-					Slot.CommittedValue.Reset();
-					Slot.SlotState = ESlotState::FirstEdit;
+					const FString DisplayString = GetFormattedValueForEditing(Slot);
+					if (!DisplayString.IsEmpty())
+					{
+						Slot.Display = DisplayString;
+						Slot.Display.LeftChopInline(1);
+						//Slot.CommittedValue.Reset();
+						Slot.SlotState = ESlotState::FirstEdit;
+					}
 				}
 				break;
 			}
 		}
 
-		// This final block updates the state and transform after the logic above runs.
-		double CurrentLiveValue = 0.0;
-		if (!Slot.Display.IsEmpty() && !Slot.Display.Equals(TEXT("-")))
 		{
-			FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue);
+			double CurrentLiveValue = 0.0;
+
+			// CHANGE: We attempt to parse the raw Display string directly. No more KeepOnlyNumbers!
+			if (!Slot.Display.IsEmpty() && FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
+			{
+				// PARSE SUCCEEDED: The input is a valid number.
+				Slot.CommittedValue.Reset();
+				Slot.LiveValue = CurrentLiveValue;
+
+				// If the slot was previously invalid, let's make it valid again.
+				// This handles the case where the user corrects "5c" back to "5".
+				if (Slot.SlotState == ESlotState::InvalidInput)
+				{
+					Slot.SlotState = ESlotState::FirstEdit; // Or whatever state is appropriate
+				}
+			}
+			else
+			{
+				// PARSE FAILED: The input is invalid (e.g., "5c", "-", or empty).
+				//Slot.LiveValue.Reset(); // Don't use the last valid value.
+
+				// CHANGE: Set the slot state to InvalidInput if there's text.
+				if (!Slot.Display.IsEmpty())
+				{
+					Slot.SlotState = ESlotState::InvalidInput;
+				}
+			}
+
+			Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+			ApplyNumeric(0.0); // ApplyNumeric will now use the latest LiveValue (or nothing if it was reset).
+
+			// CHANGE: Crucially, update the HUD to reflect all changes.
+			//UpdateHud();
 		}
-		Slot.LiveValue = CurrentLiveValue;
+	}
 
+	void FBlenderToolBase::ToggleNegation()
+	{
+		if (!Session.IsValid() || !Session->bIsNumericInputActive)
+		{
+			return;
+		}
+
+		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		Slot.bIsNegated = !Slot.bIsNegated;
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		ApplyNumeric(0.0f);
+		UpdateHud();
+	}
 
-		ApplyNumeric(0.0);
+	void FBlenderToolBase::ToggleReciprocal()
+	{
+		if (!Session.IsValid() || !Session->bIsNumericInputActive)
+		{
+			return;
+		}
+
+		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		Slot.bIsReciprocal = !Slot.bIsReciprocal;
+		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		ApplyNumeric(0.0f);
+		UpdateHud();
 	}
 } // namespace BlenderControls
