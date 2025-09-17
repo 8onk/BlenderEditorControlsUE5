@@ -1,6 +1,7 @@
 #include "Tools/RotateTool.h"
 #include "LevelEditorViewport.h"
 #include "Tools/SharedPivot.h"
+#include "UI/TransformHUD.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO draw the rotation gizmo handle
 //TODO apply numeric for rotation tool and scale tool
@@ -30,6 +31,8 @@ namespace BlenderControls
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Rotate);
 		ViewportClient->Invalidate();
 		AccumulatedAngleRad = 0.0f;
+		TrackballMouseDelta = FVector2D::ZeroVector;
+		AngleToApplyRad = 0.0f;
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -44,7 +47,7 @@ namespace BlenderControls
 		if (bTrackballModeEnabled)
 		{
 			constexpr float MouseDeltaSensitivity = 0.01f;
-			FVector2D ScaledMouseDelta = FVector2D(MouseDelta.X, MouseDelta.Y) * MouseDeltaSensitivity;
+			TrackballMouseDelta = FVector2D(MouseDelta.X, MouseDelta.Y) * MouseDeltaSensitivity;
 
 			if (bSnappingEnabled)
 			{
@@ -53,11 +56,11 @@ namespace BlenderControls
 				const float SnapAngleRad = FMath::DegreesToRadians(SnapAngleDeg);
 				const float SnapIncrement = SnapAngleRad;
 
-				ScaledMouseDelta.X = FMath::GridSnap(ScaledMouseDelta.X, SnapIncrement);
-				ScaledMouseDelta.Y = FMath::GridSnap(ScaledMouseDelta.Y, SnapIncrement);
+				TrackballMouseDelta.X = FMath::GridSnap(TrackballMouseDelta.X, SnapIncrement);
+				TrackballMouseDelta.Y = FMath::GridSnap(TrackballMouseDelta.Y, SnapIncrement);
 			}
 
-			const FVector RotationAxis = (-ViewUp * ScaledMouseDelta.X) + (-ViewRight * ScaledMouseDelta.Y);
+			const FVector RotationAxis = (-ViewUp * TrackballMouseDelta.X) + (-ViewRight * TrackballMouseDelta.Y);
 			const float RotationAngle = RotationAxis.Length();
 			const FQuat TargetRotation = FQuat(RotationAxis.GetSafeNormal(), RotationAngle);
 
@@ -66,7 +69,6 @@ namespace BlenderControls
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
 			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
-			UpdateHud();
 		}
 		else
 		{
@@ -85,7 +87,7 @@ namespace BlenderControls
 				SignedAccum = -AccumulatedAngleRad;
 			}
 
-			float AngleToApplyRad = SignedAccum;
+			AngleToApplyRad = SignedAccum;
 			if (bSnappingEnabled)
 			{
 				const float SnapAngleDeg = GEditor->GetRotGridSize().Yaw;
@@ -95,10 +97,11 @@ namespace BlenderControls
 			}
 
 			VirtualPivot->Rotate(GrabContext, AngleToApplyRad, bUsingLocalSpace, LockedAxis);
-			UpdateHud();
 
 			LastDragVector = CurrentDragVector;
 		}
+
+		UpdateHud();
 	}
 
 
@@ -113,7 +116,7 @@ namespace BlenderControls
 
 			const float AngleXRad = FMath::DegreesToRadians(Slot2);
 			const float AngleYRad = FMath::DegreesToRadians(Slot1);
-			
+
 			const FVector RotationAxis = (-ViewUp * AngleXRad) + (-ViewRight * AngleYRad);
 			const float RotationAngle = RotationAxis.Length();
 
@@ -134,30 +137,135 @@ namespace BlenderControls
 		}
 		else
 		{
-			const float DegreesToRotate = FMath::DegreesToRadians(Value);
-			VirtualPivot->Rotate(GrabContext, DegreesToRotate, bUsingLocalSpace, LockedAxis);
+			const double TotalAngleDegrees = NumericSlots[0].GetTotal();
+			const double RadiansToRotate = FMath::DegreesToRadians(TotalAngleDegrees);
+			VirtualPivot->Rotate(GrabContext, RadiansToRotate, bUsingLocalSpace, LockedAxis);
 			UpdateHud();
 		}
 	}
 
 	void FRotateTool::UpdateHud()
 	{
-		if (!VirtualPivot)
+		if (!VirtualPivot || !HudWidget.IsValid())
 		{
-			HudString = TEXT("No selection");
 			return;
 		}
 		
-		const FQuat CurrentRotation = VirtualPivot->GetActiveElement().Transform.GetRotation();
-		const FQuat StartRotation = VirtualPivot->GetStartTransform().GetRotation();
-		const FQuat DeltaRotation = CurrentRotation * StartRotation.Inverse();
+		const double LiveAngleDeg = FMath::RadiansToDegrees(AngleToApplyRad) * -1;
+		static const TCHAR* Unit = TEXT("\u00B0"); // Degree symbol
+		static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
+		const FString Space = bUsingLocalSpace ? TEXT("local") : TEXT("global");
+		const bool bNumeric = Session->bIsNumericInputActive;
+
+		enum class EValueSlot : int32
+		{
+			Angle = 0,
+			TrackballX = 0,
+			TrackballY = 1, // Aliases for clarity
+		};
+
+		struct FHudFieldData
+		{
+			FString Label;
+			double LiveValue;
+			EValueSlot SlotIndex;
+		};
+
+		TArray<FHudFieldData> HudFields;
+		FString Suffix;
+		FString Header;
+
+		if (bTrackballModeEnabled)
+		{
+			const double LiveAngleY = FMath::RadiansToDegrees(TrackballMouseDelta.X);
+			const double LiveAngleX = FMath::RadiansToDegrees(TrackballMouseDelta.Y);
+
+			// Manually format the numbers to two decimal places, avoiding FormatOneField
+			const FString YString = FString::Printf(TEXT("%.2f"), bNumeric ? NumericSlots[0].GetTotal() : LiveAngleY);
+			const FString XString = FString::Printf(TEXT("%.2f"), bNumeric ? NumericSlots[1].GetTotal() : LiveAngleX);
+
+			// Build the final string directly
+			HudString = FString::Printf(TEXT("Trackball: %s %s"), *XString, *YString);
+
+			// Update the HUD and exit the function immediately for this special case
+			HudWidget->Update(FText::FromString(HudString));
+			return;
+		}
+
+		FString AxisString;
+		switch (LockedAxis)
+		{
+		case EAxisLock::All:
+			HudFields.Add({TEXT("Rotation"), LiveAngleDeg, EValueSlot::Angle});
+			break;
+		case EAxisLock::X:
+			AxisString = TEXT("X");
+			break;
+		case EAxisLock::Y:
+			AxisString = TEXT("Y");
+			break;
+		case EAxisLock::Z:
+			AxisString = TEXT("Z");
+			break;
+		case EAxisLock::XY:
+			AxisString = TEXT("Z");
+			break;
+		case EAxisLock::XZ:
+			AxisString = TEXT("Y");
+			break;
+		case EAxisLock::YZ:
+			AxisString = TEXT("X");
+			break;
+		}
+
+		if (!AxisString.IsEmpty())
+		{
+			HudFields.Add({TEXT("Rotation"), LiveAngleDeg, EValueSlot::Angle});
+			Suffix = FString::Printf(TEXT("along %s %s"), *Space, *AxisString);
+		}
 		
-		FVector EulerAngles = DeltaRotation.Euler();
-		HudString = "Hello world!";
-		
-		// Format the HUD string with rotation angles
-		// HudString = FString::Printf(TEXT("Rx: %.1f°   Ry: %.1f°   Rz: %.1f°"), 
-		// 	EulerAngles.X, EulerAngles.Y, EulerAngles.Z);
+		TArray<FString> FormattedFields;
+		for (const FHudFieldData& FieldData : HudFields)
+		{
+			const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
+			FNumericSlotData DataToFormat;
+
+			if (bNumeric)
+			{
+				DataToFormat = Session->NumericSlots[SlotIndexInt];
+			}
+			else
+			{
+				DataToFormat.SlotState = ESlotState::Committed;
+				DataToFormat.CommittedValue = FieldData.LiveValue;
+			}
+
+			const bool bIsActive = bNumeric && (SlotIndexInt == Session->CurrentNumericSlotIndex);
+
+			FormattedFields.Add(HudWidget->FormatOneField(
+				FieldData.Label,
+				DataToFormat,
+				Unit,
+				bIsActive
+			));
+		}
+
+		const FString FieldsString = FString::Join(FormattedFields, Sep);
+
+		// No magnitude string for rotation
+		HudString = FString::Printf(TEXT("%s%s %s"), *Header, *FieldsString, *Suffix).TrimEnd();
+
+		HudWidget->Update(FText::FromString(HudString));
+
+		// TEMPORARY LOG
+		if (bNumeric)
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				Session->NumericSlots[i].Print();
+				UE_LOG(LogTemp, Log, TEXT("NEW LINE    "));
+			}
+		}
 	}
 
 	void FRotateTool::OnEnd(const bool bApply)

@@ -101,16 +101,6 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
-		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
-		{
-			return true; // G/R/S (or remapped key) handled
-		}
-
-		if (!CurrentTool.IsValid())
-		{
-			return false;
-		}
-
 		const FKey PressedKey = KeyEvent.GetKey();
 		const bool bShift = KeyEvent.IsShiftDown();
 		if (PressedKeys.Contains(PressedKey))
@@ -126,6 +116,16 @@ namespace BlenderControls
 		{
 			const bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
 			CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
+		}
+
+		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
+		{
+			return true; // G/R/S (or remapped key) handled
+		}
+
+		if (!CurrentTool.IsValid())
+		{
+			return false;
 		}
 
 		if (TCHAR Char; TryMapKeyToNumericChar(PressedKey, Char))

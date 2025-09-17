@@ -190,8 +190,10 @@ namespace BlenderControls
 			break;
 		case ESlotState::Pristine:
 		default:
-			InputString = TEXT("|");
-			break;
+			{
+				FString FinalValueString = TEXT("|NONE|");
+				return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
+			}
 		}
 
 		if (SlotData.bIsReciprocal)

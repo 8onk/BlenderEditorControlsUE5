@@ -175,14 +175,6 @@ namespace BlenderControls
 			Z = 2
 		};
 
-		// Helper to choose between live value and numeric input
-		auto Opt = [&](EValueSlot Slot, double LiveValue) -> TOptional<double>
-		{
-			return bNumeric
-				       ? TOptional<double>(NumericSlots[static_cast<int32>(Slot)].GetTotal())
-				       : TOptional<double>(LiveValue);
-		};
-
 		struct FHudFieldData
 		{
 			FString Label;
@@ -276,14 +268,11 @@ namespace BlenderControls
 
 			if (bNumeric)
 			{
-				// CORRECT: Just get the authoritative data from the session/tool.
 				DataToFormat = Session->NumericSlots[SlotIndexInt];
 			}
 			else
 			{
-				// SIMPLIFIED: When not in numeric mode, display the live mouse value.
-				// We create a temporary struct for formatting, but we use a simple state.
-				DataToFormat.SlotState = ESlotState::Committed; // Just display as a simple value
+				DataToFormat.SlotState = ESlotState::Committed;
 				DataToFormat.CommittedValue = FieldData.LiveValue;
 			}
 
@@ -304,6 +293,7 @@ namespace BlenderControls
 
 		HudWidget->Update(FText::FromString(HudString));
 
+		//TEMPORARY LOG
 		if (bNumeric)
 		{
 			for (int i = 0; i < 3; ++i)

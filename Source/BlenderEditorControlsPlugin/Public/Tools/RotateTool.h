@@ -36,6 +36,8 @@ namespace BlenderControls
 		bool bTrackballModeEnabled;
 		EAxisLock PreviousAxisLock = EAxisLock::All;
 		float AccumulatedAngleRad;
+		FVector2D TrackballMouseDelta;
+		float AngleToApplyRad;
 
 	protected:
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);

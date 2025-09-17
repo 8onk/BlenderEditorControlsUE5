@@ -1,7 +1,4 @@
 #include "Tools/BlenderToolBase.h"
-
-#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
-
 #include "Editor.h"
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
@@ -519,6 +516,7 @@ namespace BlenderControls
 	{
 		for (int i = 0; i < 3; ++i)
 		{
+			Session->NumericSlots[i].CommittedValue.Reset();
 			NumericSlots[i] = Session->NumericSlots[i];
 		}
 
@@ -686,8 +684,6 @@ namespace BlenderControls
 
 			case ESlotState::Additive:
 				Slot.SlotState = ESlotState::Committed;
-				break;
-
 			case ESlotState::Committed:
 				{
 					const FString DisplayString = GetFormattedValueForEditing(Slot);
@@ -695,7 +691,7 @@ namespace BlenderControls
 					{
 						Slot.Display = DisplayString;
 						Slot.Display.LeftChopInline(1);
-						//Slot.CommittedValue.Reset();
+						Slot.CommittedValue.Reset();
 						Slot.SlotState = ESlotState::FirstEdit;
 					}
 				}
@@ -703,41 +699,31 @@ namespace BlenderControls
 			}
 		}
 
+		double CurrentLiveValue = 0.0;
+
+		if (!Slot.Display.IsEmpty() && FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
 		{
-			double CurrentLiveValue = 0.0;
+			Slot.LiveValue = CurrentLiveValue;
 
-			// CHANGE: We attempt to parse the raw Display string directly. No more KeepOnlyNumbers!
-			if (!Slot.Display.IsEmpty() && FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
+			if (Slot.SlotState == ESlotState::InvalidInput)
 			{
-				// PARSE SUCCEEDED: The input is a valid number.
-				Slot.CommittedValue.Reset();
-				Slot.LiveValue = CurrentLiveValue;
-
-				// If the slot was previously invalid, let's make it valid again.
-				// This handles the case where the user corrects "5c" back to "5".
-				if (Slot.SlotState == ESlotState::InvalidInput)
-				{
-					Slot.SlotState = ESlotState::FirstEdit; // Or whatever state is appropriate
-				}
+				Slot.SlotState = ESlotState::FirstEdit;
+			}
+		}
+		else
+		{
+			if (!Slot.Display.IsEmpty())
+			{
+				Slot.SlotState = ESlotState::InvalidInput;
 			}
 			else
 			{
-				// PARSE FAILED: The input is invalid (e.g., "5c", "-", or empty).
-				//Slot.LiveValue.Reset(); // Don't use the last valid value.
-
-				// CHANGE: Set the slot state to InvalidInput if there's text.
-				if (!Slot.Display.IsEmpty())
-				{
-					Slot.SlotState = ESlotState::InvalidInput;
-				}
+				Slot.LiveValue.Reset();
 			}
-
-			Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
-			ApplyNumeric(0.0); // ApplyNumeric will now use the latest LiveValue (or nothing if it was reset).
-
-			// CHANGE: Crucially, update the HUD to reflect all changes.
-			//UpdateHud();
 		}
+
+		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		ApplyNumeric(0.0);
 	}
 
 	void FBlenderToolBase::ToggleNegation()

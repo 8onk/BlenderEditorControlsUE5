@@ -11,6 +11,7 @@ namespace BlenderControls
 
 	struct FNumericSlotData
 	{
+		FString Label;
 		ESlotState SlotState = ESlotState::Pristine;
 		TOptional<double> CommittedValue;
 		TOptional<double> LiveValue;
