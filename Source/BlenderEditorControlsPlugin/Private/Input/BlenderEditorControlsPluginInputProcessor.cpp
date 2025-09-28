@@ -137,6 +137,12 @@ namespace BlenderControls
 					return false;
 				}
 
+				for (int i = 0; i < UE_ARRAY_COUNT(CurrentSession->NumericSlots); ++i)
+				{
+					CurrentSession->NumericSlots[i] = FNumericSlotData();
+				}
+				CurrentSession->CurrentNumericSlotIndex = 0;
+
 				bNumericInput = true;
 				CurrentTool->BeginNumericMode();
 			}
@@ -309,6 +315,11 @@ namespace BlenderControls
 		if (GEditor->GetSelectedActorCount() == 0 || Mode == ActiveMode)
 		{
 			return;
+		}
+
+		if (CurrentTool.IsValid())
+		{
+			CurrentTool->OnEnd(/*bApply=*/false);
 		}
 
 		if (!CurrentSession.IsValid())

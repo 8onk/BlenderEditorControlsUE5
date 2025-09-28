@@ -19,6 +19,9 @@ namespace BlenderControls
 		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const override;
 		virtual void OnEnd(bool bApply) override;
 
+	protected:
+		virtual void UpdateToolSettingsForAxisLock() override;
+
 	private:
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart) override;

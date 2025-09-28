@@ -26,7 +26,7 @@ namespace BlenderControls
 		virtual void Cancel();
 
 		/** Numeric entry apply */
-		virtual void ApplyNumeric(double Value);
+		virtual void ApplyNumeric(double Value = 0.0f) {}
 
 		/** Set HUD string - must be implemented by inheriting classes */
 		virtual void UpdateHud() = 0;
@@ -59,7 +59,6 @@ namespace BlenderControls
 
 		void BeginNumericMode();
 		void CycleNumericInputSlot();
-		void UpdateNumericValue(double Value);
 		void ExitNumericMode();
 		void ClearLiveNumericValue();
 		void UpdateActiveNumericSlot(TCHAR Character);
@@ -90,10 +89,10 @@ namespace BlenderControls
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
-		virtual void SetGrabContextAxisLock(EAxisLock AxisLock);
+		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) {}
 		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const;
 		void UpdateAxisLock();
-		bool IsInputInvalid(const FString& Input) const;
+		virtual void UpdateToolSettingsForAxisLock() {}
 
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
@@ -103,7 +102,7 @@ namespace BlenderControls
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
 
-		FNumericSlotData NumericSlots[3];
+		//FNumericSlotData NumericSlots[3];
 		int32 FirstEditedSlotIndex = -1;
 		int32 CurrentNumericSlotIndex;
 
@@ -134,5 +133,6 @@ namespace BlenderControls
 		FVector ViewRight;
 		FVector ViewLocation;
 		FVector ViewForward;
+		int32 NumNumericSlots;
 	};
 } // namespace BlenderControls

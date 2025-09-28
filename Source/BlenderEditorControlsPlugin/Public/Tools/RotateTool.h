@@ -43,5 +43,7 @@ namespace BlenderControls
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetTrackballRotationMode(const bool bEnabled) override;
 		virtual bool GetTrackballRotationMode() override;
+		virtual void UpdateToolSettingsForAxisLock() override;
+		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const override;
 	};
 } // namespace BlenderControls

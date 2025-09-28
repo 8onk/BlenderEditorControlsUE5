@@ -16,7 +16,7 @@ namespace BlenderControls
 {
 	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,
 	                                   const FString& InDisplayName)
-		: Session(InSession), Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName)
+		: Session(InSession), Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName), NumNumericSlots(3)
 	{
 	}
 
@@ -26,12 +26,17 @@ namespace BlenderControls
 
 	void FBlenderToolBase::UpdateAxisLock()
 	{
+		UpdateToolSettingsForAxisLock();
 		SetGrabContextAxisLock(LockedAxis);
 		RedrawAxisLines();
 
 		// Refresh
-		UpdateHud();
 		OnActive(CurrentViewportMousePos);
+		if (Session->bIsNumericInputActive)
+		{
+			ApplyNumeric();
+		}
+		UpdateHud();
 	}
 
 	void FBlenderToolBase::FlushDrawnAxisLines() const
@@ -302,6 +307,17 @@ namespace BlenderControls
 		HudWidget = SNew(STransformHUD);
 		HudWidget->Attach();
 		UpdateHud();
+		UpdateToolSettingsForAxisLock();
+
+		if (Session->bIsNumericInputActive)
+		{
+			ApplyNumeric();
+			for (int i = 0; i < 3; ++i)
+			{
+				Session->NumericSlots[i].Print();
+				UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
+			}
+		}
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -484,11 +500,6 @@ namespace BlenderControls
 		SelectedActors.Empty();
 	}
 
-	void FBlenderToolBase::ApplyNumeric(double Value)
-	{
-		UpdateNumericValue(Value);
-	}
-
 	void FBlenderToolBase::NotifyMouseWrap()
 	{
 		bPendingMouseWrap = true;
@@ -497,10 +508,6 @@ namespace BlenderControls
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
 	{
 		return FVector::ZeroVector;
-	}
-
-	void FBlenderToolBase::SetGrabContextAxisLock(EAxisLock AxisLock)
-	{
 	}
 
 	FString FBlenderToolBase::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
@@ -514,25 +521,17 @@ namespace BlenderControls
 
 	void FBlenderToolBase::BeginNumericMode()
 	{
-		for (int i = 0; i < 3; ++i)
-		{
-			Session->NumericSlots[i].CommittedValue.Reset();
-			NumericSlots[i] = Session->NumericSlots[i];
-		}
-
 		Session->bIsNumericInputActive = true;
 		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
+		ApplyNumeric();
 	}
 
 	void FBlenderToolBase::CycleNumericInputSlot()
 	{
-		FNumericSlotData& CurrentSlot = NumericSlots[CurrentNumericSlotIndex];
-		const double LiveValue = FCString::Atod(*CurrentSlot.Display);
+		FNumericSlotData& CurrentSlot = Session->NumericSlots[CurrentNumericSlotIndex];
+		CurrentSlot.CommittedValue = CurrentSlot.GetTotal();
 		if (!CurrentSlot.Display.IsEmpty())
 		{
-			const double BaseValue = CurrentSlot.CommittedValue.Get(0.0);
-			CurrentSlot.CommittedValue = BaseValue + LiveValue;
-
 			if (CurrentSlot.LiveValue.IsSet())
 			{
 				CurrentSlot.LiveValue.Reset();
@@ -541,31 +540,21 @@ namespace BlenderControls
 			CurrentSlot.SlotState = ESlotState::Committed;
 			CurrentSlot.Display.Empty();
 		}
+		CurrentSlot.bIsReciprocal = false;
+		CurrentSlot.bIsNegated = false;
 
-		Session->NumericSlots[CurrentNumericSlotIndex] = NumericSlots[CurrentNumericSlotIndex];
-
-		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::Z)
+		if (NumNumericSlots > 0)
 		{
-			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 1;
-		}
-		else if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::YZ || LockedAxis == EAxisLock::XZ)
-		{
-			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 2;
-		}
-		else
-		{
-			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % 3;
+			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % NumNumericSlots;
 		}
 
 		Session->CurrentNumericSlotIndex = CurrentNumericSlotIndex;
 		UpdateHud();
-	}
-
-	void FBlenderToolBase::UpdateNumericValue(const double Value)
-	{
-		// NumericSlots[CurrentNumericSlotIndex].LiveValue = Value;
-		//
-		// Session->NumericSlots[CurrentNumericSlotIndex] = NumericSlots[CurrentNumericSlotIndex];
+		for (int i = 0; i < 3; ++i)
+		{
+			Session->NumericSlots[i].Print();
+			UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
+		}
 	}
 
 	void FBlenderToolBase::ExitNumericMode()
@@ -584,9 +573,9 @@ namespace BlenderControls
 		}
 
 		CurrentNumericSlotIndex = 0;
-		for (int i = 0; i < UE_ARRAY_COUNT(NumericSlots); ++i)
+		for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
 		{
-			NumericSlots[i] = FNumericSlotData();
+			Session->NumericSlots[i] = FNumericSlotData();
 		}
 
 		OnActive(CurrentViewportMousePos);
@@ -595,7 +584,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::ClearLiveNumericValue()
 	{
-		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
 
 		Slot.LiveValue.Reset();
 
@@ -605,7 +594,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::UpdateActiveNumericSlot(const TCHAR Character)
 	{
-		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
 
 		switch (Slot.SlotState)
 		{
@@ -620,15 +609,19 @@ namespace BlenderControls
 			break;
 		}
 
-		if (Character != TEXT('-'))
-		{
-		}
 		Slot.Display.AppendChar(Character);
 
 		double CurrentLiveValue = 0.0;
 		if (FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
 		{
-			Slot.LiveValue = CurrentLiveValue;
+			if (Slot.GetTotal() < 0.0f)
+			{
+				Slot.LiveValue = -CurrentLiveValue;
+			}
+			else
+			{
+				Slot.LiveValue = CurrentLiveValue;
+			}
 		}
 		else
 		{
@@ -636,13 +629,13 @@ namespace BlenderControls
 		}
 
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric(0.0);
+		ApplyNumeric();
 		UpdateHud();
 	}
 
 	void FBlenderToolBase::HandleBackspace()
 	{
-		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
 
 		if (!Slot.Display.IsEmpty())
 		{
@@ -659,7 +652,7 @@ namespace BlenderControls
 					{
 						if (i == CurrentNumericSlotIndex) continue;
 
-						if (NumericSlots[i].SlotState != ESlotState::Pristine)
+						if (Session->NumericSlots[i].SlotState != ESlotState::Pristine)
 						{
 							bOtherSlotsHaveValues = true;
 							break;
@@ -723,7 +716,7 @@ namespace BlenderControls
 		}
 
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric(0.0);
+		ApplyNumeric();
 	}
 
 	void FBlenderToolBase::ToggleNegation()
@@ -733,10 +726,10 @@ namespace BlenderControls
 			return;
 		}
 
-		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
 		Slot.bIsNegated = !Slot.bIsNegated;
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric(0.0f);
+		ApplyNumeric();
 		UpdateHud();
 	}
 
@@ -747,10 +740,10 @@ namespace BlenderControls
 			return;
 		}
 
-		FNumericSlotData& Slot = NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
 		Slot.bIsReciprocal = !Slot.bIsReciprocal;
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric(0.0f);
+		ApplyNumeric();
 		UpdateHud();
 	}
 } // namespace BlenderControls

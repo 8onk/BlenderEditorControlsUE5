@@ -111,8 +111,8 @@ namespace BlenderControls
 
 		if (bTrackballModeEnabled)
 		{
-			const float Slot1 = NumericSlots[0].CommittedValue.Get(0.0f);
-			const float Slot2 = NumericSlots[1].CommittedValue.Get(0.0f);
+			const float Slot1 = Session->NumericSlots[0].GetTotal();
+			const float Slot2 = Session->NumericSlots[1].GetTotal();
 
 			const float AngleXRad = FMath::DegreesToRadians(Slot2);
 			const float AngleYRad = FMath::DegreesToRadians(Slot1);
@@ -123,6 +123,7 @@ namespace BlenderControls
 			// Check for zero rotation to avoid issues with GetSafeNormal()
 			if (FMath::IsNearlyZero(RotationAngle))
 			{
+				UpdateHud();
 				return;
 			}
 
@@ -137,7 +138,7 @@ namespace BlenderControls
 		}
 		else
 		{
-			const double TotalAngleDegrees = NumericSlots[0].GetTotal();
+			const double TotalAngleDegrees = Session->NumericSlots[0].GetTotal();
 			const double RadiansToRotate = FMath::DegreesToRadians(TotalAngleDegrees);
 			VirtualPivot->Rotate(GrabContext, RadiansToRotate, bUsingLocalSpace, LockedAxis);
 			UpdateHud();
@@ -150,7 +151,7 @@ namespace BlenderControls
 		{
 			return;
 		}
-		
+
 		const double LiveAngleDeg = FMath::RadiansToDegrees(AngleToApplyRad) * -1;
 		static const TCHAR* Unit = TEXT("\u00B0"); // Degree symbol
 		static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
@@ -161,7 +162,7 @@ namespace BlenderControls
 		{
 			Angle = 0,
 			TrackballX = 0,
-			TrackballY = 1, // Aliases for clarity
+			TrackballY = 1,
 		};
 
 		struct FHudFieldData
@@ -180,16 +181,43 @@ namespace BlenderControls
 			const double LiveAngleY = FMath::RadiansToDegrees(TrackballMouseDelta.X);
 			const double LiveAngleX = FMath::RadiansToDegrees(TrackballMouseDelta.Y);
 
-			// Manually format the numbers to two decimal places, avoiding FormatOneField
-			const FString YString = FString::Printf(TEXT("%.2f"), bNumeric ? NumericSlots[0].GetTotal() : LiveAngleY);
-			const FString XString = FString::Printf(TEXT("%.2f"), bNumeric ? NumericSlots[1].GetTotal() : LiveAngleX);
+			const int32 SlotX = static_cast<int32>(EValueSlot::TrackballX);
+			const int32 SlotY = static_cast<int32>(EValueSlot::TrackballY);
 
-			// Build the final string directly
-			HudString = FString::Printf(TEXT("Trackball: %s %s"), *XString, *YString);
+			// This is a small helper function to format a single trackball value correctly.
+			// It handles all the required states: live, active numeric, and inactive numeric ("None").
+			auto FormatTrackballValue = [&](int32 SlotIndex, double LiveValue) -> FString
+			{
+				if (bNumeric)
+				{
+					const FNumericSlotData& SlotData = Session->NumericSlots[SlotIndex];
+					if (Session->CurrentNumericSlotIndex == SlotIndex)
+					{
+						// Active slot: use FormatOneField to get the full "[...]" display with the unit.
+						return HudWidget->FormatOneField(TEXT(""), SlotData, Unit, true);
+					}
 
-			// Update the HUD and exit the function immediately for this special case
+					// Inactive slot in numeric mode: check for "Pristine" state.
+					if (SlotData.SlotState == ESlotState::Pristine)
+					{
+						return TEXT("NONE");
+					}
+
+					// Otherwise, show the committed value with the unit.
+					return FString::Printf(TEXT("%.2f%s"), SlotData.GetTotal(), Unit);
+				}
+
+				// Live mode (not numeric): just show the value with two decimal places.
+				return FString::Printf(TEXT("%.2f"), LiveValue);
+			};
+
+			// Use the helper function to format both values.
+			const FString FormattedX = FormatTrackballValue(SlotX, LiveAngleX);
+			const FString FormattedY = FormatTrackballValue(SlotY, LiveAngleY);
+
+			HudString = FString::Printf(TEXT("Trackball: %s %s"), *FormattedX, *FormattedY);
 			HudWidget->Update(FText::FromString(HudString));
-			return;
+			return; // Exit here to bypass the generic formatting logic
 		}
 
 		FString AxisString;
@@ -223,7 +251,7 @@ namespace BlenderControls
 			HudFields.Add({TEXT("Rotation"), LiveAngleDeg, EValueSlot::Angle});
 			Suffix = FString::Printf(TEXT("along %s %s"), *Space, *AxisString);
 		}
-		
+
 		TArray<FString> FormattedFields;
 		for (const FHudFieldData& FieldData : HudFields)
 		{
@@ -254,7 +282,6 @@ namespace BlenderControls
 
 		// No magnitude string for rotation
 		HudString = FString::Printf(TEXT("%s%s %s"), *Header, *FieldsString, *Suffix).TrimEnd();
-
 		HudWidget->Update(FText::FromString(HudString));
 
 		// TEMPORARY LOG
@@ -341,5 +368,31 @@ namespace BlenderControls
 	bool FRotateTool::GetTrackballRotationMode()
 	{
 		return bTrackballModeEnabled;
+	}
+
+	void FRotateTool::UpdateToolSettingsForAxisLock()
+	{
+		if (bTrackballModeEnabled)
+		{
+			NumNumericSlots = 2;
+		}
+		else
+		{
+			NumNumericSlots = 1;
+		}
+	}
+
+	FString FRotateTool::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
+	{
+		if (Slot.CommittedValue.IsSet())
+		{
+			// Degree symbol
+			static const TCHAR* Unit = TEXT("\u00B0"); 
+			const FString ValueString = FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
+
+			// Return the value followed immediately by the unit (e.g., "5°")
+			return FString::Printf(TEXT("%s%s"), *ValueString, Unit);
+		}
+		return FString();
 	}
 } // namespace BlenderControls

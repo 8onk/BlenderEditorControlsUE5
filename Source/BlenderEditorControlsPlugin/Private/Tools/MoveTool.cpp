@@ -4,7 +4,6 @@
 #include "UI/TransformHUD.h"
 #include "Utils/BlenderMathHelpers.h"
 //TODO Cleanup on active?
-//TODO adding numeric values and displaying them correctly, also the - and "/" for reciprocal. 
 
 namespace BlenderControls
 {
@@ -119,9 +118,9 @@ namespace BlenderControls
 		FBlenderToolBase::ApplyNumeric(Value);
 
 		FVector Delta = FVector::ZeroVector;
-		const double Slot1 = NumericSlots[0].GetTotal();
-		const double Slot2 = NumericSlots[1].GetTotal();
-		const double Slot3 = NumericSlots[2].GetTotal();
+		const double Slot1 = Session->NumericSlots[0].GetTotal();
+		const double Slot2 = Session->NumericSlots[1].GetTotal();
+		const double Slot3 = Session->NumericSlots[2].GetTotal();
 
 		switch (LockedAxis)
 		{
@@ -152,6 +151,8 @@ namespace BlenderControls
 			Delta.Z = Slot2;
 			break;
 		}
+
+		UE_LOG(LogTemp, Log, TEXT("Slot2: %f"), Slot2);
 
 		VirtualPivot->Translate(Delta, bUsingLocalSpace);
 		UpdateHud();
@@ -290,23 +291,35 @@ namespace BlenderControls
 		const FString MagString = FString::Printf(TEXT(" (%s)"), *HudWidget->FormatMagnitude(SignedMag, Unit));
 
 		HudString = FString::Printf(TEXT("%s%s %s"), *FieldsString, *MagString, *Suffix).TrimEnd();
-
 		HudWidget->Update(FText::FromString(HudString));
-
-		//TEMPORARY LOG
-		if (bNumeric)
-		{
-			for (int i = 0; i < 3; ++i)
-			{
-				Session->NumericSlots[i].Print();
-				UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
-			}
-		}
 	}
 
 	void FMoveTool::OnEnd(bool bApply)
 	{
 		FBlenderToolBase::OnEnd(bApply);
+	}
+
+	void FMoveTool::UpdateToolSettingsForAxisLock()
+	{
+		switch (LockedAxis)
+		{
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+			NumNumericSlots = 1;
+			break;
+
+		case EAxisLock::XY:
+		case EAxisLock::XZ:
+		case EAxisLock::YZ:
+			NumNumericSlots = 2;
+			break;
+
+		case EAxisLock::All:
+		default:
+			NumNumericSlots = 3;
+			break;
+		}
 	}
 
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)

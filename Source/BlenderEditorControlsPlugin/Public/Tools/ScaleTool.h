@@ -39,6 +39,7 @@ namespace BlenderControls
 		/* ——— helpers ——— */
 		float ComputeScaleDelta(const FVector2D &MouseDelta) const;
 		FVector BuildScaleVector(float Scalar) const;
+		virtual void UpdateToolSettingsForAxisLock() override;
 
 		/* ——— state ——— */
 		FVector PivotWS = FVector::ZeroVector; // average loc

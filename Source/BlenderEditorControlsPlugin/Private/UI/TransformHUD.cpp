@@ -26,15 +26,6 @@ namespace BlenderControls
 					.ColorAndOpacity(FStyleColors::Foreground)
 					.ShadowOffset(FVector2D(1, 1))
 				]
-				// + SOverlay::Slot()
-				// .VAlign(VAlign_Bottom)
-				// .HAlign(HAlign_Right)
-				// .Padding(FMargin(0, 0, 2, 0))
-				// [
-				// 	SAssignNew(NumericText, STextBlock)
-				// 	.Font(FAppStyle::Get().GetFontStyle("SmallFont"))
-				// 	.ColorAndOpacity(FStyleColors::AccentBlue)
-				// ]
 			]
 		];
 	}
@@ -154,7 +145,15 @@ namespace BlenderControls
 	FString STransformHUD::FormatOneField(const FString& Label, const FNumericSlotData& SlotData, const FString& Unit,
 	                                      bool bIsActiveSlot)
 	{
-		// 1. First, determine the final resulting value string (e.g., "= -9.0 cm")
+		if (SlotData.SlotState == ESlotState::Pristine && !bIsActiveSlot)
+		{
+			if (Label.IsEmpty())
+			{
+				return TEXT("NONE");
+			}
+			return FString::Printf(TEXT("%s: NONE"), *Label);
+		}
+
 		FString ResultString;
 		if (SlotData.SlotState == ESlotState::InvalidInput)
 		{
@@ -162,14 +161,16 @@ namespace BlenderControls
 		}
 		else
 		{
-			// Use the GetTotal() function which correctly handles negation
 			const double TotalValue = SlotData.GetTotal();
 			ResultString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(TotalValue), *Unit);
 		}
 
-		// If the slot isn't being actively edited, we're done. Just show the result.
 		if (!bIsActiveSlot)
 		{
+			if (Label.IsEmpty())
+			{
+				return ResultString;
+			}
 			return FString::Printf(TEXT("%s: %s"), *Label, *ResultString);
 		}
 
@@ -192,6 +193,12 @@ namespace BlenderControls
 		default:
 			{
 				FString FinalValueString = TEXT("|NONE|");
+
+				if (Label.IsEmpty())
+				{
+					return FinalValueString;
+				}
+
 				return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
 			}
 		}
@@ -206,8 +213,12 @@ namespace BlenderControls
 			InputString = FString::Printf(TEXT("-(%s)"), *InputString);
 		}
 
-		// 4. Combine everything into the final string
+		//Combine everything into the final string
 		FString FinalValueString = FString::Printf(TEXT("[%s] = %s"), *InputString, *ResultString);
+		if (Label.IsEmpty())
+		{
+			return FinalValueString;
+		}
 		return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
 	}
 
