@@ -29,6 +29,11 @@ namespace BlenderControls
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
+
+		if (HudWidget.IsValid())
+		{
+			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+		}
 	}
 
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -94,6 +99,11 @@ namespace BlenderControls
 
 		VirtualPivot->Scale(SnappedScaleMultiplier, bUsingLocalSpace);
 		UpdateHud();
+
+		if (HudWidget.IsValid())
+		{
+			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+		}
 	}
 
 	void FScaleTool::ApplyNumeric(double Value)
@@ -260,6 +270,10 @@ namespace BlenderControls
 	void FScaleTool::OnEnd(const bool bApply)
 	{
 		FBlenderToolBase::OnEnd(bApply);
+		if (HudWidget.IsValid())
+		{
+			HudWidget->SetDashState(false, FVector2D::ZeroVector, FVector2D::ZeroVector);
+		}
 	}
 
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)

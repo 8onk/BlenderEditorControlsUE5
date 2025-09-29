@@ -312,11 +312,11 @@ namespace BlenderControls
 		if (Session->bIsNumericInputActive)
 		{
 			ApplyNumeric();
-			for (int i = 0; i < 3; ++i)
-			{
-				Session->NumericSlots[i].Print();
-				UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
-			}
+			// for (int i = 0; i < 3; ++i)
+			// {
+			// 	Session->NumericSlots[i].Print();
+			// 	UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
+			// }
 		}
 	}
 
