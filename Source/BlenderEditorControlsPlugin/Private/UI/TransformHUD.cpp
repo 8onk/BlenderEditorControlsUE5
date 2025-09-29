@@ -241,11 +241,22 @@ namespace BlenderControls
 		return FText::AsNumber(InValue, &Opts).ToString();
 	}
 
-	void STransformHUD::SetDashState(bool bEnabled, const FVector2D& InOriginAbsPx, const FVector2D& InMouseAbsPx)
+	void STransformHUD::SetDashState(bool bEnabled, const FVector2D& InOriginPx, const FVector2D& InMousePx)
 	{
 		bShowDash = bEnabled;
-		OriginAbsPx = InOriginAbsPx;
-		MouseAbsPx = InMouseAbsPx;
+		OriginViewportPx = InOriginPx;
+		MouseViewportPx = InMousePx;
+
+		if (!bShowDash)
+		{
+			bHavePrevLen = false;
+			DashPhase = 0.f; // optional: snap when hidden
+		}
+		else
+		{
+			UpdateDashPhaseForLengthChange(); // <-- updates DashPhase using dL
+		}
+
 		Invalidate(EInvalidateWidgetReason::Paint);
 	}
 
@@ -260,8 +271,8 @@ namespace BlenderControls
 		if (!bShowDash) return LayerId;
 
 		// Convert absolute/viewport px -> local paint space for this widget
-		const FVector2f A(OriginAbsPx);
-		const FVector2f B(MouseAbsPx);
+		const FVector2f A(OriginViewportPx);
+		const FVector2f B(MouseViewportPx);
 
 		TArray<FVector2f> Pts;
 		Pts.Add(A);
@@ -276,15 +287,79 @@ namespace BlenderControls
 		return LayerId;
 	}
 
-	void STransformHUD::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+	FCursorReply STransformHUD::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 	{
-		// // advance the “marching ants” phase
-		// DashPhase = FMath::Fmod(DashPhase + 60.f * InDeltaTime, DashLengthPx * 2.f);
-		//
-		// // if the dashed line is visible, ask Slate to repaint
-		// if (bShowDash)
-		// {
-		// 	Invalidate(EInvalidateWidgetReason::Paint);
-		// }
+		if (CursorPolicy == ECursorPolicy::Default)
+			return FCursorReply::Unhandled();
+
+		const FVector2D AB = MouseViewportPx - OriginViewportPx;
+		const float Len = AB.Size();
+		if (Len < KINDA_SMALL_NUMBER)
+			return FCursorReply::Cursor(EMouseCursor::Default);
+
+		FVector2D Dir = AB / Len;
+
+		if (CursorPolicy == ECursorPolicy::Perpendicular)
+		{
+			// Rotate 90° (perp); choose either (+y,-x) or (-y,+x)
+			Dir = FVector2D(Dir.Y, -Dir.X);
+		}
+
+		return FCursorReply::Cursor(PickNearestCursor_Aligned(Dir));
+	}
+
+	void STransformHUD::UpdateDashPhaseForLengthChange()
+	{
+		const float curLen = (MouseViewportPx - OriginViewportPx).Size();
+
+		if (!bHavePrevLen)
+		{
+			PrevLen = curLen;
+			bHavePrevLen = true;
+			return;
+		}
+
+		const float dL = curLen - PrevLen; // pixels along the line (+grow, -shrink)
+
+		if (FMath::Abs(dL) > 0.01f) // dead-zone
+		{
+			// Slide the pattern opposite to the length change, so ticks "move"
+			DashPhase -= dL;
+
+			// Keep phase within one period [0, 2*DashLengthPx)
+			const float Period = 2.f * DashLengthPx;
+			DashPhase = FMath::Fmod(DashPhase, Period);
+			if (DashPhase < 0.f) DashPhase += Period;
+
+			PrevLen = curLen;
+		}
+	}
+
+	EMouseCursor::Type STransformHUD::PickNearestCursor_Aligned(const FVector2D& Dir)
+	{
+		// Basis
+		const FVector2D X(1, 0), Y(0, 1);
+		const FVector2D D1 = FVector2D(1, 1).GetSafeNormal(); // NE-SW family
+		const FVector2D D2 = FVector2D(1, -1).GetSafeNormal(); // NW-SE family
+
+		const float ax = FMath::Abs(FVector2D::DotProduct(Dir, X));
+		const float ay = FMath::Abs(FVector2D::DotProduct(Dir, Y));
+		const float d1 = FMath::Abs(FVector2D::DotProduct(Dir, D1));
+		const float d2 = FMath::Abs(FVector2D::DotProduct(Dir, D2));
+
+		// Prefer axis if closer than diagonals
+		if (FMath::Max(ax, ay) >= FMath::Max(d1, d2))
+		{
+			return (ax >= ay)
+				       ? EMouseCursor::ResizeLeftRight // —
+				       : EMouseCursor::ResizeUpDown; // |
+		}
+		else
+		{
+			const bool useNESW = (d1 >= d2);
+			return useNESW
+				       ? EMouseCursor::ResizeSouthEast // ↘/↖ family
+				       : EMouseCursor::ResizeSouthWest; // ↙/↗ family
+		}
 	}
 }

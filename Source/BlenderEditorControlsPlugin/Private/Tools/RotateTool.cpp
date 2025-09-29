@@ -33,6 +33,11 @@ namespace BlenderControls
 		AccumulatedAngleRad = 0.0f;
 		TrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
+
+		if (HudWidget.IsValid())
+		{
+			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+		}
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -99,6 +104,11 @@ namespace BlenderControls
 			VirtualPivot->Rotate(GrabContext, AngleToApplyRad, bUsingLocalSpace, LockedAxis);
 
 			LastDragVector = CurrentDragVector;
+		}
+
+		if (HudWidget.IsValid())
+		{
+			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
 		}
 
 		UpdateHud();
@@ -298,6 +308,10 @@ namespace BlenderControls
 	void FRotateTool::OnEnd(const bool bApply)
 	{
 		FBlenderToolBase::OnEnd(bApply);
+		if (HudWidget.IsValid())
+		{
+			HudWidget->SetDashState(false, FVector2D::ZeroVector, FVector2D::ZeroVector);
+		}
 	}
 
 	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)
@@ -387,7 +401,7 @@ namespace BlenderControls
 		if (Slot.CommittedValue.IsSet())
 		{
 			// Degree symbol
-			static const TCHAR* Unit = TEXT("\u00B0"); 
+			static const TCHAR* Unit = TEXT("\u00B0");
 			const FString ValueString = FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
 
 			// Return the value followed immediately by the unit (e.g., "5°")

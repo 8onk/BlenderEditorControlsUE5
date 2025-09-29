@@ -33,6 +33,7 @@ namespace BlenderControls
 		if (HudWidget.IsValid())
 		{
 			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+			HudWidget->SetCursorPolicy(ECursorPolicy::AlongLine);
 		}
 	}
 
@@ -98,12 +99,15 @@ namespace BlenderControls
 		}
 
 		VirtualPivot->Scale(SnappedScaleMultiplier, bUsingLocalSpace);
-		UpdateHud();
 
 		if (HudWidget.IsValid())
 		{
+			HudWidget->SetLineEndpoints(PivotViewportPosition, VirtualMousePosition);
 			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+			HudWidget->Invalidate(EInvalidateWidgetReason::Paint);
 		}
+
+		UpdateHud();
 	}
 
 	void FScaleTool::ApplyNumeric(double Value)
