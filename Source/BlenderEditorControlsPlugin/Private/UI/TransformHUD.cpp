@@ -260,34 +260,31 @@ namespace BlenderControls
 		if (!bShowDash) return LayerId;
 
 		// Convert absolute/viewport px -> local paint space for this widget
-		const FVector2f A(AllottedGeometry.AbsoluteToLocal(OriginAbsPx));
-		const FVector2f B(AllottedGeometry.AbsoluteToLocal(MouseAbsPx));
+		const FVector2f A(OriginAbsPx);
+		const FVector2f B(MouseAbsPx);
 
 		TArray<FVector2f> Pts;
 		Pts.Add(A);
 		Pts.Add(B);
 
-		const float Thickness = 1.5f; // SU (DPI-scaled)
-		const float DashLengthPx = 6.0f; // length of one dash ON segment (px in screen space)
 		const float Phase = DashPhase; // animate; 0 for static
 
 		FSlateDrawElement::MakeDashedLines(
-			OutDrawElements, ++LayerId, FPaintGeometry(), MoveTemp(Pts),
-			ESlateDrawEffect::None, FLinearColor::White, Thickness, DashLengthPx, Phase);
+			OutDrawElements, ++LayerId, AllottedGeometry.ToPaintGeometry(), MoveTemp(Pts),
+			ESlateDrawEffect::None, FLinearColor::White, DashThickness, DashLengthPx, Phase);
 
 		return LayerId;
 	}
 
 	void STransformHUD::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 	{
-		const float DashLengthPx = 6.f;
-		// advance the “marching ants” phase
-		DashPhase = FMath::Fmod(DashPhase + 60.f * InDeltaTime, DashLengthPx * 2.f);
-		
-		// if the dashed line is visible, ask Slate to repaint
-		if (bShowDash)
-		{
-			Invalidate(EInvalidateWidgetReason::Paint);
-		}
+		// // advance the “marching ants” phase
+		// DashPhase = FMath::Fmod(DashPhase + 60.f * InDeltaTime, DashLengthPx * 2.f);
+		//
+		// // if the dashed line is visible, ask Slate to repaint
+		// if (bShowDash)
+		// {
+		// 	Invalidate(EInvalidateWidgetReason::Paint);
+		// }
 	}
 }

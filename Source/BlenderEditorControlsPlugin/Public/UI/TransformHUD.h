@@ -58,5 +58,7 @@ namespace BlenderControls
 		FVector2D OriginAbsPx = FVector2D::ZeroVector; // absolute/viewport px
 		FVector2D MouseAbsPx = FVector2D::ZeroVector; // absolute/viewport px
 		float DashPhase = 0.f; // animated offset
+		const float DashLengthPx = 4.0f;
+		const float DashThickness = 1.5f;
 	};
 }
