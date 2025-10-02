@@ -17,10 +17,15 @@ public:
 	{
 		const ERHIFeatureLevel::Type FL = GetScene().GetFeatureLevel();
 
-		// Use engine base material for relevance (unlit opaque)
-		UMaterialInterface* BaseMat = GEngine->LevelColorationUnlitMaterial;
-		MaterialRelevance = BaseMat->GetRelevance_Concurrent(FL);
+		// <<< change: use the SAME material you will draw with >>>
+		DrawMaterial = Comp->AxisMID
+			               ? (UMaterialInterface*)Comp->AxisMID
+			               : (Comp->AxisMaterial
+				                  ? Comp->AxisMaterial
+				                  : LoadObject<UMaterialInterface>(
+					                  nullptr, TEXT("/Game/Materials/M_AxisRibbon.M_AxisRibbon")));
 
+		MaterialRelevance = DrawMaterial->GetRelevance_Concurrent(FL); // match the pass!  <-- key
 		bWillEverBeLit = false;
 	}
 
@@ -68,6 +73,7 @@ private:
 	float ThicknessPx = 2.0f;
 	bool bDashed;
 	const FMaterialRenderProxy* MaterialProxy = nullptr;
+	UMaterialInterface* DrawMaterial = nullptr;
 	FMaterialRelevance MaterialRelevance;
 
 	// Compute world-units-per-pixel at a point for this view (persp & ortho).
@@ -99,17 +105,17 @@ private:
 		}
 	}
 
-	static void BuildRibbonQuads(
+	void BuildRibbonQuads(
 		const FSceneView& View,
 		int32 ViewIndex,
 		const FVector& A,
 		const FVector& B,
-		float ThicknessPx,
-		const FLinearColor& Color,
+		float InThicknessPx,
+		const FLinearColor& InColor,
 		int Segments,
 		FMeshElementCollector& Collector,
 		FPrimitiveDrawInterface* PDI,
-		const FMaterialRenderProxy* Proxy)
+		const FMaterialRenderProxy* Proxy) const 
 	{
 		// Tesselate AB so thickness adapts if depth varies along the line.
 		const int32 N = FMath::Max(1, Segments);
@@ -134,8 +140,8 @@ private:
 
 			const float wpp0 = WorldPerPixelAt(View, P0);
 			const float wpp1 = WorldPerPixelAt(View, P1);
-			const float halfW0 = 0.5f * ThicknessPx * wpp0;
-			const float halfW1 = 0.5f * ThicknessPx * wpp1;
+			const float halfW0 = 0.5f * InThicknessPx * wpp0;
+			const float halfW1 = 0.5f * InThicknessPx * wpp1;
 
 			const FVector v0 = P0 - Right * halfW0;
 			const FVector v1 = P0 + Right * halfW0;
@@ -157,30 +163,31 @@ private:
 
 			// AddVertex wants FVector3f/FVector2f/FVector3f/FVector3f/FVector3f/FColor
 			const int32 i0 = MeshBuilder.AddVertex((FVector3f)v0, FVector2f(0, 0), TangentX, TangentY, TangentZ,
-			                                       FColor(Color.ToFColor(true)));
+			                                       FColor(InColor.ToFColor(true)));
 			const int32 i1 = MeshBuilder.AddVertex((FVector3f)v1, FVector2f(1, 0), TangentX, TangentY, TangentZ,
-			                                       FColor(Color.ToFColor(true)));
+			                                       FColor(InColor.ToFColor(true)));
 			const int32 i2 = MeshBuilder.AddVertex((FVector3f)v2, FVector2f(0, 1), TangentX, TangentY, TangentZ,
-			                                       FColor(Color.ToFColor(true)));
+			                                       FColor(InColor.ToFColor(true)));
 			const int32 i3 = MeshBuilder.AddVertex((FVector3f)v3, FVector2f(1, 1), TangentX, TangentY, TangentZ,
-			                                       FColor(Color.ToFColor(true)));
+			                                       FColor(InColor.ToFColor(true)));
 
 			MeshBuilder.AddTriangle(i0, i2, i1);
 			MeshBuilder.AddTriangle(i1, i2, i3);
 		}
 
 		// Draw
-		const FMatrix LocalToWorld = FMatrix::Identity;
+		const FMatrix LocalToWorldMatrix = FMatrix::Identity;
 
-		UMaterialInterface* BaseMat = GEngine->LevelColorationUnlitMaterial;
+		UMaterialInterface* BaseMat = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Materials/M_AxisRibbon.M_AxisRibbon"));
 
 		// 2) Wrap with a per-draw colored proxy
-		const FMaterialRenderProxy* BaseProxy = BaseMat->GetRenderProxy();
-		auto* OneFrameColored = new FColoredMaterialRenderProxy(BaseProxy, Color, NAME_Color);
+		const FMaterialRenderProxy* BaseProxy = DrawMaterial->GetRenderProxy();
+		auto* OneFrameColored = new FColoredMaterialRenderProxy(BaseProxy, InColor, NAME_Color);
 		Collector.RegisterOneFrameMaterialProxy(OneFrameColored);
 
 		MeshBuilder.GetMesh(
-			LocalToWorld,
+			LocalToWorldMatrix,
 			OneFrameColored,
 			SDPG_Foreground, // or SDPG_Foreground if you want it drawn later (still depth-tested)
 			/*bDisableBackfaceCulling*/ true,
