@@ -40,7 +40,7 @@ namespace BlenderControls
 		virtual void OnEnd(bool bApply);
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
-		void SetSnappingEnabled(bool bNewSnappingEnabled) { bSnappingEnabled = bNewSnappingEnabled; }
+		void SetSnappingEnabled(bool bNewSnappingEnabled);
 
 		void SetViewportMousePosition(FVector2D InViewportMousePosition)
 		{

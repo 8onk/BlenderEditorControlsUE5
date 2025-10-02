@@ -186,28 +186,23 @@ namespace BlenderControls
 	                                                          float LineLength) const
 	{
 		UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
-		if (!World) return nullptr; // editor world
+		if (!World) return nullptr;
 
 		UAxisLockGizmoComponent* Comp =
-			NewObject<UAxisLockGizmoComponent>(GetTransientPackage()); // not saved to level
-
-		//Editor-only/transient setup
+			NewObject<UAxisLockGizmoComponent>(GetTransientPackage());
+		
 		Comp->SetMobility(EComponentMobility::Movable);
 		Comp->bHiddenInGame = false;
 		Comp->SetCastShadow(false);
-
-		// Set data mirrored to the proxy
+		
 		Comp->Origin = Origin;
 		Comp->AxisDir = AxisDir;
-		Comp->AxisColor = Color; // <- for OnRegister/MID
+		Comp->AxisColor = Color;
 		Comp->ThicknessPx = ThicknessPx;
 		Comp->LineLength = LineLength;
 
-		Comp->RegisterComponentWithWorld(World); // registers + creates scene proxy
+		Comp->RegisterComponentWithWorld(World);
 		Comp->SetAxisColor(Color);
-
-		UE_LOG(LogTemp, Log, TEXT("Gizmo IsRegistered=%d IsVisible=%d IsVisibleInEditor=%d"),
-		       Comp->IsRegistered(), Comp->IsVisible(), Comp->IsVisibleInEditor());
 
 		return Comp;
 	}
@@ -225,7 +220,6 @@ namespace BlenderControls
 
 		if (bUsingLocalSpace)
 		{
-			//AxisVector = VirtualPivot->GetStartTransform().TransformVectorNoScale(AxisVector);
 			AxisVector = VirtualPivot->GetActiveElement().Transform.TransformVectorNoScale(AxisVector);
 		}
 		return AxisVector.GetSafeNormal();
@@ -369,6 +363,7 @@ namespace BlenderControls
 		if (Session->bIsNumericInputActive)
 		{
 			ApplyNumeric();
+			//TEMPORARY DEBUG
 			// for (int i = 0; i < 3; ++i)
 			// {
 			// 	Session->NumericSlots[i].Print();
@@ -471,6 +466,13 @@ namespace BlenderControls
 		{
 			CurrentPrecisionFactor = 1.0f;
 		}
+	}
+
+	void FBlenderToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
+	{
+		bSnappingEnabled = bNewSnappingEnabled;
+		//Update position
+		OnActive(CurrentMousePosition);
 	}
 
 	void FBlenderToolBase::SetTrackballRotationMode(const bool bEnabled)
