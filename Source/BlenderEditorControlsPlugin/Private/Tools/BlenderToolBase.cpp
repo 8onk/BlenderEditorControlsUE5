@@ -32,10 +32,13 @@ namespace BlenderControls
 		RedrawAxisLines();
 
 		// Refresh
-		OnActive(CurrentViewportMousePos);
 		if (Session->bIsNumericInputActive)
 		{
 			ApplyNumeric();
+		}
+		else
+		{
+			OnActive(CurrentViewportMousePos);
 		}
 		UpdateHud();
 	}
@@ -190,11 +193,11 @@ namespace BlenderControls
 
 		UAxisLockGizmoComponent* Comp =
 			NewObject<UAxisLockGizmoComponent>(GetTransientPackage());
-		
+
 		Comp->SetMobility(EComponentMobility::Movable);
 		Comp->bHiddenInGame = false;
 		Comp->SetCastShadow(false);
-		
+
 		Comp->Origin = Origin;
 		Comp->AxisDir = AxisDir;
 		Comp->AxisColor = Color;
@@ -374,7 +377,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		if (!Viewport || !ViewportClient || !VirtualPivot)
+		if (!Viewport || !ViewportClient || !VirtualPivot || Session->bIsNumericInputActive)
 		{
 			return;
 		}
@@ -470,9 +473,17 @@ namespace BlenderControls
 
 	void FBlenderToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
 	{
+		if (bSnappingEnabled == bNewSnappingEnabled)
+		{
+			return;
+		}
+
 		bSnappingEnabled = bNewSnappingEnabled;
-		//Update position
-		OnActive(CurrentMousePosition);
+
+		if (!Session->bIsNumericInputActive)
+		{
+			OnActive(CurrentMousePosition);
+		}
 	}
 
 	void FBlenderToolBase::SetTrackballRotationMode(const bool bEnabled)
