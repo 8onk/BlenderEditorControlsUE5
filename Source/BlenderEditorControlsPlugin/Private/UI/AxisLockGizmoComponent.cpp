@@ -17,15 +17,22 @@ public:
 	{
 		const ERHIFeatureLevel::Type FL = GetScene().GetFeatureLevel();
 
-		// <<< change: use the SAME material you will draw with >>>
-		DrawMaterial = Comp->AxisMID
-			               ? (UMaterialInterface*)Comp->AxisMID
-			               : (Comp->AxisMaterial
-				                  ? Comp->AxisMaterial
-				                  : LoadObject<UMaterialInterface>(
-					                  nullptr, TEXT("/Game/Materials/M_AxisRibbon.M_AxisRibbon")));
+		DrawMaterialFromComponent =
+			Comp->AxisMID
+				? (UMaterialInterface*)Comp->AxisMID
+				: (Comp->AxisMaterial ? Comp->AxisMaterial : nullptr);
 
-		MaterialRelevance = DrawMaterial->GetRelevance_Concurrent(FL); // match the pass!  <-- key
+		FallbackMatPersp = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
+		FallbackMatOrtho = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
+
+		FMaterialRelevance R;
+		if (DrawMaterialFromComponent) { R |= DrawMaterialFromComponent->GetRelevance_Concurrent(FL); }
+		if (FallbackMatPersp) { R |= FallbackMatPersp->GetRelevance_Concurrent(FL); }
+		if (FallbackMatOrtho) { R |= FallbackMatOrtho->GetRelevance_Concurrent(FL); }
+		MaterialRelevance = R;
+
 		bWillEverBeLit = false;
 	}
 
@@ -44,11 +51,27 @@ public:
 		{
 			if ((VisibilityMap & (1 << ViewIndex)) == 0) continue;
 			const FSceneView* View = Views[ViewIndex];
-			FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 
-			// Build camera-facing ribbon along AB with screen-constant width.
-			BuildRibbonQuads(*View, ViewIndex, A, B, ThicknessPx, Color, /*Segments*/ 32, Collector, PDI, /*Proxy*/
-			                 MaterialProxy);
+			/* Choose different material for perspective vs orthographic.
+			Using same material results in wierd disconnected line segments in
+			orthographic view.
+			*/
+			UMaterialInterface* ActiveMat =
+				DrawMaterialFromComponent
+					? DrawMaterialFromComponent
+					: (View->IsPerspectiveProjection()
+						   ? FallbackMatPersp
+						   : FallbackMatOrtho);
+
+			if (!ActiveMat) { ActiveMat = UMaterial::GetDefaultMaterial(MD_Surface); }
+
+			const FMaterialRenderProxy* BaseProxy = ActiveMat->GetRenderProxy();
+			auto* OneFrameColored = new FColoredMaterialRenderProxy(BaseProxy, Color, FName("LineColor"));
+			Collector.RegisterOneFrameMaterialProxy(OneFrameColored);
+
+			BuildRibbonQuads(*View, ViewIndex, A, B, ThicknessPx, Color, 32, Collector,
+			                 /*PDI*/ Collector.GetPDI(ViewIndex),
+			                 /*Proxy*/ OneFrameColored);
 		}
 	}
 
@@ -75,15 +98,17 @@ private:
 	const FMaterialRenderProxy* MaterialProxy = nullptr;
 	UMaterialInterface* DrawMaterial = nullptr;
 	FMaterialRelevance MaterialRelevance;
+	UMaterialInterface* DrawMaterialFromComponent = nullptr;
+	UMaterialInterface* FallbackMatPersp = nullptr;
+	UMaterialInterface* FallbackMatOrtho = nullptr;
 
-	// Compute world-units-per-pixel at a point for this view (persp & ortho).
 	static float WorldPerPixelAt(const FSceneView& View, const FVector& WorldPos)
 	{
 		if (View.IsPerspectiveProjection())
 		{
 			const FVector ViewPos = View.ViewMatrices.GetViewMatrix().TransformPosition(WorldPos);
 			const float depth = FMath::Abs(ViewPos.Z);
-			const float HFovDeg = View.FOV; // UE exposes FOV here
+			const float HFovDeg = View.FOV;
 			const float HFovRad = FMath::DegreesToRadians(HFovDeg);
 			const float viewWidthPx = float(View.UnscaledViewRect.Width());
 			const float screenWidthWorld = 2.f * depth * FMath::Tan(HFovRad * 0.5f);
@@ -91,7 +116,6 @@ private:
 		}
 		else
 		{
-			// Orthographic width in world units across the view rect:
 			const float orthoWidthWorld = View.ViewMatrices.GetProjectionMatrix().M[0][0] == 0
 				                              ? 1.f
 				                              : (View.ViewMatrices.GetInvProjectionMatrix().TransformFVector4(
@@ -99,7 +123,6 @@ private:
 					                              - View.ViewMatrices.GetInvProjectionMatrix().TransformFVector4(
 						                              FVector4(-1, 0, 1, 1)).X) * 0.5f;
 
-			// More robust: UE exposes View.WorldToScreenScale/UnscaledViewRect; using rect width is fine:
 			const float viewWidthPx = float(View.UnscaledViewRect.Width());
 			return orthoWidthWorld / viewWidthPx;
 		}
@@ -115,7 +138,7 @@ private:
 		int Segments,
 		FMeshElementCollector& Collector,
 		FPrimitiveDrawInterface* PDI,
-		const FMaterialRenderProxy* Proxy) const 
+		const FMaterialRenderProxy* Proxy) const
 	{
 		// Tesselate AB so thickness adapts if depth varies along the line.
 		const int32 N = FMath::Max(1, Segments);
@@ -130,12 +153,9 @@ private:
 			const FVector P0 = A + Dir * float(i);
 			const FVector P1 = A + Dir * float(i + 1);
 
-			// Camera-facing right vector = normalize( ViewDir x SegmentDir )
-			// View forward (world) can be approximated from view matrix:
-			const FVector CamForward = View.GetViewDirection(); // world forward (towards scene)
+			const FVector CamForward = View.GetViewDirection();
 			const FVector SegDir = (P1 - P0).GetSafeNormal();
 			FVector Right = FVector::CrossProduct(CamForward, SegDir).GetSafeNormal();
-			// If nearly parallel, fall back to another basis:
 			if (Right.IsNearlyZero()) Right = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
 
 			const float wpp0 = WorldPerPixelAt(View, P0);
@@ -148,20 +168,15 @@ private:
 			const FVector v2 = P1 - Right * halfW1;
 			const FVector v3 = P1 + Right * halfW1;
 
-			const FVector SegDirW = (P1 - P0).GetSafeNormal(); // along the line (U)
+			const FVector SegDirW = (P1 - P0).GetSafeNormal();
 			FVector RightW = FVector::CrossProduct(View.GetViewDirection(), SegDirW).GetSafeNormal();
 			if (RightW.IsNearlyZero()) RightW = FVector::CrossProduct(FVector::UpVector, SegDirW).GetSafeNormal();
-			const FVector NormalW = FVector::CrossProduct(SegDirW, RightW).GetSafeNormal(); // VxU = N
+			const FVector NormalW = FVector::CrossProduct(SegDirW, RightW).GetSafeNormal();
 
-			// Convert to float-precision for FDynamicMeshBuilder:
 			const FVector3f TangentX = (FVector3f)SegDirW; // U
 			const FVector3f TangentY = (FVector3f)RightW; // V
 			const FVector3f TangentZ = (FVector3f)NormalW; // N
 
-			// Your quad verts (world, double-precision)
-			// v0,v1,v2,v3 are FVector (double) from your earlier code
-
-			// AddVertex wants FVector3f/FVector2f/FVector3f/FVector3f/FVector3f/FColor
 			const int32 i0 = MeshBuilder.AddVertex((FVector3f)v0, FVector2f(0, 0), TangentX, TangentY, TangentZ,
 			                                       FColor(InColor.ToFColor(true)));
 			const int32 i1 = MeshBuilder.AddVertex((FVector3f)v1, FVector2f(1, 0), TangentX, TangentY, TangentZ,
@@ -175,21 +190,12 @@ private:
 			MeshBuilder.AddTriangle(i1, i2, i3);
 		}
 
-		// Draw
 		const FMatrix LocalToWorldMatrix = FMatrix::Identity;
-
-		UMaterialInterface* BaseMat = LoadObject<UMaterialInterface>(
-			nullptr, TEXT("/Game/Materials/M_AxisRibbon.M_AxisRibbon"));
-
-		// 2) Wrap with a per-draw colored proxy
-		const FMaterialRenderProxy* BaseProxy = DrawMaterial->GetRenderProxy();
-		auto* OneFrameColored = new FColoredMaterialRenderProxy(BaseProxy, InColor, NAME_Color);
-		Collector.RegisterOneFrameMaterialProxy(OneFrameColored);
 
 		MeshBuilder.GetMesh(
 			LocalToWorldMatrix,
-			OneFrameColored,
-			SDPG_Foreground, // or SDPG_Foreground if you want it drawn later (still depth-tested)
+			Proxy,
+			SDPG_Foreground,
 			/*bDisableBackfaceCulling*/ true,
 			/*bReceivesDecals*/ false,
 			ViewIndex,
@@ -201,11 +207,9 @@ private:
 void UAxisLockGizmoComponent::SetAxisColor(const FLinearColor& InColor)
 {
 	AxisColor = InColor;
-	if (AxisMID) // each component should have its own MID
+	if (AxisMID) 
 	{
 		AxisMID->SetVectorParameterValue(TEXT("LineColor"), AxisColor);
-		// No need to rebuild the proxy for a MID param change, but harmless if you do:
-		// MarkRenderStateDirty();
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Color = %s"), *AxisColor.ToString());
@@ -214,21 +218,21 @@ void UAxisLockGizmoComponent::SetAxisColor(const FLinearColor& InColor)
 void UAxisLockGizmoComponent::OnRegister()
 {
 	Super::OnRegister();
-
-	if (!AxisMaterial)
-	{
-		AxisMaterial = LoadObject<UMaterialInterface>(
-			nullptr, TEXT("/Game/Materials/M_AxisRibbon.M_AxisRibbon"));
-	}
-
-	if (AxisMaterial && !AxisMID)
-	{
-		AxisMID = UMaterialInstanceDynamic::Create(AxisMaterial, this);
-	}
-	if (AxisMID)
-	{
-		AxisMID->SetVectorParameterValue(TEXT("LineColor"), AxisColor);
-	}
+	//
+	// if (!AxisMaterial)
+	// {
+	// 	AxisMaterial = LoadObject<UMaterialInterface>(
+	// 		nullptr, TEXT("/Game/Materials/M_AxisRibbon.M_AxisRibbon"));
+	// }
+	//
+	// if (AxisMaterial && !AxisMID)
+	// {
+	// 	AxisMID = UMaterialInstanceDynamic::Create(AxisMaterial, this);
+	// }
+	// if (AxisMID)
+	// {
+	// 	AxisMID->SetVectorParameterValue(TEXT("LineColor"), AxisColor);
+	// }
 }
 
 FPrimitiveSceneProxy* UAxisLockGizmoComponent::CreateSceneProxy()
