@@ -7,6 +7,7 @@
 #include "DrawDebugHelpers.h"
 #include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
+#include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
 
 //TODO: make GetSnapOffset abstract
@@ -48,57 +49,82 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::RedrawAxisLines() const
+	void FBlenderToolBase::RedrawAxisLines()
 	{
-		FlushDrawnAxisLines();
+		// Clear any previous gizmos first
+		for (auto& Giz : AxisGizmos)
+			if (Giz.IsValid()) Giz->DestroyComponent();
+		const_cast<FBlenderToolBase*>(this)->AxisGizmos.Empty();
+
+		auto AddAxis = [&](EAxisLock Axis, const FChildInfo* ChildInfo)
+		{
+			FVector Origin, AxisDir;
+			if (ChildInfo && bUsingLocalSpace)
+			{
+				const FTransform& T = ChildInfo->Transform; // saved start transform
+				Origin = T.GetLocation();
+				const FVector Local =
+					(Axis == EAxisLock::X)
+						? FVector::XAxisVector
+						: (Axis == EAxisLock::Y)
+						? FVector::YAxisVector
+						: FVector::ZAxisVector;
+				AxisDir = T.TransformVectorNoScale(Local);
+			}
+			else
+			{
+				Origin = VirtualPivot->GetStartTransform().GetLocation();
+				AxisDir = GetAxisVector(Axis);
+			}
+
+			const FLinearColor C = GetAxisColor(Axis);
+			constexpr float ThicknessPx = 2.f;
+			constexpr float Length = WORLD_MAX;
+
+			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(Origin, AxisDir, C, ThicknessPx, Length))
+			{
+				AxisGizmos.Add(Comp);
+			}
+		};
 
 		if (bUsingLocalSpace)
 		{
 			for (const FChildInfo& Child : VirtualPivot->GetChildren())
 			{
 				if (!Child.Actor) continue;
-
-				if (LockedAxis == EAxisLock::XY)
+				switch (LockedAxis)
 				{
-					DrawAxisLine(EAxisLock::X, &Child);
-					DrawAxisLine(EAxisLock::Y, &Child);
-				}
-				else if (LockedAxis == EAxisLock::XZ)
-				{
-					DrawAxisLine(EAxisLock::X, &Child);
-					DrawAxisLine(EAxisLock::Z, &Child);
-				}
-				else if (LockedAxis == EAxisLock::YZ)
-				{
-					DrawAxisLine(EAxisLock::Y, &Child);
-					DrawAxisLine(EAxisLock::Z, &Child);
-				}
-				else if (LockedAxis != EAxisLock::All)
-				{
-					DrawAxisLine(LockedAxis, &Child);
+				case EAxisLock::XY: AddAxis(EAxisLock::X, &Child);
+					AddAxis(EAxisLock::Y, &Child);
+					break;
+				case EAxisLock::XZ: AddAxis(EAxisLock::X, &Child);
+					AddAxis(EAxisLock::Z, &Child);
+					break;
+				case EAxisLock::YZ: AddAxis(EAxisLock::Y, &Child);
+					AddAxis(EAxisLock::Z, &Child);
+					break;
+				case EAxisLock::All: break;
+				default: AddAxis(LockedAxis, &Child);
+					break;
 				}
 			}
 		}
 		else
 		{
-			if (LockedAxis == EAxisLock::XY)
+			switch (LockedAxis)
 			{
-				DrawAxisLine(EAxisLock::X);
-				DrawAxisLine(EAxisLock::Y);
-			}
-			else if (LockedAxis == EAxisLock::XZ)
-			{
-				DrawAxisLine(EAxisLock::X);
-				DrawAxisLine(EAxisLock::Z);
-			}
-			else if (LockedAxis == EAxisLock::YZ)
-			{
-				DrawAxisLine(EAxisLock::Y);
-				DrawAxisLine(EAxisLock::Z);
-			}
-			else if (LockedAxis != EAxisLock::All)
-			{
-				DrawAxisLine(LockedAxis);
+			case EAxisLock::XY: AddAxis(EAxisLock::X, nullptr);
+				AddAxis(EAxisLock::Y, nullptr);
+				break;
+			case EAxisLock::XZ: AddAxis(EAxisLock::X, nullptr);
+				AddAxis(EAxisLock::Z, nullptr);
+				break;
+			case EAxisLock::YZ: AddAxis(EAxisLock::Y, nullptr);
+				AddAxis(EAxisLock::Z, nullptr);
+				break;
+			case EAxisLock::All: break;
+			default: AddAxis(LockedAxis, nullptr);
+				break;
 			}
 		}
 	}
@@ -153,6 +179,37 @@ namespace BlenderControls
 		const FLinearColor Color = GetAxisColor(InAxis);
 		CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, 2.0f, 0.f);
 		CachedBatcher->MarkRenderStateDirty();
+	}
+
+	UAxisLockGizmoComponent* FBlenderToolBase::SpawnAxisGizmo(const FVector& Origin, const FVector& AxisDir,
+	                                                          const FLinearColor& Color, float ThicknessPx,
+	                                                          float LineLength) const
+	{
+		UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+		if (!World) return nullptr; // editor world
+
+		UAxisLockGizmoComponent* Comp =
+			NewObject<UAxisLockGizmoComponent>(GetTransientPackage()); // not saved to level
+
+		//Editor-only/transient setup
+		Comp->SetMobility(EComponentMobility::Movable);
+		Comp->bHiddenInGame = false;
+		Comp->SetCastShadow(false);
+
+		// Set data mirrored to the proxy
+		Comp->Origin = Origin;
+		Comp->AxisDir = AxisDir;
+		Comp->AxisColor = Color; // <- for OnRegister/MID
+		Comp->ThicknessPx = ThicknessPx;
+		Comp->LineLength = LineLength;
+
+		Comp->RegisterComponentWithWorld(World); // registers + creates scene proxy
+		Comp->SetAxisColor(Color);
+
+		UE_LOG(LogTemp, Log, TEXT("Gizmo IsRegistered=%d IsVisible=%d IsVisibleInEditor=%d"),
+		       Comp->IsRegistered(), Comp->IsVisible(), Comp->IsVisibleInEditor());
+
+		return Comp;
 	}
 
 	FVector FBlenderToolBase::GetAxisVector(const EAxisLock InAxis) const
@@ -391,7 +448,10 @@ namespace BlenderControls
 		HudWidget->Detach();
 		ViewportClient->Invalidate();
 
-		FlushDrawnAxisLines();
+		for (auto& Giz : AxisGizmos)
+			if (Giz.IsValid()) Giz->DestroyComponent();
+		AxisGizmos.Empty();
+		//FlushDrawnAxisLines();
 	}
 
 	void FBlenderToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)

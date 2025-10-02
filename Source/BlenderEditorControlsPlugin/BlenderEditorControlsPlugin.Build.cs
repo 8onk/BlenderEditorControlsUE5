@@ -9,17 +9,18 @@ public class BlenderEditorControlsPlugin : ModuleRules
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicIncludePaths.AddRange(
-			new string[] {
+			new string[]
+			{
 				// ... add public include paths required here ...
 			}
-			);
-
+		);
 
 		PrivateIncludePaths.AddRange(
-			new string[] {
+			new string[]
+			{
 				// ... add other private include paths required here ...
 			}
-			);
+		);
 
 
 		PublicDependencyModuleNames.AddRange(
@@ -28,7 +29,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"Core", "EditorInteractiveToolsFramework", "InteractiveToolsFramework", "UMG"
 				// ... add other public dependencies that you statically link with here ...
 			}
-			);
+		);
 
 
 		PrivateDependencyModuleNames.AddRange(
@@ -45,7 +46,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"EditorInteractiveToolsFramework",
 				"ComponentVisualizers"
 			}
-			);
+		);
 
 
 		DynamicallyLoadedModuleNames.AddRange(
@@ -53,6 +54,6 @@ public class BlenderEditorControlsPlugin : ModuleRules
 			{
 				// ... add any modules that your module loads dynamically here ...
 			}
-			);
+		);
 	}
 }

@@ -1,9 +1,7 @@
 ﻿#include "UI/TransformHUD.h"
-#include <devicetopology.h>
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
-#include "Slate/SceneViewport.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateTypes.h"
 #include "Widgets/Text/STextBlock.h"

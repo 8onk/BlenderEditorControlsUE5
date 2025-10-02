@@ -6,6 +6,8 @@
 #include "ScopedTransaction.h"
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
+class UAxisLockGizmoComponent;
+
 namespace BlenderControls
 {
 	class STransformHUD;
@@ -67,7 +69,7 @@ namespace BlenderControls
 		void ToggleReciprocal();
 
 	private:
-		void RedrawAxisLines() const;
+		void RedrawAxisLines();
 
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
@@ -85,6 +87,13 @@ namespace BlenderControls
 		FVector2D PreWrapMousePosition;
 		bool bPendingMouseWrap = false;
 		int32 CachedMouseSpeed;
+
+		TArray<TWeakObjectPtr<UAxisLockGizmoComponent>> AxisGizmos;
+		UAxisLockGizmoComponent* SpawnAxisGizmo(const FVector& Origin,
+														  const FVector& AxisDir,
+														  const FLinearColor& Color,
+														  float ThicknessPx,
+														  float LineLength) const;
 
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
