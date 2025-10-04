@@ -211,28 +211,11 @@ void UAxisLockGizmoComponent::SetAxisColor(const FLinearColor& InColor)
 	{
 		AxisMID->SetVectorParameterValue(TEXT("LineColor"), AxisColor);
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("Color = %s"), *AxisColor.ToString());
 }
 
 void UAxisLockGizmoComponent::OnRegister()
 {
 	Super::OnRegister();
-	//
-	// if (!AxisMaterial)
-	// {
-	// 	AxisMaterial = LoadObject<UMaterialInterface>(
-	// 		nullptr, TEXT("/Game/Materials/M_AxisRibbon.M_AxisRibbon"));
-	// }
-	//
-	// if (AxisMaterial && !AxisMID)
-	// {
-	// 	AxisMID = UMaterialInstanceDynamic::Create(AxisMaterial, this);
-	// }
-	// if (AxisMID)
-	// {
-	// 	AxisMID->SetVectorParameterValue(TEXT("LineColor"), AxisColor);
-	// }
 }
 
 FPrimitiveSceneProxy* UAxisLockGizmoComponent::CreateSceneProxy()

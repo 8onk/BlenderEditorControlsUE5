@@ -93,7 +93,6 @@ namespace BlenderControls
 
 				if (bIsActive || !bUsingLocalSpace)
 				{
-					UE_LOG(LogTemp, Log, TEXT("ACTIVE ELEMENT"));
 					Color = BaseColor * 2.0f;
 					Color.A = 1.0f;
 				}
@@ -658,11 +657,6 @@ namespace BlenderControls
 
 		Session->CurrentNumericSlotIndex = CurrentNumericSlotIndex;
 		UpdateHud();
-		for (int i = 0; i < 3; ++i)
-		{
-			Session->NumericSlots[i].Print();
-			UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
-		}
 	}
 
 	void FBlenderToolBase::ExitNumericMode()
