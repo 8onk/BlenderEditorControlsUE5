@@ -57,15 +57,17 @@ namespace BlenderControls
 	{
 		// Clear any previous gizmos first
 		for (auto& Giz : AxisGizmos)
+		{
 			if (Giz.IsValid()) Giz->DestroyComponent();
-		const_cast<FBlenderToolBase*>(this)->AxisGizmos.Empty();
+		}
+		AxisGizmos.Empty();
 
 		auto AddAxis = [&](EAxisLock Axis, const FChildInfo* ChildInfo)
 		{
 			FVector Origin, AxisDir;
 			if (ChildInfo && bUsingLocalSpace)
 			{
-				const FTransform& T = ChildInfo->Transform; 
+				const FTransform& T = ChildInfo->Transform;
 				Origin = T.GetLocation();
 				const FVector Local =
 					(Axis == EAxisLock::X)
@@ -81,11 +83,31 @@ namespace BlenderControls
 				AxisDir = GetAxisVector(Axis);
 			}
 
-			const FLinearColor C = GetAxisColor(Axis);
+			FLinearColor Color;
+			const FLinearColor BaseColor = GetAxisColor(Axis);
+			if (VirtualPivot)
+			{
+				const FChildInfo& Active = VirtualPivot->GetActiveElement();
+				const bool bIsActive =
+					(ChildInfo && ChildInfo->Actor && ChildInfo->Actor == Active.Actor);
+
+				if (bIsActive || !bUsingLocalSpace)
+				{
+					UE_LOG(LogTemp, Log, TEXT("ACTIVE ELEMENT"));
+					Color = BaseColor * 2.0f;
+					Color.A = 1.0f;
+				}
+				else
+				{
+					Color = BaseColor * 0.3f;
+					Color.A = 0.7f;
+				}
+			}
+
 			constexpr float ThicknessPx = 2.f;
 			constexpr float Length = WORLD_MAX;
 
-			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(Origin, AxisDir, C, ThicknessPx, Length))
+			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(Origin, AxisDir, Color, ThicknessPx, Length))
 			{
 				AxisGizmos.Add(Comp);
 			}
@@ -98,17 +120,21 @@ namespace BlenderControls
 				if (!Child.Actor) continue;
 				switch (LockedAxis)
 				{
-				case EAxisLock::XY: AddAxis(EAxisLock::X, &Child);
+				case EAxisLock::XY:
+					AddAxis(EAxisLock::X, &Child);
 					AddAxis(EAxisLock::Y, &Child);
 					break;
-				case EAxisLock::XZ: AddAxis(EAxisLock::X, &Child);
+				case EAxisLock::XZ:
+					AddAxis(EAxisLock::X, &Child);
 					AddAxis(EAxisLock::Z, &Child);
 					break;
-				case EAxisLock::YZ: AddAxis(EAxisLock::Y, &Child);
+				case EAxisLock::YZ:
+					AddAxis(EAxisLock::Y, &Child);
 					AddAxis(EAxisLock::Z, &Child);
 					break;
 				case EAxisLock::All: break;
-				default: AddAxis(LockedAxis, &Child);
+				default:
+					AddAxis(LockedAxis, &Child);
 					break;
 				}
 			}
@@ -117,17 +143,21 @@ namespace BlenderControls
 		{
 			switch (LockedAxis)
 			{
-			case EAxisLock::XY: AddAxis(EAxisLock::X, nullptr);
+			case EAxisLock::XY:
+				AddAxis(EAxisLock::X, nullptr);
 				AddAxis(EAxisLock::Y, nullptr);
 				break;
-			case EAxisLock::XZ: AddAxis(EAxisLock::X, nullptr);
+			case EAxisLock::XZ:
+				AddAxis(EAxisLock::X, nullptr);
 				AddAxis(EAxisLock::Z, nullptr);
 				break;
-			case EAxisLock::YZ: AddAxis(EAxisLock::Y, nullptr);
+			case EAxisLock::YZ:
+				AddAxis(EAxisLock::Y, nullptr);
 				AddAxis(EAxisLock::Z, nullptr);
 				break;
 			case EAxisLock::All: break;
-			default: AddAxis(LockedAxis, nullptr);
+			default:
+				AddAxis(LockedAxis, nullptr);
 				break;
 			}
 		}
