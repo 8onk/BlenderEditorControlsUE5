@@ -24,7 +24,7 @@ namespace BlenderControls
 		~FSharedPivot();
 
 		const FTransform& GetPivot() const { return PivotTransform; }
-		FVector GetLocation() const { return TransformProxy->GetTransform().GetLocation(); }
+		FVector GetStartLocation() const { return StartPivotTransform.GetLocation(); }
 		UTransformProxy* GetTransformProxy() const { return TransformProxy; }
 		const FTransform& GetStartTransform() const { return StartPivotTransform; }
 		const FChildInfo& GetActiveElement() const { return ActiveChild; }

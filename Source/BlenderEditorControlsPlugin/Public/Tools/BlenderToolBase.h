@@ -28,7 +28,9 @@ namespace BlenderControls
 		virtual void Cancel();
 
 		/** Numeric entry apply */
-		virtual void ApplyNumeric(double Value = 0.0f) {}
+		virtual void ApplyNumeric(double Value = 0.0f)
+		{
+		}
 
 		/** Set HUD string - must be implemented by inheriting classes */
 		virtual void UpdateHud() = 0;
@@ -52,7 +54,7 @@ namespace BlenderControls
 
 		virtual void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;
-		void FlushDrawnAxisLines() const;
+		void ClearDrawnAxisLines();
 
 		void SetLastMousePosition(const FVector2D NewLastMousePosition) { LastMousePosition = NewLastMousePosition; }
 		FVector2D GetLastMousePosition() const { return LastMousePosition; }
@@ -90,18 +92,25 @@ namespace BlenderControls
 
 		TArray<TWeakObjectPtr<UAxisLockGizmoComponent>> AxisGizmos;
 		UAxisLockGizmoComponent* SpawnAxisGizmo(const FVector& Origin,
-														  const FVector& AxisDir,
-														  const FLinearColor& Color,
-														  float ThicknessPx,
-														  float LineLength) const;
+		                                        const FVector& AxisDir,
+		                                        const FLinearColor& Color,
+		                                        float ThicknessPx,
+		                                        float LineLength) const;
 
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
-		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) {}
+
+		virtual void SetGrabContextAxisLock(EAxisLock AxisLock)
+		{
+		}
+
 		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const;
 		void UpdateAxisLock();
-		virtual void UpdateToolSettingsForAxisLock() {}
+
+		virtual void UpdateToolSettingsForAxisLock()
+		{
+		}
 
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;

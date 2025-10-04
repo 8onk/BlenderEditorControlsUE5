@@ -29,12 +29,6 @@ namespace BlenderControls
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
-
-		if (HudWidget.IsValid())
-		{
-			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
-			HudWidget->SetCursorPolicy(ECursorPolicy::AlongLine);
-		}
 	}
 
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)

@@ -161,7 +161,7 @@ namespace BlenderControls
 
 	void FSharedPivot::Rotate(FGrabContext GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis)
 	{
-		const FVector PivotPosition = GetLocation();
+		const FVector PivotPosition = GetStartLocation();
 		const FVector RotationAxis = GC.HelperAxisDir;
 
 		const FQuat TargetRotation = FQuat(RotationAxis, AngleToRotateRad);
@@ -228,7 +228,7 @@ namespace BlenderControls
 		{
 			const FTransform ActorInitialTransform = Child.Transform;
 			const FQuat ActorRotation = ActorInitialTransform.GetRotation();
-			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - GetLocation();
+			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - GetStartLocation();
 			FTransform NewTransform = ActorInitialTransform;
 
 			FVector NewPosition, NewScale;
@@ -237,7 +237,7 @@ namespace BlenderControls
 				const FVector LocalPivotToActorVec = ActorRotation.UnrotateVector(PivotToActorVec);
 				const FVector ScaledLocalPivotToActorVec = LocalPivotToActorVec * ScaleMultiplier;
 				const FVector GlobalPivotToActorVec = ActorRotation.RotateVector(ScaledLocalPivotToActorVec);
-				NewPosition = GetLocation() + GlobalPivotToActorVec;
+				NewPosition = GetStartLocation() + GlobalPivotToActorVec;
 
 				NewScale = ActorInitialTransform.GetScale3D() * ScaleMultiplier;
 			}
@@ -259,7 +259,7 @@ namespace BlenderControls
 				NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
 
 				const FVector ScaledRelativePosition = PivotToActorVec * ScaleMultiplier;
-				NewPosition = GetLocation() + ScaledRelativePosition;
+				NewPosition = GetStartLocation() + ScaledRelativePosition;
 			}
 
 			NewTransform.SetLocation(NewPosition);

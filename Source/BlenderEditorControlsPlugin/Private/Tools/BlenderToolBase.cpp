@@ -12,7 +12,8 @@
 
 //TODO: make GetSnapOffset abstract
 //Holding control should immediately snap even without moving mouse?
-//Draw helper axis in orthographic. 
+//Draw helper axis in orthographic.
+//TODO ROTATION WHEN SWITCHING FROM SCALE/MOVE ROTATES AROUND WRONG PIVOT?
 namespace BlenderControls
 {
 	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,
@@ -43,13 +44,13 @@ namespace BlenderControls
 		UpdateHud();
 	}
 
-	void FBlenderToolBase::FlushDrawnAxisLines() const
+	void FBlenderToolBase::ClearDrawnAxisLines()
 	{
-		if (CachedBatcher.IsValid())
+		for (auto& Giz : AxisGizmos)
 		{
-			CachedBatcher->Flush(); // Removes all current batched lines
-			CachedBatcher->MarkRenderStateDirty();
+			if (Giz.IsValid()) Giz->DestroyComponent();
 		}
+		AxisGizmos.Empty();
 	}
 
 	void FBlenderToolBase::RedrawAxisLines()
@@ -64,7 +65,7 @@ namespace BlenderControls
 			FVector Origin, AxisDir;
 			if (ChildInfo && bUsingLocalSpace)
 			{
-				const FTransform& T = ChildInfo->Transform; // saved start transform
+				const FTransform& T = ChildInfo->Transform; 
 				Origin = T.GetLocation();
 				const FVector Local =
 					(Axis == EAxisLock::X)
@@ -363,6 +364,12 @@ namespace BlenderControls
 		UpdateHud();
 		UpdateToolSettingsForAxisLock();
 
+		if (Session->LockedAxis != EAxisLock::All)
+		{
+			ClearDrawnAxisLines();
+			UpdateAxisLock();
+		}
+
 		if (Session->bIsNumericInputActive)
 		{
 			ApplyNumeric();
@@ -377,6 +384,8 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
+		UpdateHud();
+
 		if (!Viewport || !ViewportClient || !VirtualPivot || Session->bIsNumericInputActive)
 		{
 			return;
@@ -405,7 +414,6 @@ namespace BlenderControls
 		//UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 		LastMousePosition = CurrentMousePosition;
 
-		UpdateHud();
 		//UE_LOG(LogTemp, Log, TEXT("MouseDelta: X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 	}
 
@@ -429,7 +437,7 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			const FVector Delta = VirtualPivot->GetLocation() - VirtualPivot->GetStartTransform().GetLocation();
+			const FVector Delta = VirtualPivot->GetStartLocation() - VirtualPivot->GetStartTransform().GetLocation();
 			const FVector CurrentPivotLocation = Delta + VirtualPivot->GetActiveElement().Transform.GetLocation();
 			const FVector StartPivotLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
 			const FVector NewPivotPosition = bApply ? CurrentPivotLocation : StartPivotLocation;
@@ -446,10 +454,7 @@ namespace BlenderControls
 		HudWidget->Detach();
 		ViewportClient->Invalidate();
 
-		for (auto& Giz : AxisGizmos)
-			if (Giz.IsValid()) Giz->DestroyComponent();
-		AxisGizmos.Empty();
-		//FlushDrawnAxisLines();
+		ClearDrawnAxisLines();
 	}
 
 	void FBlenderToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)

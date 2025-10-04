@@ -12,8 +12,8 @@ public:
 		  , Origin(Comp->Origin)
 		  , AxisDir(Comp->AxisDir.GetSafeNormal())
 		  , LineLength(Comp->LineLength)
-		  , ThicknessPx(Comp->ThicknessPx)
 		  , Color(Comp->AxisColor)
+		  , ThicknessPx(Comp->ThicknessPx)
 	{
 		const ERHIFeatureLevel::Type FL = GetScene().GetFeatureLevel();
 

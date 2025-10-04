@@ -3,8 +3,6 @@
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO draw the rotation gizmo handle
-//TODO apply numeric for rotation tool and scale tool
 
 namespace BlenderControls
 {
@@ -33,11 +31,6 @@ namespace BlenderControls
 		AccumulatedAngleRad = 0.0f;
 		TrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
-
-		if (HudWidget.IsValid())
-		{
-			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
-		}
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -106,9 +99,13 @@ namespace BlenderControls
 			LastDragVector = CurrentDragVector;
 		}
 
-		if (HudWidget.IsValid())
+		if (HudWidget.IsValid() && !bTrackballModeEnabled)
 		{
 			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+		}
+		else
+		{
+			HudWidget->SetDashState(false, PivotViewportPosition, VirtualMousePosition);
 		}
 
 		UpdateHud();
@@ -203,31 +200,26 @@ namespace BlenderControls
 					const FNumericSlotData& SlotData = Session->NumericSlots[SlotIndex];
 					if (Session->CurrentNumericSlotIndex == SlotIndex)
 					{
-						// Active slot: use FormatOneField to get the full "[...]" display with the unit.
 						return HudWidget->FormatOneField(TEXT(""), SlotData, Unit, true);
 					}
 
-					// Inactive slot in numeric mode: check for "Pristine" state.
 					if (SlotData.SlotState == ESlotState::Pristine)
 					{
 						return TEXT("NONE");
 					}
 
-					// Otherwise, show the committed value with the unit.
 					return FString::Printf(TEXT("%.2f%s"), SlotData.GetTotal(), Unit);
 				}
 
-				// Live mode (not numeric): just show the value with two decimal places.
 				return FString::Printf(TEXT("%.2f"), LiveValue);
 			};
 
-			// Use the helper function to format both values.
 			const FString FormattedX = FormatTrackballValue(SlotX, LiveAngleX);
 			const FString FormattedY = FormatTrackballValue(SlotY, LiveAngleY);
 
 			HudString = FString::Printf(TEXT("Trackball: %s %s"), *FormattedX, *FormattedY);
 			HudWidget->Update(FText::FromString(HudString));
-			return; // Exit here to bypass the generic formatting logic
+			return;
 		}
 
 		FString AxisString;
@@ -290,7 +282,6 @@ namespace BlenderControls
 
 		const FString FieldsString = FString::Join(FormattedFields, Sep);
 
-		// No magnitude string for rotation
 		HudString = FString::Printf(TEXT("%s%s %s"), *Header, *FieldsString, *Suffix).TrimEnd();
 		HudWidget->Update(FText::FromString(HudString));
 
@@ -308,10 +299,6 @@ namespace BlenderControls
 	void FRotateTool::OnEnd(const bool bApply)
 	{
 		FBlenderToolBase::OnEnd(bApply);
-		if (HudWidget.IsValid())
-		{
-			HudWidget->SetDashState(false, FVector2D::ZeroVector, FVector2D::ZeroVector);
-		}
 	}
 
 	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)
@@ -404,7 +391,6 @@ namespace BlenderControls
 			static const TCHAR* Unit = TEXT("\u00B0");
 			const FString ValueString = FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
 
-			// Return the value followed immediately by the unit (e.g., "5°")
 			return FString::Printf(TEXT("%s%s"), *ValueString, Unit);
 		}
 		return FString();
