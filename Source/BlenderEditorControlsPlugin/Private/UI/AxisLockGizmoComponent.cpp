@@ -23,9 +23,9 @@ public:
 				: (Comp->AxisMaterial ? Comp->AxisMaterial : nullptr);
 
 		FallbackMatPersp = LoadObject<UMaterialInterface>(
-			nullptr, TEXT("/Game/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
+			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
 		FallbackMatOrtho = LoadObject<UMaterialInterface>(
-			nullptr, TEXT("/Game/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
+			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
 
 		FMaterialRelevance R;
 		if (DrawMaterialFromComponent) { R |= DrawMaterialFromComponent->GetRelevance_Concurrent(FL); }
