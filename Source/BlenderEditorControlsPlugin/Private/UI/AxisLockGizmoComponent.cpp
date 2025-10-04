@@ -140,11 +140,10 @@ private:
 		FPrimitiveDrawInterface* PDI,
 		const FMaterialRenderProxy* Proxy) const
 	{
-		// Tesselate AB so thickness adapts if depth varies along the line.
-		const int32 N = FMath::Max(1, Segments);
+		const float midWPP = WorldPerPixelAt(View, (A + B) * 0.5f);
+		const float approxPxLen = (B - A).Length() / FMath::Max(1e-3f, midWPP);
+		const int32 N = FMath::Clamp(int32(approxPxLen / 20.f), 8, 256);
 		const FVector Dir = (B - A) / float(N);
-
-		UMaterialInterface* Mat = UMaterial::GetDefaultMaterial(MD_Surface);
 
 		FDynamicMeshBuilder MeshBuilder(View.GetFeatureLevel());
 
@@ -153,37 +152,50 @@ private:
 			const FVector P0 = A + Dir * float(i);
 			const FVector P1 = A + Dir * float(i + 1);
 
-			const FVector CamForward = View.GetViewDirection();
-			const FVector SegDir = (P1 - P0).GetSafeNormal();
-			FVector Right = FVector::CrossProduct(CamForward, SegDir).GetSafeNormal();
-			if (Right.IsNearlyZero()) Right = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
+			const FVector CamPos = View.ViewMatrices.GetViewOrigin();
 
+			// Per-vertex world-per-pixel
 			const float wpp0 = WorldPerPixelAt(View, P0);
 			const float wpp1 = WorldPerPixelAt(View, P1);
 			const float halfW0 = 0.5f * InThicknessPx * wpp0;
 			const float halfW1 = 0.5f * InThicknessPx * wpp1;
 
-			const FVector v0 = P0 - Right * halfW0;
-			const FVector v1 = P0 + Right * halfW0;
-			const FVector v2 = P1 - Right * halfW1;
-			const FVector v3 = P1 + Right * halfW1;
+			// Segment direction (world)
+			const FVector SegDir = (P1 - P0).GetSafeNormal();
 
-			const FVector SegDirW = (P1 - P0).GetSafeNormal();
-			FVector RightW = FVector::CrossProduct(View.GetViewDirection(), SegDirW).GetSafeNormal();
-			if (RightW.IsNearlyZero()) RightW = FVector::CrossProduct(FVector::UpVector, SegDirW).GetSafeNormal();
-			const FVector NormalW = FVector::CrossProduct(SegDirW, RightW).GetSafeNormal();
+			// Per-end view rays and “billboard right” vectors
+			const FVector V0 = (P0 - CamPos).GetSafeNormal();
+			const FVector V1 = (P1 - CamPos).GetSafeNormal();
 
-			const FVector3f TangentX = (FVector3f)SegDirW; // U
-			const FVector3f TangentY = (FVector3f)RightW; // V
-			const FVector3f TangentZ = (FVector3f)NormalW; // N
+			FVector Right0 = FVector::CrossProduct(V0, SegDir).GetSafeNormal();
+			FVector Right1 = FVector::CrossProduct(V1, SegDir).GetSafeNormal();
 
-			const int32 i0 = MeshBuilder.AddVertex((FVector3f)v0, FVector2f(0, 0), TangentX, TangentY, TangentZ,
+			// Robust fallback if degenerate
+			if (Right0.IsNearlyZero()) Right0 = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
+			if (Right1.IsNearlyZero()) Right1 = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
+
+			// Build the quad with per-end widths & rights
+			const FVector v0 = P0 - Right0 * halfW0;
+			const FVector v1 = P0 + Right0 * halfW0;
+			const FVector v2 = P1 - Right1 * halfW1;
+			const FVector v3 = P1 + Right1 * halfW1;
+
+			// Tangents per-end (optional but good)
+			const FVector3f TangentX0 = (FVector3f)SegDir;
+			const FVector3f TangentY0 = (FVector3f)Right0;
+			const FVector3f Normal0 = (FVector3f)FVector::CrossProduct(SegDir, Right0).GetSafeNormal();
+
+			const FVector3f TangentX1 = (FVector3f)SegDir;
+			const FVector3f TangentY1 = (FVector3f)Right1;
+			const FVector3f Normal1 = (FVector3f)FVector::CrossProduct(SegDir, Right1).GetSafeNormal();
+
+			const int32 i0 = MeshBuilder.AddVertex((FVector3f)v0, FVector2f(0, 0), TangentX0, TangentY0, Normal0,
 			                                       FColor(InColor.ToFColor(true)));
-			const int32 i1 = MeshBuilder.AddVertex((FVector3f)v1, FVector2f(1, 0), TangentX, TangentY, TangentZ,
+			const int32 i1 = MeshBuilder.AddVertex((FVector3f)v1, FVector2f(1, 0), TangentX0, TangentY0, Normal0,
 			                                       FColor(InColor.ToFColor(true)));
-			const int32 i2 = MeshBuilder.AddVertex((FVector3f)v2, FVector2f(0, 1), TangentX, TangentY, TangentZ,
+			const int32 i2 = MeshBuilder.AddVertex((FVector3f)v2, FVector2f(0, 1), TangentX1, TangentY1, Normal1,
 			                                       FColor(InColor.ToFColor(true)));
-			const int32 i3 = MeshBuilder.AddVertex((FVector3f)v3, FVector2f(1, 1), TangentX, TangentY, TangentZ,
+			const int32 i3 = MeshBuilder.AddVertex((FVector3f)v3, FVector2f(1, 1), TangentX1, TangentY1, Normal1,
 			                                       FColor(InColor.ToFColor(true)));
 
 			MeshBuilder.AddTriangle(i0, i2, i1);
@@ -207,7 +219,7 @@ private:
 void UAxisLockGizmoComponent::SetAxisColor(const FLinearColor& InColor)
 {
 	AxisColor = InColor;
-	if (AxisMID) 
+	if (AxisMID)
 	{
 		AxisMID->SetVectorParameterValue(TEXT("LineColor"), AxisColor);
 	}

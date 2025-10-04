@@ -103,7 +103,7 @@ namespace BlenderControls
 				}
 			}
 
-			constexpr float ThicknessPx = 2.f;
+			constexpr float ThicknessPx = 2.5f;
 			constexpr float Length = WORLD_MAX;
 
 			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(Origin, AxisDir, Color, ThicknessPx, Length))
