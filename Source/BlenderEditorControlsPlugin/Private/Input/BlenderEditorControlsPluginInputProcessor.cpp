@@ -1,6 +1,8 @@
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
+#include "LevelEditor.h"
 #include "Selection.h"
+#include "SLevelViewport.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Tools/BlenderToolBase.h"
 #include "Tools/MoveTool.h"
@@ -264,6 +266,11 @@ namespace BlenderControls
 
     bool FBlenderControlsInputProcessor::ShouldHandleToolHotkeys(FSlateApplication& SlateApp) const
     {
+        if (!IsMouseOverLevelViewport())
+        {
+            return false;
+        }
+
         // 1) Menus/popups up? bail. (UE 5.x uses AnyMenusVisible)
         if (SlateApp.AnyMenusVisible())
         {
@@ -279,10 +286,10 @@ namespace BlenderControls
 
         // 3) Only handle when a Level Editor viewport is focused
         FViewport* ActiveViewport = GEditor ? GEditor->GetActiveViewport() : nullptr;
-        if (!ActiveViewport || !ActiveViewport->HasFocus())
-        {
-            return false;
-        }
+        // if (!ActiveViewport || !ActiveViewport->HasFocus())
+        // {
+        //     return false;
+        // }
 
         FEditorViewportClient* Client = ActiveViewport
                                             ? static_cast<FEditorViewportClient*>(ActiveViewport->GetClient())
@@ -293,12 +300,56 @@ namespace BlenderControls
         }
 
         // 4) Don’t steal keys during PIE/SIE
-        if (GEditor && GEditor->IsPlayingSessionInEditor()) 
+        if (GEditor && GEditor->IsPlayingSessionInEditor())
         {
             return false;
         }
 
         return true;
+    }
+
+    bool FBlenderControlsInputProcessor::IsMouseOverLevelViewport() const
+    {
+        auto& App = FSlateApplication::Get();
+        const FVector2D ScreenPos = App.GetCursorPos();
+
+        FWidgetPath Path = App.LocateWindowUnderMouse(
+            ScreenPos,
+            App.GetInteractiveTopLevelWindows(),
+            true
+        );
+        if (!Path.IsValid())
+        {
+            return false;
+        }
+
+        if (FModuleManager::Get().IsModuleLoaded("LevelEditor"))
+        {
+            FLevelEditorModule& LevelEd = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+
+            // Try the explicit LevelViewport widget route
+            if (TSharedPtr<SLevelViewport> SLVP = LevelEd.GetFirstActiveLevelViewport())
+            {
+                if (Path.ContainsWidget(SLVP.Get()))
+                {
+                    return true;
+                }
+            }
+
+            // Fallback: scan path for SLevelViewport
+            for (int32 i = 0; i < Path.Widgets.Num(); ++i)
+            {
+                const FArrangedWidget& Arranged = Path.Widgets[i];
+                const TSharedRef<SWidget>& W = Arranged.Widget;
+                const FString Type = W->GetTypeAsString();
+                if (Type.Contains(TEXT("SLevelViewport")) || Type.Contains(TEXT("SEditorViewport")))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)

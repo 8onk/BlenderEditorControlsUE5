@@ -11,8 +11,6 @@
 #include "UI/TransformHUD.h"
 
 //TODO: make GetSnapOffset abstract
-//Holding control should immediately snap even without moving mouse?
-//Draw helper axis in orthographic.
 namespace BlenderControls
 {
 	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,

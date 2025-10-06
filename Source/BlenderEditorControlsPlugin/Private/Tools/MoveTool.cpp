@@ -4,7 +4,6 @@
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO Cleanup on active?
 
 namespace BlenderControls
 {

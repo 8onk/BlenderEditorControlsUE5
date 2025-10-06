@@ -124,6 +124,7 @@ namespace BlenderControls
 		void CaptureSelection() const;
 		static bool TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar);
 		bool ShouldHandleToolHotkeys(FSlateApplication& SlateApp) const;
+		bool IsMouseOverLevelViewport() const;
 
 		/* Input handlers for activating transform tools */
 		void TranslatePressed() { BeginTool(ETransformMode::Translate); }

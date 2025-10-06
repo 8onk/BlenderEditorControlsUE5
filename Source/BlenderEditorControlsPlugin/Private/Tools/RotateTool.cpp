@@ -4,7 +4,6 @@
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/BlenderMathHelpers.h"
-//TODO make the dashed line move with the cursor in numeric mode!
 
 namespace BlenderControls
 {
