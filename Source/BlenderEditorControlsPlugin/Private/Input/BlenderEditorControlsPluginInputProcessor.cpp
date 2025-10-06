@@ -267,7 +267,7 @@ namespace BlenderControls
 
 		// Track if mouse was wrapped and inform the tool
 		// CurrentTool->SetWrapped(bWrapped);
-
+		
 		return true;
 	}
 

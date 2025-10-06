@@ -13,7 +13,6 @@
 //TODO: make GetSnapOffset abstract
 //Holding control should immediately snap even without moving mouse?
 //Draw helper axis in orthographic.
-//TODO ROTATION WHEN SWITCHING FROM SCALE/MOVE ROTATES AROUND WRONG PIVOT?
 namespace BlenderControls
 {
 	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,
@@ -392,6 +391,7 @@ namespace BlenderControls
 		HudWidget->Attach();
 		UpdateHud();
 		UpdateToolSettingsForAxisLock();
+		
 
 		if (Session->LockedAxis != EAxisLock::All)
 		{
@@ -409,6 +409,8 @@ namespace BlenderControls
 			// 	UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
 			// }
 		}
+
+		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -484,6 +486,7 @@ namespace BlenderControls
 		ViewportClient->Invalidate();
 
 		ClearDrawnAxisLines();
+		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
 	}
 
 	void FBlenderToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)

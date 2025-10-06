@@ -285,27 +285,6 @@ namespace BlenderControls
 		return LayerId;
 	}
 
-	FCursorReply STransformHUD::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
-	{
-		if (CursorPolicy == ECursorPolicy::Default)
-			return FCursorReply::Unhandled();
-
-		const FVector2D AB = MouseViewportPx - OriginViewportPx;
-		const float Len = AB.Size();
-		if (Len < KINDA_SMALL_NUMBER)
-			return FCursorReply::Cursor(EMouseCursor::Default);
-
-		FVector2D Dir = AB / Len;
-
-		if (CursorPolicy == ECursorPolicy::Perpendicular)
-		{
-			// Rotate 90° (perp); choose either (+y,-x) or (-y,+x)
-			Dir = FVector2D(Dir.Y, -Dir.X);
-		}
-
-		return FCursorReply::Cursor(PickNearestCursor_Aligned(Dir));
-	}
-
 	void STransformHUD::UpdateDashPhaseForLengthChange()
 	{
 		const float curLen = (MouseViewportPx - OriginViewportPx).Size();
@@ -330,34 +309,6 @@ namespace BlenderControls
 			if (DashPhase < 0.f) DashPhase += Period;
 
 			PrevLen = curLen;
-		}
-	}
-
-	EMouseCursor::Type STransformHUD::PickNearestCursor_Aligned(const FVector2D& Dir)
-	{
-		// Basis
-		const FVector2D X(1, 0), Y(0, 1);
-		const FVector2D D1 = FVector2D(1, 1).GetSafeNormal(); // NE-SW family
-		const FVector2D D2 = FVector2D(1, -1).GetSafeNormal(); // NW-SE family
-
-		const float ax = FMath::Abs(FVector2D::DotProduct(Dir, X));
-		const float ay = FMath::Abs(FVector2D::DotProduct(Dir, Y));
-		const float d1 = FMath::Abs(FVector2D::DotProduct(Dir, D1));
-		const float d2 = FMath::Abs(FVector2D::DotProduct(Dir, D2));
-
-		// Prefer axis if closer than diagonals
-		if (FMath::Max(ax, ay) >= FMath::Max(d1, d2))
-		{
-			return (ax >= ay)
-				       ? EMouseCursor::ResizeLeftRight // —
-				       : EMouseCursor::ResizeUpDown; // |
-		}
-		else
-		{
-			const bool useNESW = (d1 >= d2);
-			return useNESW
-				       ? EMouseCursor::ResizeSouthEast // ↘/↖ family
-				       : EMouseCursor::ResizeSouthWest; // ↙/↗ family
 		}
 	}
 }
