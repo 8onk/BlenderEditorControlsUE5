@@ -391,7 +391,7 @@ namespace BlenderControls
 		HudWidget->Attach();
 		UpdateHud();
 		UpdateToolSettingsForAxisLock();
-		
+
 
 		if (Session->LockedAxis != EAxisLock::All)
 		{
@@ -410,6 +410,8 @@ namespace BlenderControls
 			// }
 		}
 
+		//Ensures the hardware cursor never resurfaces while tool is active (works regardless)
+		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 	}
 
@@ -444,6 +446,11 @@ namespace BlenderControls
 		// UE_LOG(LogHAL, Log, TEXT("Current mouse X: %f, Y: %f"), VirtualMousePosition.X, VirtualMousePosition.Y);
 		//UE_LOG(LogHAL, Log, TEXT("Mouse Delta X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 		LastMousePosition = CurrentMousePosition;
+
+		if (HudWidget.IsValid())
+		{
+			HudWidget->SetVirtualCursor(VirtualMousePosition);
+		}
 
 		//UE_LOG(LogTemp, Log, TEXT("MouseDelta: X: %f, Y: %f"), MouseDelta.X, MouseDelta.Y);
 	}
@@ -486,6 +493,7 @@ namespace BlenderControls
 		ViewportClient->Invalidate();
 
 		ClearDrawnAxisLines();
+		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
 	}
 

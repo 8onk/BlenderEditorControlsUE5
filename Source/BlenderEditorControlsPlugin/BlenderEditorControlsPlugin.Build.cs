@@ -42,6 +42,9 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"InputCore",
 				"DeveloperSettings",
 				"UnrealEd",
+				"ApplicationCore",
+				"AppFramework",
+				"Projects",
 				"InteractiveToolsFramework",
 				"EditorInteractiveToolsFramework",
 				"ComponentVisualizers"

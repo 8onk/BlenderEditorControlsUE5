@@ -1,5 +1,6 @@
 #include "Tools/MoveTool.h"
 #include "LevelEditorViewport.h"
+#include "Style/BlenderControlsStyle.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/BlenderMathHelpers.h"
@@ -18,6 +19,13 @@ namespace BlenderControls
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Translate);
 		ViewportClient->Invalidate();
+
+		CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+			TEXT("BlenderEditorControls.Cursors.Move"));
+
+		HudWidget->SetCursorBrush(CursorBrush);
+		HudWidget->SetCursorSize(FVector2D(24, 24));
+		HudWidget->SetCursorHotspot(FVector2D(4, 4));
 	}
 
 	FString FMoveTool::GetFormattedValueForEditing(const FNumericSlotData& Slot) const

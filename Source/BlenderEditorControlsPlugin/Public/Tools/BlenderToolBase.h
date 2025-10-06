@@ -112,6 +112,7 @@ namespace BlenderControls
 		{
 		}
 
+		const FSlateBrush* CursorBrush = nullptr;
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
 		FVector2D VirtualMousePosition;

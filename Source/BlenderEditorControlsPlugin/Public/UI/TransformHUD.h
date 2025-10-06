@@ -6,13 +6,6 @@ class SLevelViewport;
 
 namespace BlenderControls
 {
-	enum class ECursorPolicy : uint8
-	{
-		AlongLine, // Scale tool: cursor points along dashed line
-		Perpendicular, // Rotate tool: 90° to the line
-		Default
-	};
-
 	struct FNumericSlotData;
 
 	class STransformHUD : public SCompoundWidget
@@ -35,7 +28,6 @@ namespace BlenderControls
 
 		void SetDashState(bool bEnabled, const FVector2D& InOriginPx,
 		                  const FVector2D& InMousePx);
-		void SetCursorPolicy(ECursorPolicy InPolicy) { CursorPolicy = InPolicy; }
 
 		void SetLineEndpoints(const FVector2D& InOriginPx, const FVector2D& InMousePx)
 		{
@@ -53,6 +45,36 @@ namespace BlenderControls
 
 		static FString ToTrimmed3(double InValue);
 
+		void SetCursorBrush(const FSlateBrush* InBrush)
+		{
+			CursorBrush = InBrush;
+			Invalidate(EInvalidateWidgetReason::Paint);
+		}
+
+		void SetCursorSize(const FVector2D& InSize)
+		{
+			CursorSize = InSize;
+			Invalidate(EInvalidateWidgetReason::Paint);
+		}
+
+		void SetCursorHotspot(const FVector2D& InHot)
+		{
+			CursorHotspot = InHot;
+			Invalidate(EInvalidateWidgetReason::Paint);
+		}
+
+		void SetCursorVisible(bool bInVisible)
+		{
+			bShowCursor = bInVisible;
+			Invalidate(EInvalidateWidgetReason::Paint);
+		}
+
+		void SetVirtualCursor(const FVector2D& InViewportPx)
+		{
+			VirtualCursorViewportPx = InViewportPx;
+			Invalidate(EInvalidateWidgetReason::Paint);
+		}
+
 	protected:
 		virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
 		                      const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId,
@@ -60,10 +82,9 @@ namespace BlenderControls
 
 	private:
 		void UpdateDashPhaseForLengthChange();
-		static EMouseCursor::Type PickNearestCursor_Aligned(const FVector2D& Dir);
 
-		TSharedPtr<class STextBlock> ReadoutText;
-		TSharedPtr<class STextBlock> NumericText;
+		TSharedPtr<STextBlock> ReadoutText;
+		TSharedPtr<STextBlock> NumericText;
 
 		TWeakPtr<SLevelViewport> AttachedViewport;
 		TSharedPtr<SWidget> OverlayWrapper;
@@ -71,7 +92,6 @@ namespace BlenderControls
 		TSharedPtr<SLevelViewport> GetActiveLevelViewportWidget();
 
 		bool bShowDash = false;
-		ECursorPolicy CursorPolicy = ECursorPolicy::Default;
 		FVector2D OriginViewportPx = FVector2D::ZeroVector;
 		FVector2D MouseViewportPx = FVector2D::ZeroVector;
 
@@ -82,5 +102,11 @@ namespace BlenderControls
 		float PrevLen = 0.f; // for dL
 		bool bHavePrevLen = false;
 		float LenEpsilon = 0.75f; // px dead-zone (tune or inline)
+
+		bool bShowCursor = true;
+		const FSlateBrush* CursorBrush = nullptr;
+		FVector2D CursorSize = FVector2D(24, 24);
+		FVector2D CursorHotspot = FVector2D(0, 0); // offset of "tip" inside the image
+		FVector2D VirtualCursorViewportPx = FVector2D::ZeroVector;
 	};
 }

@@ -266,21 +266,42 @@ namespace BlenderControls
 		LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId,
 		                                   InWidgetStyle, bParentEnabled);
 
-		if (!bShowDash) return LayerId;
-
 		// Convert absolute/viewport px -> local paint space for this widget
-		const FVector2f A(OriginViewportPx);
-		const FVector2f B(MouseViewportPx);
+		if (bShowDash)
+		{
+			const FVector2f A(OriginViewportPx);
+			const FVector2f B(MouseViewportPx);
 
-		TArray<FVector2f> Pts;
-		Pts.Add(A);
-		Pts.Add(B);
+			TArray<FVector2f> Pts;
+			Pts.Add(A);
+			Pts.Add(B);
 
-		const float Phase = DashPhase; // animate; 0 for static
+			const float Phase = DashPhase; // animate; 0 for static
 
-		FSlateDrawElement::MakeDashedLines(
-			OutDrawElements, ++LayerId, AllottedGeometry.ToPaintGeometry(), MoveTemp(Pts),
-			ESlateDrawEffect::None, FLinearColor::White, DashThickness, DashLengthPx, Phase);
+			FSlateDrawElement::MakeDashedLines(
+				OutDrawElements, ++LayerId, AllottedGeometry.ToPaintGeometry(), MoveTemp(Pts),
+				ESlateDrawEffect::None, FLinearColor::White, DashThickness, DashLengthPx, Phase);
+		}
+
+		if (bShowCursor && CursorBrush)
+		{
+			const FVector2D Local = VirtualCursorViewportPx;
+			const FVector2D DrawPos = Local - CursorHotspot;
+
+			const FPaintGeometry PG = AllottedGeometry.ToPaintGeometry(
+				CursorSize,
+				FSlateLayoutTransform(DrawPos) // translate only
+			);
+
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				++LayerId,
+				PG,
+				CursorBrush,
+				ESlateDrawEffect::None,
+				FLinearColor::White
+			);
+		}
 
 		return LayerId;
 	}

@@ -1,5 +1,6 @@
 #include "Tools/RotateTool.h"
 #include "LevelEditorViewport.h"
+#include "Style/BlenderControlsStyle.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/BlenderMathHelpers.h"
@@ -32,6 +33,13 @@ namespace BlenderControls
 		AccumulatedAngleRad = 0.0f;
 		TrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
+
+		CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
+
+		HudWidget->SetCursorBrush(CursorBrush);
+		HudWidget->SetCursorSize(FVector2D(24, 24));
+		HudWidget->SetCursorHotspot(FVector2D(12, 12));
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
