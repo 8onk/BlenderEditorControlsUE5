@@ -123,7 +123,7 @@ namespace BlenderControls
 		void WrapMouse(const FVector2D& CurrentViewportMousePosition) const;
 		void CaptureSelection() const;
 		static bool TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar);
-		// void ShowSoftwareGrabCursor();
+		bool ShouldHandleToolHotkeys(FSlateApplication& SlateApp) const;
 
 		/* Input handlers for activating transform tools */
 		void TranslatePressed() { BeginTool(ETransformMode::Translate); }

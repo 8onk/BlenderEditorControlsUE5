@@ -304,26 +304,26 @@ namespace BlenderControls
 			switch (CursorOrient)
 			{
 			case ECursorOrient::None:
-				Angle = 0.f; // no rotation at all
+				Angle = 0.f; 
 				break;
 
-			case ECursorOrient::AlongLineToMouse: // origin -> mouse
+			case ECursorOrient::AlongLineToMouse:
 				Angle = BaseAngle;
 				break;
 
-			case ECursorOrient::AlongLineToOrigin: // mouse -> origin (face the object)
-				Angle = BaseAngle + PI; // flip 180°
+			case ECursorOrient::AlongLineToOrigin: 
+				Angle = BaseAngle + PI; 
 				break;
 
-			case ECursorOrient::PerpendicularCW: // +90°
+			case ECursorOrient::PerpendicularCW:
 				Angle = BaseAngle + HALF_PI;
 				break;
 
-			case ECursorOrient::PerpendicularCCW: // -90°
+			case ECursorOrient::PerpendicularCCW: 
 				Angle = BaseAngle - HALF_PI;
 				break;
 			}
-			LastAngle = BaseAngle; // keep a stable angle when V ~ 0
+			LastAngle = BaseAngle;
 
 			const FPaintGeometry PG = AllottedGeometry.ToPaintGeometry(
 				Size, FSlateLayoutTransform(Pos));
