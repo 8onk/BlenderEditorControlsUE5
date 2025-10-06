@@ -8,6 +8,15 @@ namespace BlenderControls
 {
 	struct FNumericSlotData;
 
+	enum class ECursorOrient : uint8
+	{
+		None, // no rotation (Move/Trackball)
+		AlongLineToMouse, // along A->B  (origin -> mouse)
+		AlongLineToOrigin, // along B->A  (mouse  -> origin)
+		PerpendicularCW, // +90° from along-line
+		PerpendicularCCW // -90° from along-line
+	};
+
 	class STransformHUD : public SCompoundWidget
 	{
 	public:
@@ -75,6 +84,8 @@ namespace BlenderControls
 			Invalidate(EInvalidateWidgetReason::Paint);
 		}
 
+		void SetCursorOrientation(ECursorOrient InMode) { CursorOrient = InMode; }
+
 	protected:
 		virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
 		                      const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId,
@@ -108,5 +119,6 @@ namespace BlenderControls
 		FVector2D CursorSize = FVector2D(24, 24);
 		FVector2D CursorHotspot = FVector2D(0, 0); // offset of "tip" inside the image
 		FVector2D VirtualCursorViewportPx = FVector2D::ZeroVector;
+		ECursorOrient CursorOrient = ECursorOrient::None;
 	};
 }

@@ -36,10 +36,10 @@ namespace BlenderControls
 
 		CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
-
 		HudWidget->SetCursorBrush(CursorBrush);
 		HudWidget->SetCursorSize(FVector2D(24, 24));
 		HudWidget->SetCursorHotspot(FVector2D(12, 12));
+		HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -372,6 +372,9 @@ namespace BlenderControls
 		}
 		Session->LockedAxis = LockedAxis;
 		bTrackballModeEnabled = bEnabled;
+		CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+			TEXT("BlenderEditorControls.Cursors.Trackball"));
+		HudWidget->SetCursorBrush(CursorBrush);
 		UpdateAxisLock();
 	}
 

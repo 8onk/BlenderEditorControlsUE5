@@ -248,11 +248,11 @@ namespace BlenderControls
 		if (!bShowDash)
 		{
 			bHavePrevLen = false;
-			DashPhase = 0.f; // optional: snap when hidden
+			DashPhase = 0.f;
 		}
 		else
 		{
-			UpdateDashPhaseForLengthChange(); // <-- updates DashPhase using dL
+			UpdateDashPhaseForLengthChange();
 		}
 
 		Invalidate(EInvalidateWidgetReason::Paint);
@@ -285,21 +285,58 @@ namespace BlenderControls
 
 		if (bShowCursor && CursorBrush)
 		{
-			const FVector2D Local = VirtualCursorViewportPx;
-			const FVector2D DrawPos = Local - CursorHotspot;
+			const FVector2D Size = CursorSize;
+			const FVector2D LocalP = VirtualCursorViewportPx; // anchor under mouse
+			const FVector2D Pos = LocalP - CursorHotspot;
+
+			// Dashed line endpoints in viewport px
+			const FVector2D A = OriginViewportPx; // pivot/object
+			const FVector2D B = MouseViewportPx; // mouse/virtual cursor
+			const FVector2D V = (B - A);
+
+			static float LastAngle = 0.f;
+			float BaseAngle = (V.SizeSquared() > KINDA_SMALL_NUMBER)
+				                  ? FMath::Atan2(V.Y, V.X) // radians (Y-down)
+				                  : LastAngle;
+
+			// Decide final angle based on tool mode
+			float Angle = BaseAngle;
+			switch (CursorOrient)
+			{
+			case ECursorOrient::None:
+				Angle = 0.f; // no rotation at all
+				break;
+
+			case ECursorOrient::AlongLineToMouse: // origin -> mouse
+				Angle = BaseAngle;
+				break;
+
+			case ECursorOrient::AlongLineToOrigin: // mouse -> origin (face the object)
+				Angle = BaseAngle + PI; // flip 180°
+				break;
+
+			case ECursorOrient::PerpendicularCW: // +90°
+				Angle = BaseAngle + HALF_PI;
+				break;
+
+			case ECursorOrient::PerpendicularCCW: // -90°
+				Angle = BaseAngle - HALF_PI;
+				break;
+			}
+			LastAngle = BaseAngle; // keep a stable angle when V ~ 0
 
 			const FPaintGeometry PG = AllottedGeometry.ToPaintGeometry(
-				CursorSize,
-				FSlateLayoutTransform(DrawPos) // translate only
-			);
+				Size, FSlateLayoutTransform(Pos));
 
-			FSlateDrawElement::MakeBox(
+			FSlateDrawElement::MakeRotatedBox(
 				OutDrawElements,
 				++LayerId,
 				PG,
 				CursorBrush,
 				ESlateDrawEffect::None,
-				FLinearColor::White
+				Angle,
+				CursorHotspot,
+				FSlateDrawElement::RelativeToElement
 			);
 		}
 

@@ -1,6 +1,7 @@
 #include "Tools/ScaleTool.h"
 #include "LevelEditorViewport.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Style/BlenderControlsStyle.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 
@@ -29,6 +30,13 @@ namespace BlenderControls
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
+		CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
+
+		HudWidget->SetCursorBrush(CursorBrush);
+		HudWidget->SetCursorSize(FVector2D(24, 24));
+		HudWidget->SetCursorHotspot(FVector2D(12, 12));
+		HudWidget->SetCursorOrientation(ECursorOrient::AlongLineToOrigin);
 	}
 
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)
