@@ -376,10 +376,6 @@ namespace BlenderControls
                                              CurrentViewportMousePosition);
 
         CurrentTool->OnActive(CurrentViewportMousePosition);
-        WrapMouse(CurrentViewportMousePosition);
-
-        // Track if mouse was wrapped and inform the tool
-        // CurrentTool->SetWrapped(bWrapped);
 
         return true;
     }
@@ -564,51 +560,6 @@ namespace BlenderControls
             Overlay->SetContext(nullptr);
         }
         CurrentSession.Reset();
-
-        // FSlateApplication::Get().GetPlatformCursor()->Show(true);
-    }
-
-    void FBlenderControlsInputProcessor::WrapMouse(const FVector2D& CurrentViewportMousePosition) const
-    {
-        UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);
-        if (!EditorEngine || !CurrentTool.IsValid())
-        {
-            return;
-        }
-        FViewport* EditorViewport = EditorEngine->GetActiveViewport();
-        if (!EditorViewport)
-        {
-            return;
-        }
-
-        const int32 ViewportSizeX = EditorViewport->GetSizeXY().X;
-        const int32 ViewportSizeY = EditorViewport->GetSizeXY().Y;
-
-        if (CurrentViewportMousePosition.X < 0 || CurrentViewportMousePosition.X >= ViewportSizeX ||
-            CurrentViewportMousePosition.Y < 0 || CurrentViewportMousePosition.Y >= ViewportSizeY)
-        {
-            int NewX = static_cast<int>(CurrentViewportMousePosition.X) % ViewportSizeX;
-
-            if (NewX < 0)
-            {
-                NewX += ViewportSizeX;
-            }
-
-            int NewY = static_cast<int>(CurrentViewportMousePosition.Y) % ViewportSizeY;
-            if (NewY < 0)
-            {
-                NewY += ViewportSizeY;
-            }
-
-            const FVector2D NewMousePosition = FVector2D(NewX, NewY);
-            FIntPoint MousePos;
-            EditorViewport->SetMouse(NewX, NewY);
-            CurrentTool->SetViewportMousePosition(NewMousePosition);
-            EditorViewport->GetMousePos(MousePos, true);
-
-            CurrentTool->SetLastMousePosition(FVector2D(NewX, NewY));
-            CurrentTool->NotifyMouseWrap();
-        }
     }
 
     bool FBlenderControlsInputProcessor::TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar)

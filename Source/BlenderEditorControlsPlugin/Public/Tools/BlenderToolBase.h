@@ -59,7 +59,6 @@ namespace BlenderControls
 		void SetLastMousePosition(const FVector2D NewLastMousePosition) { LastMousePosition = NewLastMousePosition; }
 		FVector2D GetLastMousePosition() const { return LastMousePosition; }
 		void AddMouseDelta(const FVector2D NewDelta) { MouseDelta += NewDelta; }
-		void NotifyMouseWrap();
 
 		void BeginNumericMode();
 		void CycleNumericInputSlot();
@@ -87,7 +86,6 @@ namespace BlenderControls
 		const float ReferenceDistance = 500.0f;
 		FVector2D LastMousePosition;
 		FVector2D PreWrapMousePosition;
-		bool bPendingMouseWrap = false;
 		int32 CachedMouseSpeed;
 
 		TArray<TWeakObjectPtr<UAxisLockGizmoComponent>> AxisGizmos;
@@ -100,6 +98,7 @@ namespace BlenderControls
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
+		FVector2D CursorAnchorPoint;
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock)
 		{

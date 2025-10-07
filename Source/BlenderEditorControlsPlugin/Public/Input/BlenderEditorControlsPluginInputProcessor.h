@@ -117,10 +117,6 @@ namespace BlenderControls
 		/* Helpers */
 		void BeginTool(ETransformMode Mode);
 		void EndTool(bool bApply);
-		void UpdateAxis(EAxisLock Axis);
-		void FeedNumeric(const TCHAR Digit);
-		void FlushNumeric();
-		void WrapMouse(const FVector2D& CurrentViewportMousePosition) const;
 		void CaptureSelection() const;
 		static bool TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar);
 		bool ShouldHandleToolHotkeys(FSlateApplication& SlateApp) const;
@@ -138,7 +134,7 @@ namespace BlenderControls
 		bool bNumericInput = false;
 		FString NumericBuffer;
 		FVector2D StartMousePos = FVector2D::ZeroVector;
-		TSharedPtr<class FBlenderToolBase> CurrentTool;
+		TSharedPtr<FBlenderToolBase> CurrentTool;
 		ETransformMode ActiveMode;
 		TSharedPtr<FUICommandList> CommandList;
 		TSharedPtr<FBlenderOverlay> Overlay;
