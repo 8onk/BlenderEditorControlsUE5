@@ -123,7 +123,6 @@ namespace BlenderControls
 		ETransformMode Mode;
 		EAxisLock LockedAxis;
 		FString DisplayName;
-		TArray<TWeakObjectPtr<AActor>> SelectedActors;
 		FViewport* Viewport = nullptr;
 		TSharedPtr<FSharedPivot> VirtualPivot;
 		FSceneView* SceneView = nullptr;
