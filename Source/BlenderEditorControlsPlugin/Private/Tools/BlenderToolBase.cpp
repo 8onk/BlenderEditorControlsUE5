@@ -307,11 +307,8 @@ namespace BlenderControls
             return;
         }
 
-        FIntPoint MousePosInt;
-        Viewport->GetMousePos(MousePosInt);
-        CursorAnchorPoint = FVector2D(MousePosInt);
-        const FVector2D MousePos = Session->StartMousePos;
         FVector StartRayOrigin, StartRayDirection;
+        const FVector2D MousePos = Session->StartMousePos;
         SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
 
         ViewUp = SceneView->GetViewUp();
@@ -356,7 +353,6 @@ namespace BlenderControls
         }
 
         MouseDelta = FVector2D::ZeroVector;
-        LastMousePosition = MousePos;
         CurrentMousePosition = MousePos;
         //bPendingMouseWrap = false; Should this be reset here?
         bIsAxisLockActive = Session->bIsAxisLockActive;
@@ -382,14 +378,11 @@ namespace BlenderControls
         GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
         GrabContext.ViewForward = ViewForward;
 
-        VirtualMousePosition = CurrentMousePosition;
         SetGrabContextAxisLock(LockedAxis);
-
         HudWidget = SNew(STransformHUD);
         HudWidget->Attach();
         UpdateHud();
         UpdateToolSettingsForAxisLock();
-
 
         if (Session->LockedAxis != EAxisLock::All)
         {
@@ -400,17 +393,13 @@ namespace BlenderControls
         if (Session->bIsNumericInputActive)
         {
             ApplyNumeric();
-            //TEMPORARY DEBUG
-            // for (int i = 0; i < 3; ++i)
-            // {
-            // 	Session->NumericSlots[i].Print();
-            // 	UE_LOG(LogTemp, Log, TEXT("NEW LINE	"));
-            // }
         }
 
         //Ensures the hardware cursor never resurfaces while tool is active (works regardless)
         ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
         FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
+        HudWidget->SetVirtualCursor(Session->WrappedCursorPosition);
+        Session->WrappedCursorPosition = CurrentViewportMousePos;
     }
 
     void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -422,7 +411,7 @@ namespace BlenderControls
             return;
         }
 
-        const FVector2D TrueMouseDelta = CurrentViewportMousePosition - CursorAnchorPoint;
+        const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
 
         // If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
         if (TrueMouseDelta.IsNearlyZero())
@@ -430,32 +419,31 @@ namespace BlenderControls
             return;
         }
 
-        VirtualMousePosition += TrueMouseDelta;
+        Session->VirtualMousePosition += TrueMouseDelta;
         MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
 
-        Viewport->SetMouse(static_cast<int32>(CursorAnchorPoint.X), static_cast<int32>(CursorAnchorPoint.Y));
-        
+        Viewport->SetMouse(static_cast<int32>(Session->CursorAnchorPoint.X), static_cast<int32>(Session->CursorAnchorPoint.Y));
+
         if (HudWidget.IsValid())
         {
-            const FVector2D TotalDelta = VirtualMousePosition - CursorAnchorPoint;
-            const FVector2D LogicalCursorPosition = CursorAnchorPoint + TotalDelta;
+            const FVector2D TotalDelta = Session->VirtualMousePosition - Session->CursorAnchorPoint;
+            const FVector2D LogicalCursorPosition = Session->CursorAnchorPoint + TotalDelta;
 
             const FVector2D ViewportSize = Viewport->GetSizeXY();
 
-            FVector2D WrappedCursorPosition;
-            WrappedCursorPosition.X = FMath::Fmod(LogicalCursorPosition.X, ViewportSize.X);
-            WrappedCursorPosition.Y = FMath::Fmod(LogicalCursorPosition.Y, ViewportSize.Y);
+            Session->WrappedCursorPosition.X = FMath::Fmod(LogicalCursorPosition.X, ViewportSize.X);
+            Session->WrappedCursorPosition.Y = FMath::Fmod(LogicalCursorPosition.Y, ViewportSize.Y);
 
-            if (WrappedCursorPosition.X < 0)
+            if (Session->WrappedCursorPosition.X < 0)
             {
-                WrappedCursorPosition.X += ViewportSize.X;
+                Session->WrappedCursorPosition.X += ViewportSize.X;
             }
-            if (WrappedCursorPosition.Y < 0)
+            if (Session->WrappedCursorPosition.Y < 0)
             {
-                WrappedCursorPosition.Y += ViewportSize.Y;
+                Session->WrappedCursorPosition.Y += ViewportSize.Y;
             }
 
-            HudWidget->SetVirtualCursor(WrappedCursorPosition);
+            HudWidget->SetVirtualCursor(Session->WrappedCursorPosition);
         }
     }
 
@@ -472,22 +460,14 @@ namespace BlenderControls
         CurrentPrecisionFactor = 1.0f;
         MouseDelta = FVector2D::ZeroVector;
         CurrentMousePosition = FVector2D::ZeroVector;
-        LastMousePosition = FVector2D::ZeroVector;
 
         SelectedActors.Empty();
         VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
-
         if (GEditor)
         {
-            const FVector Delta = VirtualPivot->GetStartLocation() - VirtualPivot->GetStartTransform().GetLocation();
-            const FVector CurrentPivotLocation = Delta + VirtualPivot->GetActiveElement().Transform.GetLocation();
-            const FVector StartPivotLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
-            const FVector NewPivotPosition = bApply ? CurrentPivotLocation : StartPivotLocation;
-
-            constexpr bool bSnapPivotToGrid = false;
-            constexpr bool bIgnoreAxis = true;
-            constexpr bool bAssignPivotToActors = false;
-            GEditor->SetPivot(NewPivotPosition, bSnapPivotToGrid, bIgnoreAxis, bAssignPivotToActors);
+            //Force the editor to update gizmo location 
+            GEditor->NoteSelectionChange(true);
+            GEditor->RedrawLevelEditingViewports(true);
         }
 
         ViewportClient->SetWidgetMode(InitialWidgetMode);
@@ -497,6 +477,11 @@ namespace BlenderControls
         ViewportClient->Invalidate();
 
         ClearDrawnAxisLines();
+        if (!Session->WrappedCursorPosition.IsNearlyZero())
+        {
+            Viewport->SetMouse(static_cast<int32>(Session->WrappedCursorPosition.X),
+                               static_cast<int32>(Session->WrappedCursorPosition.Y));
+        }
         ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
         FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
     }

@@ -17,7 +17,6 @@
 #include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
 /*TODO
-- SET cursor hardware cursor to software cursor on tool end
 - UPDATE transaction text when switching tools mid edit (without accept/cancel)
 - IMPROVE icons
 - ADD settings and KEYBINDINGs
@@ -440,6 +439,9 @@ namespace BlenderControls
                 FIntPoint MousePosInt;
                 Viewport->GetMousePos(MousePosInt);
                 CurrentSession->StartMousePos = FVector2D(MousePosInt);
+                CurrentSession->CursorAnchorPoint = CurrentSession->StartMousePos;
+                CurrentSession->VirtualMousePosition = CurrentSession->StartMousePos;
+                CurrentSession->WrappedCursorPosition = CurrentSession->StartMousePos;
             }
 
             constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;

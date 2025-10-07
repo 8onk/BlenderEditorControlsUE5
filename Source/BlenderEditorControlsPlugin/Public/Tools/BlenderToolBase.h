@@ -56,10 +56,6 @@ namespace BlenderControls
 		bool IsSingleAxisLocked() const;
 		void ClearDrawnAxisLines();
 
-		void SetLastMousePosition(const FVector2D NewLastMousePosition) { LastMousePosition = NewLastMousePosition; }
-		FVector2D GetLastMousePosition() const { return LastMousePosition; }
-		void AddMouseDelta(const FVector2D NewDelta) { MouseDelta += NewDelta; }
-
 		void BeginNumericMode();
 		void CycleNumericInputSlot();
 		void ExitNumericMode();
@@ -84,9 +80,6 @@ namespace BlenderControls
 		const float MinLineThickness = 1.0f;
 		const float MaxLineThickness = 6.0f;
 		const float ReferenceDistance = 500.0f;
-		FVector2D LastMousePosition;
-		FVector2D PreWrapMousePosition;
-		int32 CachedMouseSpeed;
 
 		TArray<TWeakObjectPtr<UAxisLockGizmoComponent>> AxisGizmos;
 		UAxisLockGizmoComponent* SpawnAxisGizmo(const FVector& Origin,
@@ -98,7 +91,6 @@ namespace BlenderControls
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
-		FVector2D CursorAnchorPoint;
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock)
 		{
@@ -114,7 +106,6 @@ namespace BlenderControls
 		const FSlateBrush* CursorBrush = nullptr;
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
-		FVector2D VirtualMousePosition;
 		TSharedPtr<STransformHUD> HudWidget;
 
 		float CurrentNonTrackballRotationAngle = 0.0f;

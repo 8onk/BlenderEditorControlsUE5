@@ -78,7 +78,7 @@ namespace BlenderControls
         }
         else
         {
-            const FVector2D CurrentDragVector = VirtualMousePosition - PivotViewportPosition;
+            const FVector2D CurrentDragVector = Session->VirtualMousePosition - PivotViewportPosition;
             float AngleDeltaRad = MathHelper::GetSignedAngle2D(LastDragVector, CurrentDragVector);
             AccumulatedAngleRad += AngleDeltaRad * CurrentPrecisionFactor;
 
@@ -109,11 +109,11 @@ namespace BlenderControls
 
         if (HudWidget.IsValid() && !bTrackballModeEnabled)
         {
-            HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+            HudWidget->SetDashState(true, PivotViewportPosition, Session->VirtualMousePosition);
         }
         else
         {
-            HudWidget->SetDashState(false, PivotViewportPosition, VirtualMousePosition);
+            HudWidget->SetDashState(false, PivotViewportPosition, Session->VirtualMousePosition);
         }
 
         UpdateHud();

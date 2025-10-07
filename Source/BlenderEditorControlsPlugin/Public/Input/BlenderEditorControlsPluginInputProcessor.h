@@ -89,6 +89,10 @@ namespace BlenderControls
 		FNumericSlotData NumericSlots[3];
 		int32 CurrentNumericSlotIndex = 0;
 		bool bIsNumericInputActive = false;
+		
+		FVector2D WrappedCursorPosition = FVector2D::ZeroVector;
+		FVector2D VirtualMousePosition = FVector2D::ZeroVector;
+		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
 	};
 
 	class FBlenderControlsInputProcessor : public IInputProcessor,

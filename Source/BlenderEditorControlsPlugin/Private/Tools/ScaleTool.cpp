@@ -104,8 +104,8 @@ namespace BlenderControls
 
 		if (HudWidget.IsValid())
 		{
-			HudWidget->SetLineEndpoints(PivotViewportPosition, VirtualMousePosition);
-			HudWidget->SetDashState(true, PivotViewportPosition, VirtualMousePosition);
+			HudWidget->SetLineEndpoints(PivotViewportPosition, Session->VirtualMousePosition);
+			HudWidget->SetDashState(true, PivotViewportPosition, Session->VirtualMousePosition);
 			HudWidget->Invalidate(EInvalidateWidgetReason::Paint);
 		}
 
