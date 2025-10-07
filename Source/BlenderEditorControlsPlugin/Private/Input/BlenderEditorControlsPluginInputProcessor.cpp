@@ -11,13 +11,17 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SWidget.h"
 #include "Editor/UnrealEd/Public/Editor.h"
-#include "Containers/Ticker.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "Editor/UnrealEd/Classes/Settings/LevelEditorViewportSettings.h"
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
 #include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
-//TODO issue with mouse wrapping, sometimes the current mouse pos is stale due to race condition which makes delta incorrect. 
+/*TODO
+- SET cursor hardware cursor to software cursor on tool end
+- UPDATE transaction text when switching tools mid edit (without accept/cancel)
+- IMPROVE icons
+- ADD settings and KEYBINDINGs
+*/
 
 class SLevelViewport;
 
