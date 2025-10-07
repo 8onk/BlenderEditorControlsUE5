@@ -360,22 +360,30 @@ namespace BlenderControls
 
     void FRotateTool::SetTrackballRotationMode(const bool bEnabled)
     {
-        if (!bTrackballModeEnabled)
+        const bool bPreviousState = bTrackballModeEnabled;
+
+        if (bPreviousState != bEnabled)
         {
-            PreviousAxisLock = LockedAxis;
-            LockedAxis = EAxisLock::All;
+            if (bEnabled)
+            {
+                CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+                    TEXT("BlenderEditorControls.Cursors.Trackball"));
+                HudWidget->SetCursorBrush(CursorBrush);
+                HudWidget->SetCursorOrientation(ECursorOrient::None);
+            }
+            else
+            {
+                CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+                    TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
+                HudWidget->SetCursorBrush(CursorBrush);
+                HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
+            }
+
+            Session->LockedAxis = LockedAxis;
+            bTrackballModeEnabled = bEnabled;
+
+            UpdateAxisLock();
         }
-        else
-        {
-            LockedAxis = PreviousAxisLock;
-        }
-        Session->LockedAxis = LockedAxis;
-        bTrackballModeEnabled = bEnabled;
-        CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
-            TEXT("BlenderEditorControls.Cursors.Trackball"));
-        HudWidget->SetCursorBrush(CursorBrush);
-        HudWidget->SetCursorOrientation(ECursorOrient::None);
-        UpdateAxisLock();
     }
 
     bool FRotateTool::GetTrackballRotationMode()
