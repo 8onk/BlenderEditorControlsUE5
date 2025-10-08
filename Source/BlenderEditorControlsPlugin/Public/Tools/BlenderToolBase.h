@@ -112,8 +112,6 @@ namespace BlenderControls
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
 
-		//FNumericSlotData NumericSlots[3];
-		int32 FirstEditedSlotIndex = -1;
 		int32 CurrentNumericSlotIndex;
 
 		FString HudString;

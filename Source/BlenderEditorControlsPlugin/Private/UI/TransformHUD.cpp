@@ -304,22 +304,22 @@ namespace BlenderControls
 			switch (CursorOrient)
 			{
 			case ECursorOrient::None:
-				Angle = 0.f; 
+				Angle = 0.f;
 				break;
 
 			case ECursorOrient::AlongLineToMouse:
 				Angle = BaseAngle;
 				break;
 
-			case ECursorOrient::AlongLineToOrigin: 
-				Angle = BaseAngle + PI; 
+			case ECursorOrient::AlongLineToOrigin:
+				Angle = BaseAngle + PI;
 				break;
 
 			case ECursorOrient::PerpendicularCW:
 				Angle = BaseAngle + HALF_PI;
 				break;
 
-			case ECursorOrient::PerpendicularCCW: 
+			case ECursorOrient::PerpendicularCCW:
 				Angle = BaseAngle - HALF_PI;
 				break;
 			}

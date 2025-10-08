@@ -159,9 +159,7 @@ namespace BlenderControls
 			Delta.Z = Slot2;
 			break;
 		}
-
-		UE_LOG(LogTemp, Log, TEXT("Slot2: %f"), Slot2);
-
+		
 		VirtualPivot->Translate(Delta, bUsingLocalSpace);
 		UpdateHud();
 	}

@@ -640,9 +640,10 @@ namespace BlenderControls
 				CurrentSlot.LiveValue.Reset();
 			}
 
-			CurrentSlot.SlotState = ESlotState::Committed;
 			CurrentSlot.Display.Empty();
 		}
+		CurrentSlot.SlotState = ESlotState::Committed;
+
 		CurrentSlot.bIsReciprocal = false;
 		CurrentSlot.bIsNegated = false;
 
@@ -653,6 +654,11 @@ namespace BlenderControls
 
 		Session->CurrentNumericSlotIndex = CurrentNumericSlotIndex;
 		UpdateHud();
+
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+		{
+			Session->NumericSlots[i].Print();
+		}
 	}
 
 	void FBlenderToolBase::ExitNumericMode()
@@ -698,7 +704,6 @@ namespace BlenderControls
 		{
 		case ESlotState::Pristine:
 			Slot.SlotState = ESlotState::FirstEdit;
-			FirstEditedSlotIndex = CurrentNumericSlotIndex;
 			break;
 		case ESlotState::Committed:
 			Slot.SlotState = ESlotState::Additive;
@@ -729,6 +734,11 @@ namespace BlenderControls
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
 		ApplyNumeric();
 		UpdateHud();
+
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+		{
+			Session->NumericSlots[i].Print();
+		}
 	}
 
 	void FBlenderToolBase::HandleBackspace()
@@ -815,6 +825,11 @@ namespace BlenderControls
 
 		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
 		ApplyNumeric();
+
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+		{
+			Session->NumericSlots[i].Print();
+		}
 	}
 
 	void FBlenderToolBase::ToggleNegation()
