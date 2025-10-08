@@ -17,8 +17,12 @@
 #include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
 /*TODO
+- When switching from rotation to scale, convert radians to units and units to degrees
+- MOUSE DRIFT WHEN CHANGING TOOLS
 - IMPROVE icons
-- ADD settings and KEYBINDINGs
+- ADD settings
+- Complete KEYBINDINGs
+- Check version compatability
 */
 
 class SLevelViewport;

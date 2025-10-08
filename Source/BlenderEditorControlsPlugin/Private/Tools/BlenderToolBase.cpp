@@ -354,7 +354,6 @@ namespace BlenderControls
 
 		MouseDelta = FVector2D::ZeroVector;
 		CurrentMousePosition = MousePos;
-		//bPendingMouseWrap = false; Should this be reset here?
 		bIsAxisLockActive = Session->bIsAxisLockActive;
 		bUsingLocalSpace = Session->bUsingLocalSpace;
 		LockedAxis = Session->LockedAxis;
@@ -399,7 +398,7 @@ namespace BlenderControls
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 		HudWidget->SetVirtualCursor(Session->WrappedCursorPosition);
-		Session->WrappedCursorPosition = CurrentViewportMousePos;
+		Session->VirtualMousePosition = Session->CursorAnchorPoint;
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -412,6 +411,7 @@ namespace BlenderControls
 		}
 
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
+		//UE_LOG(LogTemp, Log, TEXT("True mouse delta: %s"), *TrueMouseDelta.ToString());
 
 		// If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
 		if (TrueMouseDelta.IsNearlyZero())

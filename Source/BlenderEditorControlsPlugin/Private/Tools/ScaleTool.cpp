@@ -6,6 +6,7 @@
 #include "UI/TransformHUD.h"
 
 // NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
+//TODO when switching from another tool to scale, object origin gets shifted
 
 namespace BlenderControls
 {
