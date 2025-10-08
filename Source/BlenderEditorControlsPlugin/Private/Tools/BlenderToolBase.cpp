@@ -411,7 +411,6 @@ namespace BlenderControls
 		}
 
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
-		//UE_LOG(LogTemp, Log, TEXT("True mouse delta: %s"), *TrueMouseDelta.ToString());
 
 		// If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
 		if (TrueMouseDelta.IsNearlyZero())

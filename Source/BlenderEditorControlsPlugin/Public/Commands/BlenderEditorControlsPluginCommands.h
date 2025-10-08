@@ -4,27 +4,42 @@
 
 namespace BlenderControls
 {
-    class FBlenderEditorControlsPluginCommands : public TCommands<FBlenderEditorControlsPluginCommands>
-    {
-    public:
-        FBlenderEditorControlsPluginCommands();
+	class FBlenderEditorControlsPluginCommands : public TCommands<FBlenderEditorControlsPluginCommands>
+	{
+	public:
+		FBlenderEditorControlsPluginCommands();
 
-        /** TCommands interface */
-        virtual void RegisterCommands() override;
+		/** TCommands interface */
+		virtual void RegisterCommands() override;
 
-        TSharedPtr<FUICommandInfo> CommandTogglePlugin;
+		TSharedPtr<FUICommandInfo> CommandTogglePlugin;
 
-        TSharedPtr<FUICommandInfo> CommandTranslate;
-        TSharedPtr<FUICommandInfo> CommandRotate;
-        TSharedPtr<FUICommandInfo> CommandScale;
+		// Accept / Cancel
+		TSharedPtr<FUICommandInfo> CommandAccept;
+		TSharedPtr<FUICommandInfo> CommandAcceptAlt;
+		TSharedPtr<FUICommandInfo> CommandCancel;
 
-        TSharedPtr<FUICommandInfo> CommandAxisX;
-        TSharedPtr<FUICommandInfo> CommandAxisY;
-        TSharedPtr<FUICommandInfo> CommandAxisZ;
+		//Tools
+		TSharedPtr<FUICommandInfo> CommandTranslate;
+		TSharedPtr<FUICommandInfo> CommandRotate;
+		TSharedPtr<FUICommandInfo> CommandToggleTrackball;
+		TSharedPtr<FUICommandInfo> CommandScale;
 
-        TSharedPtr<FUICommandInfo> CommandAccept;
-        TSharedPtr<FUICommandInfo> CommandCancel;
+		// Numeric helpers
+		TSharedPtr<FUICommandInfo> CommandNumericBackspace;
+		TSharedPtr<FUICommandInfo> CommandNumericToggleNegation;
+		TSharedPtr<FUICommandInfo> CommandNumericToggleReciprocal;
+		TSharedPtr<FUICommandInfo> CommandNumericCycleSlot;
 
-        TSharedPtr<FUICommandInfo> CommandDuplicateAndMove;
-    };
+		// Axis locks
+		TSharedPtr<FUICommandInfo> CommandAxisX;
+		TSharedPtr<FUICommandInfo> CommandAxisY;
+		TSharedPtr<FUICommandInfo> CommandAxisZ;
+
+		TSharedPtr<FUICommandInfo> CommandDuplicateAndMove;
+
+		//Modifiers
+		TSharedPtr<FUICommandInfo> CommandSnapInvert;
+		TSharedPtr<FUICommandInfo> CommandPrecisionMode;
+	};
 } // namespace BlenderControls

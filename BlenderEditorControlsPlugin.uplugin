@@ -3,7 +3,7 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "BlenderEditorControlsPlugin",
-	"Description": "Blueprint controls plugin",
+	"Description": "Blender controls brought to Unreal Engine",
 	"Category": "Other",
 	"CreatedBy": "jeffDev887",
 	"CreatedByURL": "",
@@ -18,7 +18,7 @@
 		{
 			"Name": "BlenderEditorControlsPlugin",
 			"Type": "Editor",
-			"LoadingPhase": "PostEngineInit"
+			"LoadingPhase": "Default"
 		}
 	]
 }

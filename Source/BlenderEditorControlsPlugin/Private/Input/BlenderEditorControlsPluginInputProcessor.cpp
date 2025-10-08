@@ -4,7 +4,6 @@
 #include "Selection.h"
 #include "SLevelViewport.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
-#include "Tools/BlenderToolBase.h"
 #include "Tools/MoveTool.h"
 #include "Tools/RotateTool.h"
 #include "Tools/ScaleTool.h"
@@ -16,12 +15,11 @@
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
 #include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
+
 /*TODO
 - When switching from rotation to scale, convert radians to units and units to degrees
-- MOUSE DRIFT WHEN CHANGING TOOLS
 - IMPROVE icons
 - ADD settings
-- Complete KEYBINDINGs
 - Check version compatability
 */
 
@@ -40,30 +38,85 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::BindCommands()
 	{
-		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
 
-		// G  – Translate
-		CommandList->MapAction(
-			Commands.CommandTranslate,
-			FExecuteAction::CreateSP(SharedThis(this), &FBlenderControlsInputProcessor::TranslatePressed),
-			FCanExecuteAction());
+		CommandList->MapAction(Cmd.CommandTranslate,
+		                       FExecuteAction::CreateSP(SharedThis(this),
+		                                                &FBlenderControlsInputProcessor::TranslatePressed),
+		                       FCanExecuteAction());
 
-		// R – Rotate
-		CommandList->MapAction(
-			Commands.CommandRotate,
-			FExecuteAction::CreateSP(SharedThis(this), &FBlenderControlsInputProcessor::RotatePressed),
-			FCanExecuteAction());
+		CommandList->MapAction(Cmd.CommandRotate,
+		                       FExecuteAction::CreateSP(SharedThis(this),
+		                                                &FBlenderControlsInputProcessor::RotatePressed),
+		                       FCanExecuteAction());
 
-		// S – Scale
-		CommandList->MapAction(
-			Commands.CommandScale,
-			FExecuteAction::CreateSP(SharedThis(this), &FBlenderControlsInputProcessor::ScalePressed),
-			FCanExecuteAction());
+		CommandList->MapAction(Cmd.CommandScale,
+		                       FExecuteAction::CreateSP(SharedThis(this),
+		                                                &FBlenderControlsInputProcessor::ScalePressed),
+		                       FCanExecuteAction());
 
-		CommandList->MapAction(
-			Commands.CommandDuplicateAndMove,
-			FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::DuplicateAndMovePressed),
-			FCanExecuteAction());
+		CommandList->MapAction(Cmd.CommandDuplicateAndMove,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::DuplicateAndMovePressed),
+		                       FCanExecuteAction());
+
+		//Accept / Cancel
+		CommandList->MapAction(Cmd.CommandAccept,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::AcceptPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
+
+		CommandList->MapAction(Cmd.CommandAcceptAlt,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::AcceptPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
+
+		CommandList->MapAction(Cmd.CommandCancel,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CancelPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
+
+		//Axis locks
+		CommandList->MapAction(Cmd.CommandAxisX,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::AxisXPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
+
+		CommandList->MapAction(Cmd.CommandAxisY,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::AxisYPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
+
+		CommandList->MapAction(Cmd.CommandAxisZ,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::AxisZPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
+
+		//Numeric helpers
+		CommandList->MapAction(Cmd.CommandNumericBackspace,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::NumericBackspacePressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsNumericActive));
+
+		CommandList->MapAction(Cmd.CommandNumericToggleNegation,
+		                       FExecuteAction::CreateSP(
+			                       this, &FBlenderControlsInputProcessor::NumericToggleNegationPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsNumericActive));
+
+		CommandList->MapAction(Cmd.CommandNumericToggleReciprocal,
+		                       FExecuteAction::CreateSP(
+			                       this, &FBlenderControlsInputProcessor::NumericToggleReciprocalPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsNumericActive));
+
+		CommandList->MapAction(Cmd.CommandNumericCycleSlot,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::NumericCycleSlotPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsNumericActive));
+
+		//Trackball toggle 
+		CommandList->MapAction(Cmd.CommandToggleTrackball,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::ToggleTrackballPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsRotateToolActive));
+
+		//Modifier toggles
+		CommandList->MapAction(Cmd.CommandPrecisionMode,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::PrecisionPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
+
+		CommandList->MapAction(Cmd.CommandSnapInvert,
+		                       FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::SnapInvertPressed),
+		                       FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::IsToolActive));
 	}
 
 	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& App, TSharedRef<ICursor>)
@@ -99,42 +152,52 @@ namespace BlenderControls
 		}
 
 		CurrentTool->SetSnappingEnabled(bIsSnapEnabled);
-
-		// Overlay may want to animate a fade, so pass DeltaTime
-		/*if (Overlay.IsValid())
-		{
-		    Overlay->Tick(DeltaTime);
-		}*/
 	}
 
 	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
 		if (!ShouldHandleToolHotkeys(SlateApp))
 		{
-			return false; // Let the editor / focused widget handle it
+			return false;
 		}
 
 		const FKey PressedKey = KeyEvent.GetKey();
-		const bool bShift = KeyEvent.IsShiftDown();
 		if (PressedKeys.Contains(PressedKey))
 		{
 			return false;
 		}
 		PressedKeys.Add(PressedKey);
 
-		const auto& Commands = FBlenderEditorControlsPluginCommands::Get();
-		const FKey RotateKey = Commands.CommandRotate->GetActiveChord(EMultipleKeyBindingIndex::Primary)->Key;
-
-		if (PressedKey == RotateKey && ActiveMode == ETransformMode::Rotate)
-		{
-			const bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
-			CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
-		}
-
 		if (CommandList.IsValid() && CommandList->ProcessCommandBindings(KeyEvent))
 		{
-			return true; // G/R/S (or remapped key) handled
+			return true;
 		}
+
+		//Shit+X/Y/Z won't trigger because the check for "shift" runs in the
+		//HandleAxisKey which only triggers on X/Y/Z alone. So this is needed
+		//for the dual axis lock trigger.
+		if (bActive && CurrentTool.IsValid())
+		{
+			const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
+
+			// If the base axis key was pressed (even with Shift), handle it here:
+			if (MatchesCommandKeyIgnoringModifiers(KeyEvent, Cmd.CommandAxisX))
+			{
+				HandleAxisKey(EKeys::X); 
+				return true; 
+			}
+			if (MatchesCommandKeyIgnoringModifiers(KeyEvent, Cmd.CommandAxisY))
+			{
+				HandleAxisKey(EKeys::Y);
+				return true;
+			}
+			if (MatchesCommandKeyIgnoringModifiers(KeyEvent, Cmd.CommandAxisZ))
+			{
+				HandleAxisKey(EKeys::Z);
+				return true;
+			}
+		}
+
 
 		if (!CurrentTool.IsValid())
 		{
@@ -143,113 +206,28 @@ namespace BlenderControls
 
 		if (TCHAR Char; TryMapKeyToNumericChar(PressedKey, Char))
 		{
-			if (!bNumericInput)
+			const bool bIsDigit = FChar::IsDigit(Char);
+			const bool bIsDot = (Char == '.');
+
+			if (!bIsDigit && !bIsDot)
 			{
-				if (!FChar::IsDigit(Char) && Char != '-' && Char != '.')
-				{
-					return false;
-				}
+				return false;
+			}
 
-				for (int i = 0; i < UE_ARRAY_COUNT(CurrentSession->NumericSlots); ++i)
+			if (!Session->bIsNumericInputActive)
+			{
+				for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
 				{
-					CurrentSession->NumericSlots[i] = FNumericSlotData();
+					Session->NumericSlots[i] = FNumericSlotData();
 				}
-				CurrentSession->CurrentNumericSlotIndex = 0;
+				Session->CurrentNumericSlotIndex = 0;
 
-				bNumericInput = true;
 				CurrentTool->BeginNumericMode();
 			}
 
-			if (Char == '-')
-			{
-				if (NumericBuffer.Contains(TEXT("-")))
-				{
-					NumericBuffer.RemoveFromStart(TEXT("-"));
-				}
-				else
-				{
-					NumericBuffer.InsertAt(0, TEXT("-"));
-				}
-			}
-			else
-			{
-				NumericBuffer.AppendChar(Char);
-			}
+			NumericBuffer.AppendChar(Char);
 
 			CurrentTool->UpdateActiveNumericSlot(Char);
-			return true;
-		}
-
-		if (bNumericInput)
-		{
-			if (PressedKey == EKeys::BackSpace)
-			{
-				CurrentTool->HandleBackspace();
-				bNumericInput = CurrentSession->bIsNumericInputActive;
-				return true;
-			}
-
-			if (PressedKey == EKeys::Hyphen // main keyboard "-"
-				|| PressedKey == EKeys::Subtract // numpad "-"
-				|| PressedKey == EKeys::Underscore // (covers some layouts with Shift)
-			)
-			{
-				CurrentTool->ToggleNegation();
-				return true;
-			}
-
-			if (PressedKey == EKeys::Slash || PressedKey == EKeys::Divide)
-			{
-				CurrentTool->ToggleReciprocal();
-				return true;
-			}
-
-			if (PressedKey == EKeys::Tab)
-			{
-				CurrentTool->CycleNumericInputSlot();
-				return true;
-			}
-		}
-
-		if (PressedKey == EKeys::X || PressedKey == EKeys::Y || PressedKey == EKeys::Z)
-		{
-			PressedKeys.Add(PressedKey);
-			bool bKeySwallowed = false;
-
-			if (PressedKey == EKeys::X)
-			{
-				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
-				bKeySwallowed = true;
-			}
-			if (PressedKey == EKeys::Y)
-			{
-				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
-				bKeySwallowed = true;
-			}
-			if (PressedKey == EKeys::Z)
-			{
-				CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
-				bKeySwallowed = true;
-			}
-
-			if (bNumericInput)
-			{
-				double ParsedValue = 0.0f;
-				FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue);
-				CurrentTool->ApplyNumeric(ParsedValue);
-			}
-
-			return bKeySwallowed;
-		}
-
-		if (PressedKey == EKeys::SpaceBar || PressedKey == EKeys::Enter)
-		{
-			EndTool(/*bApply=*/true);
-			return true;
-		}
-		if (KeyEvent.GetKey() == EKeys::Escape)
-		{
-			EndTool(/*bApply=*/false);
 			return true;
 		}
 
@@ -276,13 +254,13 @@ namespace BlenderControls
 			return false;
 		}
 
-		// 1) Menus/popups up? bail. (UE 5.x uses AnyMenusVisible)
+		// Menus/popups up? bail. (UE 5.x uses AnyMenusVisible)
 		if (SlateApp.AnyMenusVisible())
 		{
 			return false;
 		}
 
-		// 2) If user is typing in any text field, don't eat keys.
+		// If user is typing in any text field, don't eat keys.
 		const TSharedPtr<SWidget> Focused = SlateApp.GetKeyboardFocusedWidget();
 		if (IsTextEntryWidget(Focused))
 		{
@@ -295,10 +273,9 @@ namespace BlenderControls
 			                                : nullptr;
 		if (!Client || !Client->IsLevelEditorClient())
 		{
-			return false; // not a Level Editor viewport
+			return false;
 		}
 
-		// 4) Don’t steal keys during PIE/SIE
 		if (GEditor && GEditor->IsPlayingSessionInEditor())
 		{
 			return false;
@@ -351,6 +328,23 @@ namespace BlenderControls
 		return false;
 	}
 
+	bool FBlenderControlsInputProcessor::MatchesCommandKeyIgnoringModifiers(const FKeyEvent& KeyEvent,
+	                                                                        const TSharedPtr<FUICommandInfo>& CmdInfo)
+	{
+		if (!CmdInfo.IsValid())
+		{
+			return false;
+		}
+
+		const FInputChord& ChordP = CmdInfo->GetActiveChord(EMultipleKeyBindingIndex::Primary).Get();
+		const FInputChord& ChordS = CmdInfo->GetActiveChord(EMultipleKeyBindingIndex::Secondary).Get();
+
+		const FKey K = KeyEvent.GetKey();
+		const bool MatchPrimary = (K == ChordP.Key);
+		const bool MatchSecondary = (K == ChordS.Key);
+		return MatchPrimary || MatchSecondary;
+	}
+
 	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& KeyEvent)
 	{
 		const FKey PressedKey = KeyEvent.GetKey();
@@ -361,7 +355,7 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
-		if (!bActive || !CurrentTool.IsValid() || bNumericInput)
+		if (!bActive || !CurrentTool.IsValid() || Session->bIsNumericInputActive)
 		{
 			return false; // plugin disabled or numeric typing
 		}
@@ -426,54 +420,54 @@ namespace BlenderControls
 			CurrentTool->OnEnd(/*bApply=*/false);
 		}
 
-		if (!CurrentSession.IsValid())
+		if (!Session.IsValid())
 		{
-			CurrentSession = MakeShared<FTransformSession>();
+			Session = MakeShared<FTransformSession>();
 
 			if (FViewport* Viewport = GEditor->GetActiveViewport())
 			{
 				FIntPoint MousePosInt;
 				Viewport->GetMousePos(MousePosInt);
-				CurrentSession->StartMousePos = FVector2D(MousePosInt);
-				CurrentSession->CursorAnchorPoint = CurrentSession->StartMousePos;
-				CurrentSession->VirtualMousePosition = CurrentSession->StartMousePos;
-				CurrentSession->WrappedCursorPosition = CurrentSession->StartMousePos;
+				Session->StartMousePos = FVector2D(MousePosInt);
+				Session->CursorAnchorPoint = Session->StartMousePos;
+				Session->VirtualMousePosition = Session->StartMousePos;
+				Session->WrappedCursorPosition = Session->StartMousePos;
 			}
 
 			constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
 			CaptureSelection();
-			CurrentSession->VirtualPivot = MakeShared<FSharedPivot>(CurrentSession->SelectedActors, PivotMode);
+			Session->VirtualPivot = MakeShared<FSharedPivot>(Session->SelectedActors, PivotMode);
 
-			CurrentSession->LockedAxis = EAxisLock::All;
-			CurrentSession->bUsingLocalSpace = false;
+			Session->LockedAxis = EAxisLock::All;
+			Session->bUsingLocalSpace = false;
 
-			CurrentSession->bIsNumericInputActive = false;
-			CurrentSession->NumericBuffer.Reset();
-			CurrentSession->CurrentNumericSlotIndex = 0;
+			Session->bIsNumericInputActive = false;
+			Session->NumericBuffer.Reset();
+			Session->CurrentNumericSlotIndex = 0;
 
-			for (int i = 0; i < UE_ARRAY_COUNT(CurrentSession->NumericSlots); ++i)
+			for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
 			{
-				CurrentSession->NumericSlots[i] = FNumericSlotData();
+				Session->NumericSlots[i] = FNumericSlotData();
 			}
 		}
 		else
 		{
-			CurrentSession->VirtualPivot->RevertToStartState();
+			Session->VirtualPivot->RevertToStartState();
 		}
 
 		// Use the session's axis lock as the initial axis for the new tool.
-		const EAxisLock InitialAxis = CurrentSession->LockedAxis;
+		const EAxisLock InitialAxis = Session->LockedAxis;
 
 		switch (Mode)
 		{
 		case ETransformMode::Translate:
-			CurrentTool = MakeShared<FMoveTool>(CurrentSession, InitialAxis);
+			CurrentTool = MakeShared<FMoveTool>(Session, InitialAxis);
 			break;
 		case ETransformMode::Rotate:
-			CurrentTool = MakeShared<FRotateTool>(CurrentSession, InitialAxis);
+			CurrentTool = MakeShared<FRotateTool>(Session, InitialAxis);
 			break;
 		case ETransformMode::Scale:
-			CurrentTool = MakeShared<FScaleTool>(CurrentSession, InitialAxis);
+			CurrentTool = MakeShared<FScaleTool>(Session, InitialAxis);
 			break;
 		case ETransformMode::None:
 			return;
@@ -494,11 +488,11 @@ namespace BlenderControls
 			CurrentTool->OnActive(CurrentMousePos);
 		}
 
-		if (CurrentSession->bIsNumericInputActive)
+		if (Session->bIsNumericInputActive)
 		{
 			// Restore the state in the Input Processor
-			bNumericInput = true;
-			NumericBuffer = CurrentSession->NumericBuffer;
+			// bNumericInput = true;
+			NumericBuffer = Session->NumericBuffer;
 
 			CurrentTool->BeginNumericMode();
 
@@ -512,7 +506,7 @@ namespace BlenderControls
 
 	void FBlenderControlsInputProcessor::CaptureSelection() const
 	{
-		CurrentSession->SelectedActors.Empty();
+		Session->SelectedActors.Empty();
 
 		if (GEditor)
 		{
@@ -521,7 +515,7 @@ namespace BlenderControls
 			{
 				if (AActor* Actor = Cast<AActor>(*It))
 				{
-					CurrentSession->SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
+					Session->SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 				}
 			}
 		}
@@ -542,21 +536,16 @@ namespace BlenderControls
 		{
 			CurrentTool->Cancel();
 		}
-		
+
 		CurrentTool->OnEnd(bApply);
 		CurrentTool.Reset();
 
 		// Reset state
 		ActiveMode = ETransformMode::None;
-		bNumericInput = false;
+		Session->bIsNumericInputActive = false;
 		NumericBuffer.Reset();
 
-		// stop drawing
-		if (Overlay.IsValid())
-		{
-			Overlay->SetContext(nullptr);
-		}
-		CurrentSession.Reset();
+		Session.Reset();
 	}
 
 	bool FBlenderControlsInputProcessor::TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar)
@@ -679,6 +668,28 @@ namespace BlenderControls
 		// }
 
 		return false;
+	}
+
+	void FBlenderControlsInputProcessor::HandleAxisKey(FKey Key) const
+	{
+		if (!CurrentTool.IsValid())
+		{
+			return;
+		}
+
+		const bool bShift = FSlateApplication::Get().GetModifierKeys().IsShiftDown();
+		if (Key == EKeys::X)
+		{
+			CurrentTool->HandleAxisLock(bShift ? (EAxisLock::Y | EAxisLock::Z) : EAxisLock::X);
+		}
+		else if (Key == EKeys::Y)
+		{
+			CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Z) : EAxisLock::Y);
+		}
+		else if (Key == EKeys::Z)
+		{
+			CurrentTool->HandleAxisLock(bShift ? (EAxisLock::X | EAxisLock::Y) : EAxisLock::Z);
+		}
 	}
 
 	void FBlenderControlsInputProcessor::DuplicateAndMovePressed()

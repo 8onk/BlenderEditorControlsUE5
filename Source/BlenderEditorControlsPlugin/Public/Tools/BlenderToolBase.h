@@ -4,7 +4,7 @@
 #include "BlenderEditorControlsEnums.h"
 #include "GrabContext.h"
 #include "ScopedTransaction.h"
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
+#include "ToolSharedState.h"
 
 class UAxisLockGizmoComponent;
 
@@ -43,6 +43,7 @@ namespace BlenderControls
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled);
+		bool IsSnappingEnabled() const {return bSnappingEnabled;}
 
 		void SetViewportMousePosition(FVector2D InViewportMousePosition)
 		{

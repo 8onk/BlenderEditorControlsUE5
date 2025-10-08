@@ -3,97 +3,12 @@
 #include "CoreMinimal.h"
 #include "Framework/Application/IInputProcessor.h"
 #include "BlenderEditorControlsEnums.h"
-#include "UI/BlenderOverlay.h"
+#include "ToolSharedState.h"
+#include "Tools/BlenderToolBase.h"
 
 namespace BlenderControls
 {
 	class FSharedPivot;
-
-	struct FNumericSlotData
-	{
-		FString Label;
-		ESlotState SlotState = ESlotState::Pristine;
-		TOptional<double> CommittedValue;
-		TOptional<double> LiveValue;
-		bool bIsNegated = false;
-		bool bIsReciprocal = false;
-		FString Display = "";
-
-		double GetTotal() const
-		{
-			double Total = CommittedValue.Get(0.0) + LiveValue.Get(0.0);
-
-			if (bIsReciprocal)
-			{
-				if (!FMath::IsNearlyZero(Total))
-				{
-					Total = 1.0 / Total;
-				}
-				else
-				{
-					Total = 0.0;
-				}
-			}
-
-			// Apply negation
-			if (bIsNegated)
-			{
-				Total *= -1.0;
-			}
-
-			return Total;
-		}
-
-		// Convert SlotState to string
-		static const TCHAR* SlotStateToString(ESlotState State)
-		{
-			switch (State)
-			{
-			case ESlotState::Pristine: return TEXT("Pristine");
-			case ESlotState::FirstEdit: return TEXT("FirstEdit");
-			case ESlotState::Committed: return TEXT("Committed");
-			case ESlotState::Additive: return TEXT("Additive");
-			case ESlotState::InvalidInput: return TEXT("InvalidInput");
-			default: return TEXT("Unknown");
-			}
-		}
-
-		// Debug print
-		void Print() const
-		{
-			const FString CommittedStr = CommittedValue.IsSet()
-				                             ? FString::SanitizeFloat(*CommittedValue)
-				                             : TEXT("None");
-			const FString LiveStr = LiveValue.IsSet() ? FString::SanitizeFloat(*LiveValue) : TEXT("None");
-
-			UE_LOG(LogTemp, Log, TEXT("FNumericSlotData { State=%s, Committed=%s, Live=%s, Display=\"%s\", Total=%f }"),
-			       SlotStateToString(SlotState),
-			       *CommittedStr,
-			       *LiveStr,
-			       *Display,
-			       GetTotal());
-		}
-	};
-
-	struct FTransformSession
-	{
-		TSharedPtr<FSharedPivot> VirtualPivot;
-		EAxisLock LockedAxis = EAxisLock::All;
-		FVector2D StartMousePos = FVector2D::ZeroVector;
-		TArray<TWeakObjectPtr<AActor>> SelectedActors;
-
-		bool bUsingLocalSpace = false;
-		bool bIsAxisLockActive = false;
-
-		FString NumericBuffer;
-		FNumericSlotData NumericSlots[3];
-		int32 CurrentNumericSlotIndex = 0;
-		bool bIsNumericInputActive = false;
-		
-		FVector2D WrappedCursorPosition = FVector2D::ZeroVector;
-		FVector2D VirtualMousePosition = FVector2D::ZeroVector;
-		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
-	};
 
 	class FBlenderControlsInputProcessor : public IInputProcessor,
 	                                       public TSharedFromThis<FBlenderControlsInputProcessor>
@@ -126,14 +41,53 @@ namespace BlenderControls
 		bool ShouldHandleToolHotkeys(FSlateApplication& SlateApp) const;
 		bool IsMouseOverLevelViewport() const;
 
+		bool MatchesCommandKeyIgnoringModifiers(
+			const FKeyEvent& KeyEvent,
+			const TSharedPtr<FUICommandInfo>& CmdInfo);
+
+
 		/* Input handlers for activating transform tools */
 		void TranslatePressed() { BeginTool(ETransformMode::Translate); }
 		void RotatePressed() { BeginTool(ETransformMode::Rotate); }
 		void ScalePressed() { BeginTool(ETransformMode::Scale); }
 
+		bool IsToolActive() const { return bActive && CurrentTool.IsValid(); }
+		bool IsRotateToolActive() const { return IsToolActive() && ActiveMode == ETransformMode::Rotate; }
+		bool IsNumericActive() const { return IsToolActive() && Session->bIsNumericInputActive; }
+
+		// Accept / Cancel
+		void AcceptPressed() { EndTool(true); }
+		void CancelPressed() { EndTool(false); }
+
+		// Axis locks
+		void AxisXPressed() { HandleAxisKey(EKeys::X); }
+		void AxisYPressed() { HandleAxisKey(EKeys::Y); }
+		void AxisZPressed() { HandleAxisKey(EKeys::Z); }
+
+		void HandleAxisKey(FKey Key) const;
+
+		// Numeric helpers
+		void NumericBackspacePressed() const { CurrentTool->HandleBackspace(); }
+		void NumericToggleNegationPressed() { CurrentTool->ToggleNegation(); }
+		void NumericToggleReciprocalPressed() { CurrentTool->ToggleReciprocal(); }
+		void NumericCycleSlotPressed() { CurrentTool->CycleNumericInputSlot(); }
+
+		// Modifiers
+		void ToggleTrackballPressed()
+		{
+			if (IsRotateToolActive()) CurrentTool->SetTrackballRotationMode(!CurrentTool->GetTrackballRotationMode());
+		}
+
+		void PrecisionPressed() { if (CurrentTool.IsValid()) CurrentTool->SetPrecisionModeActive(true); }
+
+		void SnapInvertPressed()
+		{
+			if (CurrentTool.IsValid()) CurrentTool->SetSnappingEnabled(!CurrentTool->IsSnappingEnabled());
+		}
+
 		void DuplicateAndMovePressed();
 
-		TSharedPtr<FTransformSession> CurrentSession;
+		TSharedPtr<FTransformSession> Session;
 		bool bActive = true;
 		bool bNumericInput = false;
 		FString NumericBuffer;
@@ -141,7 +95,6 @@ namespace BlenderControls
 		TSharedPtr<FBlenderToolBase> CurrentTool;
 		ETransformMode ActiveMode;
 		TSharedPtr<FUICommandList> CommandList;
-		TSharedPtr<FBlenderOverlay> Overlay;
 		TSharedPtr<SWidget> SoftwareCursorWidget;
 		TSet<FKey> PressedKeys;
 	};
