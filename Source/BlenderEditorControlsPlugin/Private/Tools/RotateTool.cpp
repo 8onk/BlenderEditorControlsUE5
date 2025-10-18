@@ -44,8 +44,17 @@ namespace BlenderControls
     void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
     {
         FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+        
+        if (HudWidget.IsValid() && !bTrackballModeEnabled)
+        {
+            HudWidget->SetDashState(true, PivotViewportPosition, Session->VirtualMousePosition);
+        }
+        else
+        {
+            HudWidget->SetDashState(false, PivotViewportPosition, Session->VirtualMousePosition);
+        }
 
-        if (!GEditor)
+        if (!GEditor || Session->bIsNumericInputActive)
         {
             return;
         }
@@ -107,16 +116,16 @@ namespace BlenderControls
             LastDragVector = CurrentDragVector;
         }
 
-        if (HudWidget.IsValid() && !bTrackballModeEnabled)
-        {
-            HudWidget->SetDashState(true, PivotViewportPosition, Session->VirtualMousePosition);
-        }
-        else
-        {
-            HudWidget->SetDashState(false, PivotViewportPosition, Session->VirtualMousePosition);
-        }
-
-        UpdateHud();
+        // if (HudWidget.IsValid() && !bTrackballModeEnabled)
+        // {
+        //     HudWidget->SetDashState(true, PivotViewportPosition, Session->VirtualMousePosition);
+        // }
+        // else
+        // {
+        //     HudWidget->SetDashState(false, PivotViewportPosition, Session->VirtualMousePosition);
+        // }
+        //
+        // UpdateHud();
     }
 
 
@@ -205,7 +214,7 @@ namespace BlenderControls
             {
                 if (bNumeric)
                 {
-                    const FNumericSlotData& SlotData = Session->NumericSlots[SlotIndex];
+                    FNumericSlotData& SlotData = Session->NumericSlots[SlotIndex];
                     if (Session->CurrentNumericSlotIndex == SlotIndex)
                     {
                         return HudWidget->FormatOneField(TEXT(""), SlotData, Unit, true);

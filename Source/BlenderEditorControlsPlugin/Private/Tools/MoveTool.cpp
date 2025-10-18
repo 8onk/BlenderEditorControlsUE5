@@ -44,6 +44,11 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
+		if (Session->bIsNumericInputActive)
+		{
+			return;
+		}
+
 		constexpr float ParallelCos = 0.990f;
 		float CosAngle = SMALL_NUMBER;
 		//If HelperAxisDir is not 0 then we are in single axis lock. 
@@ -130,6 +135,8 @@ namespace BlenderControls
 		const double Slot2 = Session->NumericSlots[1].GetTotal();
 		const double Slot3 = Session->NumericSlots[2].GetTotal();
 
+		UE_LOG(LogTemp, Log, TEXT("Slot1 TOTAL: %f"), Slot1);
+
 		switch (LockedAxis)
 		{
 		case EAxisLock::All:
@@ -159,7 +166,7 @@ namespace BlenderControls
 			Delta.Z = Slot2;
 			break;
 		}
-		
+
 		VirtualPivot->Translate(Delta, bUsingLocalSpace);
 		UpdateHud();
 	}

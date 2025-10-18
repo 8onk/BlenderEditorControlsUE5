@@ -46,7 +46,7 @@ namespace BlenderControls
 
 		FString FormatOneField(
 			const FString& Label,
-			const FNumericSlotData& SlotData,
+			FNumericSlotData& SlotData,
 			const FString& Unit,
 			bool bIsActiveSlot);
 

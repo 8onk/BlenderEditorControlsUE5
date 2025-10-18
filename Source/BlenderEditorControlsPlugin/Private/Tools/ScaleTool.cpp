@@ -44,7 +44,7 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!GEditor || !SceneView)
+		if (!GEditor || !SceneView || Session->bIsNumericInputActive)
 		{
 			return;
 		}

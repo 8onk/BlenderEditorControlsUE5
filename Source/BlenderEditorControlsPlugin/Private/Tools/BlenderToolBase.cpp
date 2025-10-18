@@ -405,7 +405,7 @@ namespace BlenderControls
 	{
 		UpdateHud();
 
-		if (!Viewport || !ViewportClient || !VirtualPivot || Session->bIsNumericInputActive)
+		if (!Viewport || !ViewportClient || !VirtualPivot)
 		{
 			return;
 		}
@@ -419,7 +419,6 @@ namespace BlenderControls
 		}
 
 		Session->VirtualMousePosition += TrueMouseDelta;
-		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
 
 		Viewport->SetMouse(static_cast<int32>(Session->CursorAnchorPoint.X),
 		                   static_cast<int32>(Session->CursorAnchorPoint.Y));
@@ -445,6 +444,8 @@ namespace BlenderControls
 
 			HudWidget->SetVirtualCursor(Session->WrappedCursorPosition);
 		}
+
+		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
 	}
 
 	void FBlenderToolBase::OnEnd(const bool bApply)
@@ -626,6 +627,15 @@ namespace BlenderControls
 	{
 		Session->bIsNumericInputActive = true;
 		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
+
+		if (Mode == ETransformMode::Rotate)
+		{
+			for (auto& Slot : Session->NumericSlots)
+			{
+				Slot.bUsingDegrees = true;
+			}
+		}
+
 		ApplyNumeric();
 	}
 
@@ -641,9 +651,8 @@ namespace BlenderControls
 			}
 
 			CurrentSlot.Display.Empty();
+			CurrentSlot.SlotState = ESlotState::Committed;
 		}
-		CurrentSlot.SlotState = ESlotState::Committed;
-
 		CurrentSlot.bIsReciprocal = false;
 		CurrentSlot.bIsNegated = false;
 
@@ -655,6 +664,7 @@ namespace BlenderControls
 		Session->CurrentNumericSlotIndex = CurrentNumericSlotIndex;
 		UpdateHud();
 
+		//DEBUG
 		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
 		{
 			Session->NumericSlots[i].Print();
@@ -671,10 +681,6 @@ namespace BlenderControls
 		Session->bIsNumericInputActive = false;
 		Session->NumericBuffer.Empty();
 		Session->CurrentNumericSlotIndex = 0;
-		for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
-		{
-			Session->NumericSlots[i] = FNumericSlotData();
-		}
 
 		CurrentNumericSlotIndex = 0;
 		for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)

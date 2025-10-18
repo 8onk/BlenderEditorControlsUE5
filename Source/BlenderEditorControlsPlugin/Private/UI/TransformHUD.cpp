@@ -142,7 +142,7 @@ namespace BlenderControls
 		AttachedViewport.Reset();
 	}
 
-	FString STransformHUD::FormatOneField(const FString& Label, const FNumericSlotData& SlotData, const FString& Unit,
+	FString STransformHUD::FormatOneField(const FString& Label, FNumericSlotData& SlotData, const FString& Unit,
 	                                      bool bIsActiveSlot)
 	{
 		if (SlotData.SlotState == ESlotState::Pristine && !bIsActiveSlot)

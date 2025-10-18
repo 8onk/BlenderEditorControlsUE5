@@ -1,5 +1,4 @@
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
-
 #include "LevelEditor.h"
 #include "Selection.h"
 #include "SLevelViewport.h"
@@ -13,7 +12,6 @@
 #include "Utils/BlenderMathHelpers.h"
 #include "Editor/UnrealEd/Classes/Settings/LevelEditorViewportSettings.h"
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
-#include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
 
 /*TODO
@@ -183,8 +181,8 @@ namespace BlenderControls
 			// If the base axis key was pressed (even with Shift), handle it here:
 			if (MatchesCommandKeyIgnoringModifiers(KeyEvent, Cmd.CommandAxisX))
 			{
-				HandleAxisKey(EKeys::X); 
-				return true; 
+				HandleAxisKey(EKeys::X);
+				return true;
 			}
 			if (MatchesCommandKeyIgnoringModifiers(KeyEvent, Cmd.CommandAxisY))
 			{
@@ -355,9 +353,9 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent& MouseEvent)
 	{
-		if (!bActive || !CurrentTool.IsValid() || Session->bIsNumericInputActive)
+		if (!bActive || !CurrentTool.IsValid())
 		{
-			return false; // plugin disabled or numeric typing
+			return false;
 		}
 
 		FVector2D CurrentViewportMousePosition;
@@ -437,13 +435,7 @@ namespace BlenderControls
 			constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
 			CaptureSelection();
 			Session->VirtualPivot = MakeShared<FSharedPivot>(Session->SelectedActors, PivotMode);
-
-			Session->LockedAxis = EAxisLock::All;
-			Session->bUsingLocalSpace = false;
-
-			Session->bIsNumericInputActive = false;
 			Session->NumericBuffer.Reset();
-			Session->CurrentNumericSlotIndex = 0;
 
 			for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
 			{
@@ -453,6 +445,50 @@ namespace BlenderControls
 		else
 		{
 			Session->VirtualPivot->RevertToStartState();
+		}
+
+		ETransformMode PreviousMode = ActiveMode;
+		// A. Transitioning FROM Rotate TO Move/Scale
+		if (PreviousMode == ETransformMode::Rotate && (Mode == ETransformMode::Translate || Mode == ETransformMode::Scale))
+		{
+			for (auto& Slot : Session->NumericSlots)
+			{
+				// ONLY convert if the current value is actually in degrees.
+				if (Slot.bUsingDegrees)
+				{
+					if (Slot.CommittedValue.IsSet())
+					{
+						Slot.CommittedValue = FNumericSlotData::DegreesToRadians(Slot.CommittedValue.GetValue());
+					}
+					if (Slot.LiveValue.IsSet())
+					{
+						Slot.LiveValue = FNumericSlotData::DegreesToRadians(Slot.LiveValue.GetValue());
+					}
+					// Now, flag that the value is in radians/units.
+					Slot.bUsingDegrees = false;
+				}
+			}
+		}
+		// B. Transitioning FROM Move/Scale TO Rotate
+		else if ((PreviousMode == ETransformMode::Translate || PreviousMode == ETransformMode::Scale) && Mode == ETransformMode::Rotate)
+		{
+			for (auto& Slot : Session->NumericSlots)
+			{
+				// ONLY convert if the current value is NOT in degrees.
+				if (!Slot.bUsingDegrees)
+				{
+					if (Slot.CommittedValue.IsSet())
+					{
+						Slot.CommittedValue = FNumericSlotData::RadiansToDegrees(Slot.CommittedValue.GetValue());
+					}
+					if (Slot.LiveValue.IsSet())
+					{
+						Slot.LiveValue = FNumericSlotData::RadiansToDegrees(Slot.LiveValue.GetValue());
+					}
+					// Now, flag that the value is in degrees.
+					Slot.bUsingDegrees = true;
+				}
+			}
 		}
 
 		// Use the session's axis lock as the initial axis for the new tool.
@@ -491,16 +527,9 @@ namespace BlenderControls
 		if (Session->bIsNumericInputActive)
 		{
 			// Restore the state in the Input Processor
-			// bNumericInput = true;
 			NumericBuffer = Session->NumericBuffer;
 
 			CurrentTool->BeginNumericMode();
-
-			double ParsedValue;
-			if (FDefaultValueHelper::ParseDouble(NumericBuffer, ParsedValue))
-			{
-				CurrentTool->ApplyNumeric(ParsedValue);
-			}
 		}
 	}
 

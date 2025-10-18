@@ -14,16 +14,32 @@ namespace BlenderControls
 		TOptional<double> LiveValue;
 		bool bIsNegated = false;
 		bool bIsReciprocal = false;
+		bool bUsingDegrees = false;
 		FString Display = "";
 
-		double GetTotal() const
+		double GetTotal()
 		{
 			double Total = CommittedValue.Get(0.0) + LiveValue.Get(0.0);
 			if (bIsReciprocal && !FMath::IsNearlyZero(Total))
+			{
 				Total = 1.0 / Total;
+			}
 			if (bIsNegated)
+			{
 				Total *= -1.0;
+			}
+
 			return Total;
+		}
+
+		static double DegreesToRadians(double Degrees)
+		{
+			return Degrees * (PI / 180.0f);
+		}
+
+		static double RadiansToDegrees(double Radians)
+		{
+			return Radians * (180.0 / PI);
 		}
 
 		// Convert SlotState to string
@@ -41,19 +57,29 @@ namespace BlenderControls
 		}
 
 		// Debug print
-		void Print() const
+		void Print()
 		{
 			const FString CommittedStr = CommittedValue.IsSet()
 				                             ? FString::SanitizeFloat(*CommittedValue)
 				                             : TEXT("None");
-			const FString LiveStr = LiveValue.IsSet() ? FString::SanitizeFloat(*LiveValue) : TEXT("None");
 
-			UE_LOG(LogTemp, Log, TEXT("FNumericSlotData { State=%s, Committed=%s, Live=%s, Display=\"%s\", Total=%f }"),
-			       SlotStateToString(SlotState),
-			       *CommittedStr,
-			       *LiveStr,
-			       *Display,
-			       GetTotal());
+			const FString LiveStr = LiveValue.IsSet()
+				                        ? FString::SanitizeFloat(*LiveValue)
+				                        : TEXT("None");
+
+			const double TotalValue = GetTotal();
+
+			UE_LOG(LogTemp, Log, TEXT("---- FNumericSlotData ----"));
+			UE_LOG(LogTemp, Log, TEXT("Label: %s"), *Label);
+			UE_LOG(LogTemp, Log, TEXT("State: %s"), SlotStateToString(SlotState));
+			UE_LOG(LogTemp, Log, TEXT("CommittedValue: %s"), *CommittedStr);
+			UE_LOG(LogTemp, Log, TEXT("LiveValue: %s"), *LiveStr);
+			UE_LOG(LogTemp, Log, TEXT("Display: \"%s\""), *Display);
+			UE_LOG(LogTemp, Log, TEXT("bUsingDegrees:     %s"), bUsingDegrees ? TEXT("true") : TEXT("false"));
+			UE_LOG(LogTemp, Log, TEXT("bIsNegated:        %s"), bIsNegated ? TEXT("true") : TEXT("false"));
+			UE_LOG(LogTemp, Log, TEXT("bIsReciprocal:     %s"), bIsReciprocal ? TEXT("true") : TEXT("false"));
+			UE_LOG(LogTemp, Log, TEXT("Total: %f"), TotalValue);
+			UE_LOG(LogTemp, Log, TEXT("---------------------------"));
 		}
 	};
 
@@ -71,6 +97,7 @@ namespace BlenderControls
 		FNumericSlotData NumericSlots[3];
 		int32 CurrentNumericSlotIndex = 0;
 		bool bIsNumericInputActive = false;
+		ETransformMode PreviouslyActiveMode = ETransformMode::None;
 
 		FVector2D WrappedCursorPosition = FVector2D::ZeroVector;
 		FVector2D VirtualMousePosition = FVector2D::ZeroVector;
