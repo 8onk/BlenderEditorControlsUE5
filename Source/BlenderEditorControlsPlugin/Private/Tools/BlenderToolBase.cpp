@@ -3,6 +3,7 @@
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
 #include "Components/LineBatchComponent.h"
+#include "Input/TransformSession.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
@@ -61,7 +62,7 @@ namespace BlenderControls
 		auto AddAxis = [&](EAxisLock Axis, const FChildInfo* ChildInfo)
 		{
 			FVector Origin, AxisDir;
-			if (ChildInfo && bUsingLocalSpace)
+			if (ChildInfo && Session->bUsingLocalSpace)
 			{
 				const FTransform& T = ChildInfo->Transform;
 				Origin = T.GetLocation();
@@ -87,7 +88,7 @@ namespace BlenderControls
 				const bool bIsActive =
 					(ChildInfo && ChildInfo->Actor && ChildInfo->Actor == Active.Actor);
 
-				if (bIsActive || !bUsingLocalSpace)
+				if (bIsActive || !Session->IsUsingLocalSpace())
 				{
 					Color = BaseColor * 2.0f;
 					Color.A = 1.0f;
@@ -108,7 +109,7 @@ namespace BlenderControls
 			}
 		};
 
-		if (bUsingLocalSpace)
+		if (Session->IsUsingLocalSpace())
 		{
 			for (const FChildInfo& Child : VirtualPivot->GetChildren())
 			{
@@ -181,7 +182,7 @@ namespace BlenderControls
 		FVector AxisDir;
 
 		// Use the provided ChildInfo for local space drawing
-		if (ChildInfo && bUsingLocalSpace)
+		if (ChildInfo && Session->IsUsingLocalSpace())
 		{
 			// Use the SAVED start transform from the FChildInfo struct
 			const FTransform& StartTransform = ChildInfo->Transform;
@@ -247,7 +248,7 @@ namespace BlenderControls
 				? FVector::ZAxisVector
 				: FVector::ZeroVector;
 
-		if (bUsingLocalSpace)
+		if (Session->IsUsingLocalSpace())
 		{
 			AxisVector = VirtualPivot->GetActiveElement().Transform.TransformVectorNoScale(AxisVector);
 		}
@@ -354,10 +355,6 @@ namespace BlenderControls
 
 		MouseDelta = FVector2D::ZeroVector;
 		CurrentMousePosition = MousePos;
-		bIsAxisLockActive = Session->bIsAxisLockActive;
-		bUsingLocalSpace = Session->bUsingLocalSpace;
-		LockedAxis = Session->LockedAxis;
-		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
 
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewForward;
@@ -397,7 +394,7 @@ namespace BlenderControls
 		//Ensures the hardware cursor never resurfaces while tool is active (works regardless)
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
-		HudWidget->SetVirtualCursor(Session->WrappedCursorPosition);
+		HudWidget->SetVirtualCursor(Session->WrappedMousePosition);
 		Session->VirtualMousePosition = Session->CursorAnchorPoint;
 	}
 
@@ -430,19 +427,19 @@ namespace BlenderControls
 
 			const FVector2D ViewportSize = Viewport->GetSizeXY();
 
-			Session->WrappedCursorPosition.X = FMath::Fmod(LogicalCursorPosition.X, ViewportSize.X);
-			Session->WrappedCursorPosition.Y = FMath::Fmod(LogicalCursorPosition.Y, ViewportSize.Y);
+			Session->WrappedMousePosition.X = FMath::Fmod(LogicalCursorPosition.X, ViewportSize.X);
+			Session->WrappedMousePosition.Y = FMath::Fmod(LogicalCursorPosition.Y, ViewportSize.Y);
 
-			if (Session->WrappedCursorPosition.X < 0)
+			if (Session->WrappedMousePosition.X < 0)
 			{
-				Session->WrappedCursorPosition.X += ViewportSize.X;
+				Session->WrappedMousePosition.X += ViewportSize.X;
 			}
-			if (Session->WrappedCursorPosition.Y < 0)
+			if (Session->WrappedMousePosition.Y < 0)
 			{
-				Session->WrappedCursorPosition.Y += ViewportSize.Y;
+				Session->WrappedMousePosition.Y += ViewportSize.Y;
 			}
 
-			HudWidget->SetVirtualCursor(Session->WrappedCursorPosition);
+			HudWidget->SetVirtualCursor(Session->WrappedMousePosition);
 		}
 
 		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
@@ -472,10 +469,10 @@ namespace BlenderControls
 		ViewportClient->Invalidate();
 
 		ClearDrawnAxisLines();
-		if (!Session->WrappedCursorPosition.IsNearlyZero())
+		if (!Session->WrappedMousePosition.IsNearlyZero())
 		{
-			Viewport->SetMouse(static_cast<int32>(Session->WrappedCursorPosition.X),
-			                   static_cast<int32>(Session->WrappedCursorPosition.Y));
+			Viewport->SetMouse(static_cast<int32>(Session->WrappedMousePosition.X),
+			                   static_cast<int32>(Session->WrappedMousePosition.Y));
 		}
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
@@ -531,48 +528,41 @@ namespace BlenderControls
 		return false;
 	}
 
-	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis)
+	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis) const
 	{
-		LockedAxis = NewAxis;
-		bIsAxisLockActive = true;
-		bUsingLocalSpace = bLocalSpaceDefault;
-
-		Session->LockedAxis = LockedAxis;
+		Session->bIsAxisLockActive = true;
 		Session->bUsingLocalSpace = bLocalSpaceDefault;
+		Session->LockedAxis = NewAxis;
 	}
 
 	void FBlenderToolBase::HandleAxisLock(const EAxisLock AxisPressed)
 	{
-		if (!bIsAxisLockActive || LockedAxis != AxisPressed)
+		if (!Session->IsAxisLockActive() || LockedAxis != AxisPressed)
 		{
 			StartNewLock(AxisPressed);
 		}
 		else
 		{
-			if (bUsingLocalSpace == bLocalSpaceDefault)
+			// Second Press
+			if (Session->IsUsingLocalSpace() == bLocalSpaceDefault)
 			{
-				// Second Press
-				bUsingLocalSpace = !bLocalSpaceDefault;
+				Session->bUsingLocalSpace = !bLocalSpaceDefault;
 			}
+			// Third Press
 			else
 			{
-				// Third Press
-				bIsAxisLockActive = false;
-				bUsingLocalSpace = false;
+				Session->bIsAxisLockActive = false;
+				Session->bUsingLocalSpace = false;
 				LockedAxis = EAxisLock::All;
 			}
 		}
-
-		Session->LockedAxis = LockedAxis;
-		Session->bUsingLocalSpace = bUsingLocalSpace;
-		Session->bIsAxisLockActive = bIsAxisLockActive;
-
+		
 		UpdateAxisLock();
 	}
 
 	bool FBlenderToolBase::IsSingleAxisLocked() const
 	{
-		if (bIsAxisLockActive && GrabContext.HelperAxisDir != FVector::ZeroVector)
+		if (Session->bIsAxisLockActive && GrabContext.HelperAxisDir != FVector::ZeroVector)
 		{
 			return true;
 		}
@@ -626,7 +616,6 @@ namespace BlenderControls
 	void FBlenderToolBase::BeginNumericMode()
 	{
 		Session->bIsNumericInputActive = true;
-		CurrentNumericSlotIndex = Session->CurrentNumericSlotIndex;
 
 		if (Mode == ETransformMode::Rotate)
 		{
@@ -641,7 +630,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::CycleNumericInputSlot()
 	{
-		FNumericSlotData& CurrentSlot = Session->NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& CurrentSlot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
 		CurrentSlot.CommittedValue = CurrentSlot.GetTotal();
 		if (!CurrentSlot.Display.IsEmpty())
 		{
@@ -658,10 +647,9 @@ namespace BlenderControls
 
 		if (NumNumericSlots > 0)
 		{
-			CurrentNumericSlotIndex = (CurrentNumericSlotIndex + 1) % NumNumericSlots;
+			Session->CurrentNumericSlotIndex = (Session->CurrentNumericSlotIndex + 1) % NumNumericSlots;
 		}
 
-		Session->CurrentNumericSlotIndex = CurrentNumericSlotIndex;
 		UpdateHud();
 
 		//DEBUG
@@ -682,7 +670,6 @@ namespace BlenderControls
 		Session->NumericBuffer.Empty();
 		Session->CurrentNumericSlotIndex = 0;
 
-		CurrentNumericSlotIndex = 0;
 		for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
 		{
 			Session->NumericSlots[i] = FNumericSlotData();
@@ -694,17 +681,17 @@ namespace BlenderControls
 
 	void FBlenderToolBase::ClearLiveNumericValue()
 	{
-		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
 
 		Slot.LiveValue.Reset();
 
-		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
 		UpdateHud();
 	}
 
 	void FBlenderToolBase::UpdateActiveNumericSlot(const TCHAR Character)
 	{
-		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
 
 		switch (Slot.SlotState)
 		{
@@ -737,7 +724,7 @@ namespace BlenderControls
 			Slot.SlotState = ESlotState::InvalidInput;
 		}
 
-		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
 		ApplyNumeric();
 		UpdateHud();
 
@@ -749,7 +736,7 @@ namespace BlenderControls
 
 	void FBlenderToolBase::HandleBackspace()
 	{
-		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
 
 		if (!Slot.Display.IsEmpty())
 		{
@@ -764,7 +751,7 @@ namespace BlenderControls
 					bool bOtherSlotsHaveValues = false;
 					for (int32 i = 0; i < 3; ++i)
 					{
-						if (i == CurrentNumericSlotIndex) continue;
+						if (i == Session->CurrentNumericSlotIndex) continue;
 
 						if (Session->NumericSlots[i].SlotState != ESlotState::Pristine)
 						{
@@ -829,7 +816,7 @@ namespace BlenderControls
 			}
 		}
 
-		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
 		ApplyNumeric();
 
 		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
@@ -845,9 +832,9 @@ namespace BlenderControls
 			return;
 		}
 
-		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
 		Slot.bIsNegated = !Slot.bIsNegated;
-		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
 		ApplyNumeric();
 		UpdateHud();
 	}
@@ -859,9 +846,9 @@ namespace BlenderControls
 			return;
 		}
 
-		FNumericSlotData& Slot = Session->NumericSlots[CurrentNumericSlotIndex];
+		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
 		Slot.bIsReciprocal = !Slot.bIsReciprocal;
-		Session->NumericSlots[CurrentNumericSlotIndex] = Slot;
+		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
 		ApplyNumeric();
 		UpdateHud();
 	}

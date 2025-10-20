@@ -83,24 +83,24 @@ namespace BlenderControls
 		}
 	};
 
-	struct FTransformSession
-	{
-		TSharedPtr<FSharedPivot> VirtualPivot;
-		EAxisLock LockedAxis = EAxisLock::All;
-		FVector2D StartMousePos = FVector2D::ZeroVector;
-		TArray<TWeakObjectPtr<AActor>> SelectedActors;
-
-		bool bUsingLocalSpace = false;
-		bool bIsAxisLockActive = false;
-
-		FString NumericBuffer;
-		FNumericSlotData NumericSlots[3];
-		int32 CurrentNumericSlotIndex = 0;
-		bool bIsNumericInputActive = false;
-		ETransformMode PreviouslyActiveMode = ETransformMode::None;
-
-		FVector2D WrappedCursorPosition = FVector2D::ZeroVector;
-		FVector2D VirtualMousePosition = FVector2D::ZeroVector;
-		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
-	};
+	// struct FTransformSession
+	// {
+	// 	TSharedPtr<FSharedPivot> VirtualPivot;
+	// 	EAxisLock LockedAxis = EAxisLock::All;
+	// 	FVector2D StartMousePos = FVector2D::ZeroVector;
+	// 	TArray<TWeakObjectPtr<AActor>> SelectedActors;
+	//
+	// 	bool bUsingLocalSpace = false;
+	// 	bool bIsAxisLockActive = false;
+	//
+	// 	FString NumericBuffer;
+	// 	FNumericSlotData NumericSlots[3];
+	// 	int32 CurrentNumericSlotIndex = 0;
+	// 	bool bIsNumericInputActive = false;
+	// 	ETransformMode PreviouslyActiveMode = ETransformMode::None;
+	//
+	// 	FVector2D WrappedMousePosition = FVector2D::ZeroVector;
+	// 	FVector2D VirtualMousePosition = FVector2D::ZeroVector;
+	// 	FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
+	// };
 }

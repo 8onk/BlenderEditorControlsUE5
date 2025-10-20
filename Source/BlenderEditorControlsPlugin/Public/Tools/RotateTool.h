@@ -13,7 +13,7 @@ namespace BlenderControls
 	class FRotateTool : public FBlenderToolBase
 	{
 	public:
-		explicit FRotateTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis = EAxisLock::All);
+		explicit FRotateTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis);
 
 		/* ---------- FBlenderToolBase overrides ---------- */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;

@@ -2,100 +2,59 @@
 
 #include "CoreMinimal.h"
 #include "Framework/Application/IInputProcessor.h"
-#include "BlenderEditorControlsEnums.h"
-#include "ToolSharedState.h"
-#include "Tools/BlenderToolBase.h"
+
+// Forward Declarations
+class FUICommandList;
+namespace BlenderControls { class FTransformSession; }
 
 namespace BlenderControls
 {
-	class FSharedPivot;
+    /**
+     * A Slate input pre-processor that captures Blender-style hotkeys.
+     * Its primary role is to create and manage the lifecycle of a FTransformSession.
+     * It acts as a "gatekeeper", forwarding input to an active session when one exists.
+     */
+    class FBlenderControlsInputProcessor : public IInputProcessor, public TSharedFromThis<FBlenderControlsInputProcessor>
+    {
+    public:
+        explicit FBlenderControlsInputProcessor(TSharedPtr<FUICommandList> InCommandList);
+        ~FBlenderControlsInputProcessor() = default;
 
-	class FBlenderControlsInputProcessor : public IInputProcessor,
-	                                       public TSharedFromThis<FBlenderControlsInputProcessor>
-	{
-	public:
-		explicit FBlenderControlsInputProcessor(TSharedPtr<FUICommandList> InCommandList);
-		~FBlenderControlsInputProcessor();
+        void BindCommands();
 
-		void BindCommands();
-
-		/* Public toggle – called by toolbar button / settings */
-		void SetActive(bool bEnable) { bActive = bEnable; }
-
-		/** IInputProcessor overrides */
-		virtual void Tick(const float DeltaTime, FSlateApplication&, TSharedRef<ICursor>) override;
-		virtual bool HandleKeyDownEvent(FSlateApplication&, const FKeyEvent&) override;
-		virtual bool HandleKeyUpEvent(FSlateApplication&, const FKeyEvent&) override;
-		virtual bool HandleMouseMoveEvent(FSlateApplication&, const FPointerEvent&) override;
-		virtual bool HandleMouseButtonDownEvent(FSlateApplication&, const FPointerEvent&) override;
-		virtual bool HandleMouseButtonUpEvent(FSlateApplication&, const FPointerEvent&) override;
-		virtual bool HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp, const FPointerEvent& InWheelEvent,
-		                                            const FPointerEvent* InGestureEvent) override;
-
-	private:
-		/* Helpers */
-		void BeginTool(ETransformMode Mode);
-		void EndTool(bool bApply);
-		void CaptureSelection() const;
-		static bool TryMapKeyToNumericChar(const FKey& Key, TCHAR& OutChar);
-		bool ShouldHandleToolHotkeys(FSlateApplication& SlateApp) const;
-		bool IsMouseOverLevelViewport() const;
-
-		bool MatchesCommandKeyIgnoringModifiers(
-			const FKeyEvent& KeyEvent,
-			const TSharedPtr<FUICommandInfo>& CmdInfo);
+        /** IInputProcessor overrides */
+        virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override;
+        virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent) override;
+        virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent) override;
+        virtual bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override;
+        virtual bool HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override;
+        
+        // The following input handlers are not used by the session but are required to override.
+        virtual bool HandleMouseButtonUpEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override { return false; }
+        virtual bool HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent) override;
 
 
-		/* Input handlers for activating transform tools */
-		void TranslatePressed() { BeginTool(ETransformMode::Translate); }
-		void RotatePressed() { BeginTool(ETransformMode::Rotate); }
-		void ScalePressed() { BeginTool(ETransformMode::Scale); }
+    private:
+        /** Checks if it's appropriate to handle hotkeys (e.g., viewport is focused). */
+        bool ShouldHandleHotkeys(FSlateApplication& SlateApp) const;
+        bool IsMouseOverLevelViewport() const;
 
-		bool IsToolActive() const { return bActive && CurrentTool.IsValid(); }
-		bool IsRotateToolActive() const { return IsToolActive() && ActiveMode == ETransformMode::Rotate; }
-		bool IsNumericActive() const { return IsToolActive() && Session->bIsNumericInputActive; }
+        /** Checks if a transform can be started (i.e., no session is currently active). */
+        bool CanStartTool() const;
 
-		// Accept / Cancel
-		void AcceptPressed() { EndTool(true); }
-		void CancelPressed() { EndTool(false); }
+        // --- Command Handlers for Starting a Session ---
+        void TranslatePressed();
+        void RotatePressed();
+        void ScalePressed();
+        void DuplicateAndMovePressed();
+        
+        /** The command list for binding hotkeys. */
+        TSharedPtr<FUICommandList> CommandList;
 
-		// Axis locks
-		void AxisXPressed() { HandleAxisKey(EKeys::X); }
-		void AxisYPressed() { HandleAxisKey(EKeys::Y); }
-		void AxisZPressed() { HandleAxisKey(EKeys::Z); }
+        /** The currently active transform session. This is the single source of truth for state. */
+        TSharedPtr<FTransformSession> ActiveSession;
 
-		void HandleAxisKey(FKey Key) const;
-
-		// Numeric helpers
-		void NumericBackspacePressed() const { CurrentTool->HandleBackspace(); }
-		void NumericToggleNegationPressed() { CurrentTool->ToggleNegation(); }
-		void NumericToggleReciprocalPressed() { CurrentTool->ToggleReciprocal(); }
-		void NumericCycleSlotPressed() { CurrentTool->CycleNumericInputSlot(); }
-
-		// Modifiers
-		void ToggleTrackballPressed()
-		{
-			if (IsRotateToolActive()) CurrentTool->SetTrackballRotationMode(!CurrentTool->GetTrackballRotationMode());
-		}
-
-		void PrecisionPressed() { if (CurrentTool.IsValid()) CurrentTool->SetPrecisionModeActive(true); }
-
-		void SnapInvertPressed()
-		{
-			if (CurrentTool.IsValid()) CurrentTool->SetSnappingEnabled(!CurrentTool->IsSnappingEnabled());
-		}
-
-		void DuplicateAndMovePressed();
-
-		TSharedPtr<FTransformSession> Session;
-		bool bActive = true;
-		bool bNumericInput = false;
-		FString NumericBuffer;
-		FVector2D StartMousePos = FVector2D::ZeroVector;
-		TSharedPtr<FBlenderToolBase> CurrentTool;
-		ETransformMode ActiveMode;
-		TSharedPtr<FUICommandList> CommandList;
-		TSharedPtr<SWidget> SoftwareCursorWidget;
-		TSet<FKey> PressedKeys;
-	};
-} // namespace BlenderControls
+        /** Tracks currently held keys to prevent re-triggering on key-repeat events. */
+        TSet<FKey> PressedKeys;
+    };
+}

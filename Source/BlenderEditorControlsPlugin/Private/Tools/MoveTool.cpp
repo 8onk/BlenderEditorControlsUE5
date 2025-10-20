@@ -1,5 +1,6 @@
 #include "Tools/MoveTool.h"
 #include "LevelEditorViewport.h"
+#include "Input/TransformSession.h"
 #include "Style/BlenderControlsStyle.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
@@ -44,7 +45,7 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (Session->bIsNumericInputActive)
+		if (Session->IsNumericInputActive())
 		{
 			return;
 		}
@@ -123,7 +124,7 @@ namespace BlenderControls
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
 
-		VirtualPivot->Translate(bUsingLocalSpace, LockedAxis, LiveDelta);
+		VirtualPivot->Translate(Session->IsUsingLocalSpace(), LockedAxis, LiveDelta);
 	}
 
 	void FMoveTool::ApplyNumeric(double Value)
@@ -131,9 +132,9 @@ namespace BlenderControls
 		FBlenderToolBase::ApplyNumeric(Value);
 
 		FVector Delta = FVector::ZeroVector;
-		const double Slot1 = Session->NumericSlots[0].GetTotal();
-		const double Slot2 = Session->NumericSlots[1].GetTotal();
-		const double Slot3 = Session->NumericSlots[2].GetTotal();
+		const double Slot1 = Session->GetSlotTotalAtIndex(0);
+		const double Slot2 = Session->GetSlotTotalAtIndex(1);
+		const double Slot3 = Session->GetSlotTotalAtIndex(2);
 
 		UE_LOG(LogTemp, Log, TEXT("Slot1 TOTAL: %f"), Slot1);
 
@@ -167,7 +168,7 @@ namespace BlenderControls
 			break;
 		}
 
-		VirtualPivot->Translate(Delta, bUsingLocalSpace);
+		VirtualPivot->Translate(Delta, Session->IsUsingLocalSpace());
 		UpdateHud();
 	}
 
@@ -179,8 +180,8 @@ namespace BlenderControls
 
 		static const TCHAR* Unit = TEXT("cm");
 		static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
-		const FString Space = bUsingLocalSpace ? TEXT("local") : TEXT("global");
-		const bool bNumeric = Session->bIsNumericInputActive;
+		const FString Space = Session->IsUsingLocalSpace() ? TEXT("local") : TEXT("global");
+		const bool bNumeric = Session->IsNumericInputActive();
 
 		enum class EValueSlot : int32
 		{
@@ -342,9 +343,9 @@ namespace BlenderControls
 			return;
 		}
 		const FTransform ActiveObjectTransform = VirtualPivot->GetActiveElement().Transform;
-		const FVector X = bUsingLocalSpace ? ActiveObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
-		const FVector Y = bUsingLocalSpace ? ActiveObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
-		const FVector Z = bUsingLocalSpace ? ActiveObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+		const FVector X = Session->IsUsingLocalSpace() ? ActiveObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
+		const FVector Y = Session->IsUsingLocalSpace() ? ActiveObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
+		const FVector Z = Session->IsUsingLocalSpace() ? ActiveObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
 
 		switch (AxisLock)
 		{

@@ -1,0 +1,99 @@
+﻿#pragma once
+
+#include "CoreMinimal.h"
+#include "BlenderEditorControlsEnums.h"
+#include "ToolSharedState.h"
+#include "ScopedTransaction.h"
+
+struct FKeyEvent;
+struct FPointerEvent;
+
+namespace BlenderControls
+{
+	class FBlenderToolBase;
+	class FSharedPivot;
+	class STransformHUD;
+
+	/**
+	 * Manages the state and lifecycle of a single, modal transform operation (e.g., from pressing 'G' to clicking to confirm).
+	 * This class acts as a state machine, owning the active tool and all shared state.
+	 */
+	class FTransformSession : public TSharedFromThis<FTransformSession>
+	{
+	public:
+		/**
+		 * Begins a new transform session.
+		 * @param InStartMode The initial tool to activate (Translate, Rotate, or Scale).
+		 */
+		FTransformSession(ETransformMode InStartMode);
+		~FTransformSession();
+
+		/** Finalizes the operation, either applying or canceling the changes. */
+		void End(bool bApply);
+
+		/** Returns true if the session has been ended and can be destroyed. */
+		bool IsFinished() const { return bIsFinished; }
+
+		// --- Input Forwarding ---
+		void Tick(const float DeltaTime, FSlateApplication& SlateApp);
+		bool HandleKeyDownEvent(const FKeyEvent& KeyEvent);
+		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) const;
+		bool HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent);
+
+		// --- Public State Accessors (for Tools) ---
+		TSharedPtr<FSharedPivot> GetPivot() const { return VirtualPivot; }
+		EAxisLock GetLockedAxis() const { return LockedAxis; }
+		bool IsUsingLocalSpace() const { return bUsingLocalSpace; }
+		bool IsAxisLockActive() const { return bIsAxisLockActive; }
+		bool IsNumericInputActive() const { return bIsNumericInputActive; }
+		const TArray<TWeakObjectPtr<AActor>>& GetSelectedActors() const { return SelectedActors; }
+		const FVector2D& GetVirtualMousePos() const { return VirtualMousePosition; }
+		const FVector2D& GetWrappedCursorPos() const { return WrappedMousePosition; }
+		const FVector2D& GetStartMousePos() const { return StartMousePos; }
+
+		// --- State Setters (for Tools) ---
+		void SetAxisLockActive(bool bActive) { bIsAxisLockActive = bActive; }
+		void SetUsingLocalSpace(bool bUsing) { bUsingLocalSpace = bUsing; }
+		void SetLockedAxis(EAxisLock InAxis) { LockedAxis = InAxis; }
+		double GetSlotTotalAtIndex(int index) { return NumericSlots[index].GetTotal(); }
+		void SetWrappedMousePos(FVector2D InVector) { WrappedMousePosition = InVector; }
+		void SetVirtualMousePos(FVector2D InVector) { VirtualMousePosition = InVector; }
+		void SetStartMousePos(FVector2D InVector) { StartMousePos = InVector; }
+
+	private:
+		/** Switches the active tool (e.g., from Move to Rotate). */
+		void SwitchTool(ETransformMode NewMode);
+
+		/** Captures the initial selection and calculates the pivot. */
+		void InitializePivot();
+
+		/** The current active tool (Move, Rotate, or Scale). */
+		TSharedPtr<FBlenderToolBase> CurrentTool;
+
+		/** The pivot point manager for the selected actors. */
+		TSharedPtr<FSharedPivot> VirtualPivot;
+
+		/** The main undo/redo transaction for this entire operation. */
+		TUniquePtr<FScopedTransaction> ParentTxn;
+
+		// --- Shared State ---
+		ETransformMode ActiveMode = ETransformMode::None;
+		EAxisLock LockedAxis = EAxisLock::All;
+		bool bUsingLocalSpace = false;
+		bool bIsAxisLockActive = false;
+		TArray<TWeakObjectPtr<AActor>> SelectedActors;
+		FNumericSlotData NumericSlots[3];
+		int32 CurrentNumericSlotIndex = 0;
+		bool bIsNumericInputActive = false;
+		FVector2D VirtualMousePosition;
+		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
+		FVector2D WrappedMousePosition = FVector2D::ZeroVector;
+		FVector2D StartMousePos = FVector2D::ZeroVector;
+
+		// --- Session Lifecycle ---
+		bool bIsFinished = false;
+
+		// Friend class declaration so FBlenderToolBase can access and modify session state
+		friend class FBlenderToolBase;
+	};
+}

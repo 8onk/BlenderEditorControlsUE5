@@ -10,6 +10,7 @@ class UAxisLockGizmoComponent;
 
 namespace BlenderControls
 {
+	class FTransformSession;
 	class STransformHUD;
 	struct FChildInfo;
 	class FSharedPivot;
@@ -72,7 +73,7 @@ namespace BlenderControls
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
 
-		void StartNewLock(EAxisLock NewAxis);
+		void StartNewLock(EAxisLock NewAxis) const;
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
 		void DrawAxisLine(const EAxisLock InAxis, const FChildInfo* ChildInfo = nullptr) const;
 
@@ -111,9 +112,7 @@ namespace BlenderControls
 
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
-
-		int32 CurrentNumericSlotIndex;
-
+		
 		FString HudString;
 
 		TUniquePtr<FScopedTransaction> ParentTxn;
@@ -131,8 +130,6 @@ namespace BlenderControls
 		bool bWasPrecisionModeActive = false;
 		bool bSnappingEnabled = false;
 		FLevelEditorViewportClient* ViewportClient = nullptr;
-		bool bIsAxisLockActive = false;
-		bool bUsingLocalSpace = false;
 		bool bLocalSpaceDefault;
 		FGrabContext GrabContext;
 		FVector2D MouseDelta;
