@@ -7,8 +7,6 @@
 #include "ScopedTransaction.h"
 #include "SLevelViewport.h"
 
-//TODO dont reset the session when switching tools, instead somehow preserve it.
-
 namespace BlenderControls
 {
 	FBlenderControlsInputProcessor::FBlenderControlsInputProcessor(TSharedPtr<FUICommandList> InCommandList)
@@ -131,7 +129,6 @@ namespace BlenderControls
 
 	bool FBlenderControlsInputProcessor::CanStartTool() const
 	{
-		// A tool can only be started if there isn't one already active.
 		return !ActiveSession.IsValid();
 	}
 

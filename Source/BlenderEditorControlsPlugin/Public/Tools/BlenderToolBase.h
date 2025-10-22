@@ -44,7 +44,8 @@ namespace BlenderControls
 		void InitializeTransaction();
 		bool CacheSceneView();
 		void CacheViewVectors();
-		void InitializeGrabContext(const FVector2D& InMousePos, const FVector& InRayOrigin, const FVector& InRayDirection);
+		void InitializeGrabContext(const FVector2D& InMousePos, const FVector& InRayOrigin,
+		                           const FVector& InRayDirection);
 		void InitializeUI();
 		void RestorePreviousState();
 		virtual void OnBegin();
@@ -65,15 +66,6 @@ namespace BlenderControls
 		virtual void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;
 		void ClearDrawnAxisLines();
-
-		// void BeginNumericMode();
-		// void CycleNumericInputSlot();
-		// void ExitNumericMode();
-		// void ClearLiveNumericValue();
-		// void UpdateActiveNumericSlot(TCHAR Character);
-		// void HandleBackspace();
-		// void ToggleNegation();
-		// void ToggleReciprocal();
 
 	private:
 		void RedrawAxisLines();

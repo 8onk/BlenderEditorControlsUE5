@@ -73,9 +73,6 @@ namespace BlenderControls
 		/** The pivot point manager for the selected actors. */
 		TSharedPtr<FSharedPivot> VirtualPivot;
 
-		/** The main undo/redo transaction for this entire operation. */
-		//TUniquePtr<FScopedTransaction> ParentTxn;
-
 		// --- Shared State ---
 		ETransformMode ActiveMode = ETransformMode::None;
 		EAxisLock LockedAxis = EAxisLock::All;
