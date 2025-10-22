@@ -374,7 +374,8 @@ namespace BlenderControls
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 		HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
-		Session->VirtualMousePosition = Session->CursorAnchorPoint; //Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
+		Session->VirtualMousePosition = Session->CursorAnchorPoint;
+		//Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
 	}
 
 	void FBlenderToolBase::RestorePreviousState()
@@ -433,6 +434,12 @@ namespace BlenderControls
 
 		// 8. Restore state from session (axis locks, numeric input)
 		RestorePreviousState();
+
+		UE_LOG(LogTemp, Log, TEXT("=== BEGINTOOL ==="));
+		UE_LOG(LogTemp, Log, TEXT("VirtualMousePosition: X=%f, Y=%f"),
+		       Session->VirtualMousePosition.X, Session->VirtualMousePosition.Y);
+		UE_LOG(LogTemp, Log, TEXT("WrappedMousePosition:  X=%f, Y=%f"),
+		       Session->WrappedMousePosition.X, Session->WrappedMousePosition.Y);
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)

@@ -97,6 +97,16 @@ namespace BlenderControls
 		{
 			CurrentTool->OnBegin();
 		}
+
+		if (FViewport* Viewport = GEditor->GetActiveViewport())
+		{
+			FIntPoint MousePosInt;
+			Viewport->GetMousePos(MousePosInt);
+			const FVector2D CurrentMousePos(MousePosInt);
+
+			//Force an immediate visual update after tool creation
+			CurrentTool->OnActive(CurrentMousePos);
+		}
 	}
 
 	void FTransformSession::End(bool bApply)
