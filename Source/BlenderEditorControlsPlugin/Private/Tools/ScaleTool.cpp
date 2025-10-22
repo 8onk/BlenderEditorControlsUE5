@@ -44,6 +44,11 @@ namespace BlenderControls
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+		if (!bIsToolActive)
+		{
+			return;
+		}
+
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!GEditor || !SceneView || Session->IsNumericInputActive())
@@ -119,18 +124,18 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		
+
 		FVector ScaleMultiplier = FVector::OneVector;
 		const double Slot1 = Session->GetSlotTotalAtIndex(0);
 		const double Slot2 = Session->GetSlotTotalAtIndex(1);
 		const double Slot3 = Session->GetSlotTotalAtIndex(2);
-		
+
 		switch (Session->GetLockedAxis())
 		{
 		case EAxisLock::All:
 			ScaleMultiplier = FVector(Slot1, Slot2, Slot3);
 			break;
-		
+
 		case EAxisLock::X:
 			ScaleMultiplier.X = Slot1;
 			break;
@@ -140,7 +145,7 @@ namespace BlenderControls
 		case EAxisLock::Z:
 			ScaleMultiplier.Z = Slot1;
 			break;
-		
+
 		case EAxisLock::XY:
 			ScaleMultiplier.X = Slot1;
 			ScaleMultiplier.Y = Slot2;
@@ -154,7 +159,7 @@ namespace BlenderControls
 			ScaleMultiplier.Z = Slot2;
 			break;
 		}
-		
+
 		VirtualPivot->Scale(ScaleMultiplier, Session->IsUsingLocalSpace());
 		UpdateHud();
 	}
@@ -332,7 +337,8 @@ namespace BlenderControls
 
 	void FScaleTool::UpdateToolSettingsForAxisLock()
 	{
-		checkf(OwningSession.IsValid(), TEXT("UpdateToolSettingsForAxisLock: Session must be valid for %s"), *DisplayName);
+		checkf(OwningSession.IsValid(), TEXT("UpdateToolSettingsForAxisLock: Session must be valid for %s"),
+		       *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		switch (Session->GetLockedAxis())

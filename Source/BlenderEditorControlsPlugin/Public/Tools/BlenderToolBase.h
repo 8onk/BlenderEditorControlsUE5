@@ -113,6 +113,8 @@ namespace BlenderControls
 
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
+		
+		bool bIsToolActive;
 
 		FString HudString;
 

@@ -45,6 +45,11 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
+		if (!bIsToolActive)
+		{
+			return;
+		}
+
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (Session->IsNumericInputActive())
 		{

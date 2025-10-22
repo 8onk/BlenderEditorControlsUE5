@@ -7,6 +7,8 @@
 #include "ScopedTransaction.h"
 #include "SLevelViewport.h"
 
+//TODO cant enter trackball rotation mode
+
 namespace BlenderControls
 {
 	FBlenderControlsInputProcessor::FBlenderControlsInputProcessor(TSharedPtr<FUICommandList> InCommandList)

@@ -45,6 +45,11 @@ namespace BlenderControls
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+
+		if (!bIsToolActive)
+		{
+			return;
+		}
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (HudWidget.IsValid() && !bTrackballModeEnabled)

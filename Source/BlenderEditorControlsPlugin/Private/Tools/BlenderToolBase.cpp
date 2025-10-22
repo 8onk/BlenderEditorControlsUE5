@@ -435,7 +435,7 @@ namespace BlenderControls
 		// 8. Restore state from session (axis locks, numeric input)
 		RestorePreviousState();
 
-		UE_LOG(LogTemp, Log, TEXT("ONBEGIN LockedAxis set to: %d"), static_cast<int32>(Session->LockedAxis));
+		bIsToolActive = true;
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -493,6 +493,7 @@ namespace BlenderControls
 		{
 			return;
 		}
+		bIsToolActive = false;
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!GEditor || !VirtualPivot || !ViewportClient)
