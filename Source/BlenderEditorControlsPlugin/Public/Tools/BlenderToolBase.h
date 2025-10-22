@@ -40,6 +40,13 @@ namespace BlenderControls
 		// Getter for DisplayName
 		const FString& GetDisplayName() const { return DisplayName; }
 
+		bool InitializeEditorState();
+		void InitializeTransaction();
+		bool CacheSceneView();
+		void CacheViewVectors();
+		void InitializeGrabContext(const FVector2D& InMousePos, const FVector& InRayOrigin, const FVector& InRayDirection);
+		void InitializeUI();
+		void RestorePreviousState();
 		virtual void OnBegin();
 		virtual void OnEnd(bool bApply);
 

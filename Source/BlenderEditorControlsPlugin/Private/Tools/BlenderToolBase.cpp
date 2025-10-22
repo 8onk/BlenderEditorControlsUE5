@@ -3,7 +3,7 @@
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
-#include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly. 
+#include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Utils/BlenderMathHelpers.h"
 #include "Tools/SharedPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
@@ -179,7 +179,7 @@ namespace BlenderControls
 			return FLinearColor::White;
 		}
 	}
-	
+
 	UAxisLockGizmoComponent* FBlenderToolBase::SpawnAxisGizmo(const FVector& Origin, const FVector& AxisDir,
 	                                                          const FLinearColor& Color, float ThicknessPx,
 	                                                          float LineLength) const
@@ -230,24 +230,25 @@ namespace BlenderControls
 		return AxisVector.GetSafeNormal();
 	}
 
-	void FBlenderToolBase::OnBegin()
+	bool FBlenderToolBase::InitializeEditorState()
 	{
-		checkf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
-			return;
+			return false;
 		}
+
+		if (!GEditor)
+		{
+			return false;
+		}
+
+		// Cache initial viewport state
 		InitialWidgetMode = ViewportClient->GetWidgetMode();
 		ViewportClient->ShowWidget(false);
 		ViewportClient->Invalidate();
 
-		if (!GEditor)
-		{
-			return;
-		}
+		// Cache initial editor state
 		CachedSelectionColor = GEditor->GetSelectionOutlineColor();
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = GLevelEditorModeTools().GetCoordSystem() == COORD_Local;
@@ -257,6 +258,12 @@ namespace BlenderControls
 			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
 		}
 
+		return true;
+	}
+
+	void FBlenderToolBase::InitializeTransaction()
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
 		VirtualPivot = Session->VirtualPivot;
 
 		// Start transaction for undo
@@ -266,7 +273,10 @@ namespace BlenderControls
 			Actor->Modify();
 		}
 		VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
+	}
 
+	bool FBlenderToolBase::CacheSceneView()
+	{
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
 				ViewportClient->Viewport,
@@ -276,20 +286,21 @@ namespace BlenderControls
 		SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 		if (!SceneView)
 		{
-			return;
+			return false;
 		}
-		ViewLocation = SceneView->ViewLocation;
 
 		Viewport = ViewportClient->Viewport;
 		if (!Viewport)
 		{
-			return;
+			return false;
 		}
 
-		FVector StartRayOrigin, StartRayDirection;
-		const FVector2D MousePos = Session->StartMousePos;
-		SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
+		ViewLocation = SceneView->ViewLocation;
+		return true;
+	}
 
+	void FBlenderToolBase::CacheViewVectors()
+	{
 		ViewUp = SceneView->GetViewUp();
 		ViewRight = SceneView->GetViewRight();
 
@@ -304,76 +315,124 @@ namespace BlenderControls
 			case LVT_OrthoXY:
 				ViewForward = FVector::UpVector; // +Z, looking down from top
 				break;
-
 			case LVT_OrthoNegativeXY:
 				ViewForward = -FVector::UpVector; // -Z, looking up from bottom
 				break;
-
 			case LVT_OrthoXZ:
 				ViewForward = FVector::RightVector; // +Y, looking from front
 				break;
-
 			case LVT_OrthoNegativeXZ:
 				ViewForward = -FVector::RightVector; // -Y, looking from back
 				break;
-
 			case LVT_OrthoYZ:
 				ViewForward = FVector::ForwardVector; // +X, looking from side
 				break;
-
 			case LVT_OrthoNegativeYZ:
 				ViewForward = -FVector::ForwardVector; // -X, looking from other side
 				break;
-
 			default:
 				ViewForward = FVector::ForwardVector; // Fallback
 				break;
 			}
 		}
+	}
 
-		MouseDelta = FVector2D::ZeroVector;
-		CurrentMousePosition = MousePos;
-
+	void FBlenderToolBase::InitializeGrabContext(const FVector2D& InMousePos, const FVector& InRayOrigin,
+	                                             const FVector& InRayDirection)
+	{
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewForward;
-		GrabContext.StartMousePos = MousePos;
-		CurrentViewportMousePos = MousePos;
-		const FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
+		GrabContext.StartMousePos = InMousePos;
 		GrabContext.StartLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
 		GrabContext.HelperAxisDir = FVector::ZeroVector;
+		GrabContext.ViewForward = ViewForward;
 
+		// Calculate ScreenToWorldScale
+		const FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
 		FVector MousePosBOrigin, MousePosBDirection;
 		SceneView->DeprojectFVector2D(MousePosB, MousePosBOrigin, MousePosBDirection);
+
 		FVector MouseIntersectionA = MathHelper::IntersectHelper(
-			GrabContext, StartRayOrigin, StartRayDirection);
+			GrabContext, InRayOrigin, InRayDirection);
 		FVector MouseIntersectionB = MathHelper::IntersectHelper(
 			GrabContext, MousePosBOrigin, MousePosBDirection);
 
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
-		GrabContext.ViewForward = ViewForward;
+	}
 
-		SetGrabContextAxisLock(Session->LockedAxis);
+	void FBlenderToolBase::InitializeUI()
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		// Setup HUD
 		HudWidget = SNew(STransformHUD);
 		HudWidget->Attach();
 		UpdateHud();
 		UpdateToolSettingsForAxisLock();
 
-		if (Session->LockedAxis != EAxisLock::All)
+		// Setup Cursor
+		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
+		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
+		HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
+		Session->VirtualMousePosition = Session->CursorAnchorPoint; //Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
+	}
+
+	void FBlenderToolBase::RestorePreviousState()
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		// Restore axis lock
+		SetGrabContextAxisLock(Session->GetLockedAxis());
+		if (Session->GetLockedAxis() != EAxisLock::All)
 		{
 			ClearDrawnAxisLines();
 			UpdateAxisLock();
 		}
 
-		if (Session->bIsNumericInputActive)
+		// Restore numeric mode
+		if (Session->IsNumericInputActive())
 		{
 			ApplyNumeric();
 		}
+	}
 
-		//Ensures the hardware cursor never resurfaces while tool is active (works regardless)
-		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
-		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
-		HudWidget->SetVirtualCursor(Session->WrappedMousePosition);
-		Session->VirtualMousePosition = Session->CursorAnchorPoint;
+	void FBlenderToolBase::OnBegin()
+	{
+		checkf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		// 1. Get Viewport, GEditor, cache settings
+		if (!InitializeEditorState())
+		{
+			return; // Bails if no ViewportClient or GEditor
+		}
+
+		// 2. Setup Undo/Redo
+		InitializeTransaction();
+
+		// 3. Calculate SceneView and base view vectors
+		if (!CacheSceneView())
+		{
+			return; // Bails if no SceneView or Viewport
+		}
+		CacheViewVectors(); // Sets ViewUp, ViewRight, ViewForward
+
+		const FVector2D MousePos = Session->StartMousePos;
+		FVector StartRayOrigin, StartRayDirection;
+		SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
+
+		// 5. Set internal tool mouse state
+		CurrentMousePosition = MousePos;
+		CurrentViewportMousePos = MousePos;
+
+		// 6. Setup the GrabContext for transform calculations
+		InitializeGrabContext(MousePos, StartRayOrigin, StartRayDirection);
+
+		// 7. Setup HUD and Cursors
+		InitializeUI();
+
+		// 8. Restore state from session (axis locks, numeric input)
+		RestorePreviousState();
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
