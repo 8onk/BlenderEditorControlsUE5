@@ -18,7 +18,7 @@ namespace BlenderControls
 	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
 	{
 	public:
-		FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,
+		FBlenderToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
 		                 const FString& InDisplayName);
 		virtual ~FBlenderToolBase();
 
@@ -31,10 +31,11 @@ namespace BlenderControls
 		/** Numeric entry apply */
 		virtual void ApplyNumeric(double Value = 0.0f)
 		{
+			checkf(OwningSession.IsValid(), TEXT("ApplyNumeric: Session must be valid for %s"), *DisplayName);
 		}
 
 		/** Set HUD string - must be implemented by inheriting classes */
-		virtual void UpdateHud() = 0;
+		virtual void UpdateHud();
 
 		// Getter for DisplayName
 		const FString& GetDisplayName() const { return DisplayName; }
@@ -44,7 +45,7 @@ namespace BlenderControls
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled);
-		bool IsSnappingEnabled() const {return bSnappingEnabled;}
+		bool IsSnappingEnabled() const { return bSnappingEnabled; }
 
 		void SetViewportMousePosition(FVector2D InViewportMousePosition)
 		{
@@ -58,14 +59,14 @@ namespace BlenderControls
 		bool IsSingleAxisLocked() const;
 		void ClearDrawnAxisLines();
 
-		void BeginNumericMode();
-		void CycleNumericInputSlot();
-		void ExitNumericMode();
-		void ClearLiveNumericValue();
-		void UpdateActiveNumericSlot(TCHAR Character);
-		void HandleBackspace();
-		void ToggleNegation();
-		void ToggleReciprocal();
+		// void BeginNumericMode();
+		// void CycleNumericInputSlot();
+		// void ExitNumericMode();
+		// void ClearLiveNumericValue();
+		// void UpdateActiveNumericSlot(TCHAR Character);
+		// void HandleBackspace();
+		// void ToggleNegation();
+		// void ToggleReciprocal();
 
 	private:
 		void RedrawAxisLines();
@@ -75,7 +76,6 @@ namespace BlenderControls
 
 		void StartNewLock(EAxisLock NewAxis) const;
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
-		void DrawAxisLine(const EAxisLock InAxis, const FChildInfo* ChildInfo = nullptr) const;
 
 		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
 		float FallbackLineThickness = 2.0f;
@@ -105,6 +105,8 @@ namespace BlenderControls
 		{
 		}
 
+		TSharedPtr<FTransformSession> GetSession() const { return OwningSession.Pin(); }
+
 		const FSlateBrush* CursorBrush = nullptr;
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
@@ -112,14 +114,13 @@ namespace BlenderControls
 
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
-		
+
 		FString HudString;
 
 		TUniquePtr<FScopedTransaction> ParentTxn;
 
-		TSharedPtr<FTransformSession> Session;
+		TWeakPtr<FTransformSession> OwningSession;
 		ETransformMode Mode;
-		EAxisLock LockedAxis;
 		FString DisplayName;
 		FViewport* Viewport = nullptr;
 		TSharedPtr<FSharedPivot> VirtualPivot;

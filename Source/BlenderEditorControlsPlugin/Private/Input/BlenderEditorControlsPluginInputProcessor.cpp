@@ -1,9 +1,13 @@
 #include "Input/BlenderEditorControlsPluginInputProcessor.h"
-#include "Input/TransformSession.h"
+#include "TransformSession.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Editor.h"
+#include "LevelEditor.h"
 #include "ScopedTransaction.h"
+#include "SLevelViewport.h"
+
+//TODO dont reset the session when switching tools, instead somehow preserve it.
 
 namespace BlenderControls
 {
@@ -16,22 +20,22 @@ namespace BlenderControls
 	{
 		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
 
-		// The FCanExecuteAction ensures they only fire when no session is active.
+		// The FCanExecuteAction ensures they only fire when no session is active (as defined by CanStartTool()).
 		CommandList->MapAction(
 			Cmd.CommandTranslate,
-			FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::TranslatePressed),
+			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Translate); }),
 			FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandRotate,
-			FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::RotatePressed),
+			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Rotate); }),
 			FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandScale,
-			FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::ScalePressed),
+			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Scale); }),
 			FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CanStartTool)
 		);
 
@@ -131,28 +135,12 @@ namespace BlenderControls
 		return !ActiveSession.IsValid();
 	}
 
-	void FBlenderControlsInputProcessor::TranslatePressed()
+	void FBlenderControlsInputProcessor::OnTransformPressed(ETransformMode Mode)
 	{
-		if (CanStartTool())
-		{
-			ActiveSession = MakeShared<FTransformSession>(ETransformMode::Translate);
-		}
-	}
-
-	void FBlenderControlsInputProcessor::RotatePressed()
-	{
-		if (CanStartTool())
-		{
-			ActiveSession = MakeShared<FTransformSession>(ETransformMode::Rotate);
-		}
-	}
-
-	void FBlenderControlsInputProcessor::ScalePressed()
-	{
-		if (CanStartTool())
-		{
-			ActiveSession = MakeShared<FTransformSession>(ETransformMode::Scale);
-		}
+		if (!CanStartTool()) return;
+		
+		ActiveSession = MakeShared<FTransformSession>(Mode);
+		ActiveSession->SwitchTool(Mode);
 	}
 
 	void FBlenderControlsInputProcessor::DuplicateAndMovePressed()
@@ -166,7 +154,7 @@ namespace BlenderControls
 			GEditor->edactDuplicateSelected(Level, bOffsetLocations);
 
 			// Now, start the session in Translate mode on the new selection.
-			ActiveSession = MakeShared<FTransformSession>(ETransformMode::Translate);
+			OnTransformPressed(ETransformMode::Translate);
 		}
 	}
 
@@ -200,18 +188,44 @@ namespace BlenderControls
 	bool FBlenderControlsInputProcessor::IsMouseOverLevelViewport() const
 	{
 		auto& App = FSlateApplication::Get();
-		FWidgetPath Path = App.LocateWindowUnderMouse(App.GetCursorPos(), App.GetInteractiveTopLevelWindows(), false);
+		const FVector2D ScreenPos = App.GetCursorPos();
 
-		if (Path.IsValid())
+		FWidgetPath Path = App.LocateWindowUnderMouse(
+			ScreenPos,
+			App.GetInteractiveTopLevelWindows(),
+			true
+		);
+		if (!Path.IsValid())
 		{
-			for (const auto& Widget : Path.Widgets)
+			return false;
+		}
+
+		if (FModuleManager::Get().IsModuleLoaded("LevelEditor"))
+		{
+			FLevelEditorModule& LevelEd = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+
+			// Try the explicit LevelViewport widget route
+			if (TSharedPtr<SLevelViewport> SLVP = LevelEd.GetFirstActiveLevelViewport())
 			{
-				if (Widget.Widget->GetTypeAsString().Contains(TEXT("SLevelViewport")))
+				if (Path.ContainsWidget(SLVP.Get()))
+				{
+					return true;
+				}
+			}
+
+			// Fallback: scan path for SLevelViewport
+			for (int32 i = 0; i < Path.Widgets.Num(); ++i)
+			{
+				const FArrangedWidget& Arranged = Path.Widgets[i];
+				const TSharedRef<SWidget>& W = Arranged.Widget;
+				const FString Type = W->GetTypeAsString();
+				if (Type.Contains(TEXT("SLevelViewport")) || Type.Contains(TEXT("SEditorViewport")))
 				{
 					return true;
 				}
 			}
 		}
+
 		return false;
 	}
 } // namespace BlenderControls

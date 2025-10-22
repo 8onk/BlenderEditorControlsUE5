@@ -1,6 +1,6 @@
 #include "Tools/MoveTool.h"
 #include "LevelEditorViewport.h"
-#include "Input/TransformSession.h"
+#include "TransformSession.h"
 #include "Style/BlenderControlsStyle.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
@@ -8,8 +8,8 @@
 
 namespace BlenderControls
 {
-	FMoveTool::FMoveTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis)
-		: FBlenderToolBase(InSession, ETransformMode::Translate, InAxis, TEXT("Move"))
+	FMoveTool::FMoveTool(const TSharedRef<FTransformSession>& InSession)
+		: FBlenderToolBase(InSession, ETransformMode::Translate, TEXT("Move"))
 	{
 	}
 
@@ -45,6 +45,7 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
 
+		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (Session->IsNumericInputActive())
 		{
 			return;
@@ -124,12 +125,13 @@ namespace BlenderControls
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
 
-		VirtualPivot->Translate(Session->IsUsingLocalSpace(), LockedAxis, LiveDelta);
+		VirtualPivot->Translate(Session->IsUsingLocalSpace(), Session->GetLockedAxis(), LiveDelta);
 	}
 
 	void FMoveTool::ApplyNumeric(double Value)
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
+		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		FVector Delta = FVector::ZeroVector;
 		const double Slot1 = Session->GetSlotTotalAtIndex(0);
@@ -138,7 +140,7 @@ namespace BlenderControls
 
 		UE_LOG(LogTemp, Log, TEXT("Slot1 TOTAL: %f"), Slot1);
 
-		switch (LockedAxis)
+		switch (Session->GetLockedAxis())
 		{
 		case EAxisLock::All:
 			Delta = FVector(Slot1, Slot2, Slot3);
@@ -174,139 +176,144 @@ namespace BlenderControls
 
 	void FMoveTool::UpdateHud()
 	{
-		const FVector CurrentLocation = VirtualPivot->GetActiveElement().Actor->GetActorLocation();
-		const FVector StartLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
-		const FVector LiveDeltaCM = CurrentLocation - StartLocation;
-
-		static const TCHAR* Unit = TEXT("cm");
-		static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
-		const FString Space = Session->IsUsingLocalSpace() ? TEXT("local") : TEXT("global");
-		const bool bNumeric = Session->IsNumericInputActive();
-
-		enum class EValueSlot : int32
-		{
-			X = 0,
-			Y = 1,
-			Z = 2
-		};
-
-		struct FHudFieldData
-		{
-			FString Label;
-			double LiveValue;
-			EValueSlot SlotIndex;
-		};
-
-		TArray<FHudFieldData> HudFields;
-		FString Suffix;
-		double SignedMag = 0.0;
-
-		switch (LockedAxis)
-		{
-		case EAxisLock::All:
-			HudFields.Add({TEXT("Dx"), LiveDeltaCM.X, EValueSlot::X});
-			HudFields.Add({TEXT("Dy"), LiveDeltaCM.Y, EValueSlot::Y});
-			HudFields.Add({TEXT("Dz"), LiveDeltaCM.Z, EValueSlot::Z});
-			SignedMag = LiveDeltaCM.Size();
-			break;
-
-		case EAxisLock::X:
-			{
-				HudFields.Add({
-					TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X)), EValueSlot::X
-				});
-				Suffix = FString::Printf(TEXT("along %s X"), *Space);
-
-				const double Comp = FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X));
-				SignedMag = Comp;
-			}
-			break;
-
-		case EAxisLock::Y:
-			{
-				HudFields.Add({
-					TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y)), EValueSlot::X
-				});
-				Suffix = FString::Printf(TEXT("along %s Y"), *Space);
-
-				const double Comp = FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y));
-				SignedMag = Comp;
-			}
-			break;
-
-		case EAxisLock::Z:
-			{
-				HudFields.Add({
-					TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z)), EValueSlot::X
-				});
-				Suffix = FString::Printf(TEXT("along %s Z"), *Space);
-
-				const double Comp = FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z));
-				SignedMag = Comp;
-			}
-			break;
-
-		case EAxisLock::XY:
-			HudFields.Add({TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X)), EValueSlot::X});
-			HudFields.Add({TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y)), EValueSlot::Y});
-			Suffix = FString::Printf(TEXT("locking %s Z"), *Space);
-			SignedMag = LiveDeltaCM.Size();
-			break;
-
-		case EAxisLock::XZ:
-			HudFields.Add({TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X)), EValueSlot::X});
-			HudFields.Add({
-				TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z)), EValueSlot::Y
-			});
-			Suffix = FString::Printf(TEXT("locking %s Y"), *Space);
-			SignedMag = LiveDeltaCM.Size();
-			break;
-
-		case EAxisLock::YZ:
-			HudFields.Add({
-				TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y)), EValueSlot::X
-			});
-			HudFields.Add({
-				TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z)), EValueSlot::Y
-			});
-			Suffix = FString::Printf(TEXT("locking %s X"), *Space);
-			SignedMag = LiveDeltaCM.Size();
-			break;
-		}
-
-		//format string
-		TArray<FString> FormattedFields;
-		for (const FHudFieldData& FieldData : HudFields)
-		{
-			const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
-			FNumericSlotData DataToFormat;
-
-			if (bNumeric)
-			{
-				DataToFormat = Session->NumericSlots[SlotIndexInt];
-			}
-			else
-			{
-				DataToFormat.SlotState = ESlotState::Committed;
-				DataToFormat.CommittedValue = FieldData.LiveValue;
-			}
-
-			const bool bIsActive = bNumeric && (SlotIndexInt == Session->CurrentNumericSlotIndex);
-
-			FormattedFields.Add(HudWidget->FormatOneField(
-				FieldData.Label,
-				DataToFormat,
-				Unit,
-				bIsActive
-			));
-		}
-
-		const FString FieldsString = FString::Join(FormattedFields, Sep);
-		const FString MagString = FString::Printf(TEXT(" (%s)"), *HudWidget->FormatMagnitude(SignedMag, Unit));
-
-		HudString = FString::Printf(TEXT("%s%s %s"), *FieldsString, *MagString, *Suffix).TrimEnd();
-		HudWidget->Update(FText::FromString(HudString));
+		FBlenderToolBase::UpdateHud();
 	}
+
+	// void FMoveTool::UpdateHud()
+	// {
+	// 	const FVector CurrentLocation = VirtualPivot->GetActiveElement().Actor->GetActorLocation();
+	// 	const FVector StartLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
+	// 	const FVector LiveDeltaCM = CurrentLocation - StartLocation;
+	//
+	// 	static const TCHAR* Unit = TEXT("cm");
+	// 	static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
+	// 	const FString Space = Session->IsUsingLocalSpace() ? TEXT("local") : TEXT("global");
+	// 	const bool bNumeric = Session->IsNumericInputActive();
+	//
+	// 	enum class EValueSlot : int32
+	// 	{
+	// 		X = 0,
+	// 		Y = 1,
+	// 		Z = 2
+	// 	};
+	//
+	// 	struct FHudFieldData
+	// 	{
+	// 		FString Label;
+	// 		double LiveValue;
+	// 		EValueSlot SlotIndex;
+	// 	};
+	//
+	// 	TArray<FHudFieldData> HudFields;
+	// 	FString Suffix;
+	// 	double SignedMag = 0.0;
+	//
+	// 	switch (LockedAxis)
+	// 	{
+	// 	case EAxisLock::All:
+	// 		HudFields.Add({TEXT("Dx"), LiveDeltaCM.X, EValueSlot::X});
+	// 		HudFields.Add({TEXT("Dy"), LiveDeltaCM.Y, EValueSlot::Y});
+	// 		HudFields.Add({TEXT("Dz"), LiveDeltaCM.Z, EValueSlot::Z});
+	// 		SignedMag = LiveDeltaCM.Size();
+	// 		break;
+	//
+	// 	case EAxisLock::X:
+	// 		{
+	// 			HudFields.Add({
+	// 				TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X)), EValueSlot::X
+	// 			});
+	// 			Suffix = FString::Printf(TEXT("along %s X"), *Space);
+	//
+	// 			const double Comp = FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X));
+	// 			SignedMag = Comp;
+	// 		}
+	// 		break;
+	//
+	// 	case EAxisLock::Y:
+	// 		{
+	// 			HudFields.Add({
+	// 				TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y)), EValueSlot::X
+	// 			});
+	// 			Suffix = FString::Printf(TEXT("along %s Y"), *Space);
+	//
+	// 			const double Comp = FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y));
+	// 			SignedMag = Comp;
+	// 		}
+	// 		break;
+	//
+	// 	case EAxisLock::Z:
+	// 		{
+	// 			HudFields.Add({
+	// 				TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z)), EValueSlot::X
+	// 			});
+	// 			Suffix = FString::Printf(TEXT("along %s Z"), *Space);
+	//
+	// 			const double Comp = FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z));
+	// 			SignedMag = Comp;
+	// 		}
+	// 		break;
+	//
+	// 	case EAxisLock::XY:
+	// 		HudFields.Add({TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X)), EValueSlot::X});
+	// 		HudFields.Add({TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y)), EValueSlot::Y});
+	// 		Suffix = FString::Printf(TEXT("locking %s Z"), *Space);
+	// 		SignedMag = LiveDeltaCM.Size();
+	// 		break;
+	//
+	// 	case EAxisLock::XZ:
+	// 		HudFields.Add({TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::X)), EValueSlot::X});
+	// 		HudFields.Add({
+	// 			TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z)), EValueSlot::Y
+	// 		});
+	// 		Suffix = FString::Printf(TEXT("locking %s Y"), *Space);
+	// 		SignedMag = LiveDeltaCM.Size();
+	// 		break;
+	//
+	// 	case EAxisLock::YZ:
+	// 		HudFields.Add({
+	// 			TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Y)), EValueSlot::X
+	// 		});
+	// 		HudFields.Add({
+	// 			TEXT("D"), FVector::DotProduct(LiveDeltaCM, GetAxisVector(EAxisLock::Z)), EValueSlot::Y
+	// 		});
+	// 		Suffix = FString::Printf(TEXT("locking %s X"), *Space);
+	// 		SignedMag = LiveDeltaCM.Size();
+	// 		break;
+	// 	}
+	//
+	// 	//format string
+	// 	TArray<FString> FormattedFields;
+	// 	for (const FHudFieldData& FieldData : HudFields)
+	// 	{
+	// 		const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
+	// 		FNumericSlotData DataToFormat;
+	//
+	// 		if (bNumeric)
+	// 		{
+	// 			DataToFormat = Session->NumericSlots[SlotIndexInt];
+	// 		}
+	// 		else
+	// 		{
+	// 			DataToFormat.SlotState = ESlotState::Committed;
+	// 			DataToFormat.CommittedValue = FieldData.LiveValue;
+	// 		}
+	//
+	// 		const bool bIsActive = bNumeric && (SlotIndexInt == Session->CurrentNumericSlotIndex);
+	//
+	// 		FormattedFields.Add(HudWidget->FormatOneField(
+	// 			FieldData.Label,
+	// 			DataToFormat,
+	// 			Unit,
+	// 			bIsActive
+	// 		));
+	// 	}
+	//
+	// 	const FString FieldsString = FString::Join(FormattedFields, Sep);
+	// 	const FString MagString = FString::Printf(TEXT(" (%s)"), *HudWidget->FormatMagnitude(SignedMag, Unit));
+	//
+	// 	HudString = FString::Printf(TEXT("%s%s %s"), *FieldsString, *MagString, *Suffix).TrimEnd();
+	// 	HudWidget->Update(FText::FromString(HudString));
+	// }
 
 	void FMoveTool::OnEnd(bool bApply)
 	{
@@ -315,37 +322,46 @@ namespace BlenderControls
 
 	void FMoveTool::UpdateToolSettingsForAxisLock()
 	{
-		switch (LockedAxis)
-		{
-		case EAxisLock::X:
-		case EAxisLock::Y:
-		case EAxisLock::Z:
-			NumNumericSlots = 1;
-			break;
-
-		case EAxisLock::XY:
-		case EAxisLock::XZ:
-		case EAxisLock::YZ:
-			NumNumericSlots = 2;
-			break;
-
-		case EAxisLock::All:
-		default:
-			NumNumericSlots = 3;
-			break;
-		}
+		// switch (Session->GetLockedAxis())
+		// {
+		// case EAxisLock::X:
+		// case EAxisLock::Y:
+		// case EAxisLock::Z:
+		// 	NumNumericSlots = 1;
+		// 	break;
+		//
+		// case EAxisLock::XY:
+		// case EAxisLock::XZ:
+		// case EAxisLock::YZ:
+		// 	NumNumericSlots = 2;
+		// 	break;
+		//
+		// case EAxisLock::All:
+		// default:
+		// 	NumNumericSlots = 3;
+		// 	break;
+		// }
 	}
 
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
+		checkf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		if (!VirtualPivot)
 		{
 			return;
 		}
 		const FTransform ActiveObjectTransform = VirtualPivot->GetActiveElement().Transform;
-		const FVector X = Session->IsUsingLocalSpace() ? ActiveObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
-		const FVector Y = Session->IsUsingLocalSpace() ? ActiveObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
-		const FVector Z = Session->IsUsingLocalSpace() ? ActiveObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+		const FVector X = Session->IsUsingLocalSpace()
+			                  ? ActiveObjectTransform.GetUnitAxis(EAxis::X)
+			                  : FVector::XAxisVector;
+		const FVector Y = Session->IsUsingLocalSpace()
+			                  ? ActiveObjectTransform.GetUnitAxis(EAxis::Y)
+			                  : FVector::YAxisVector;
+		const FVector Z = Session->IsUsingLocalSpace()
+			                  ? ActiveObjectTransform.GetUnitAxis(EAxis::Z)
+			                  : FVector::ZAxisVector;
 
 		switch (AxisLock)
 		{
@@ -400,6 +416,9 @@ namespace BlenderControls
 
 	FVector FMoveTool::GetSnapOffset(const FVector OffsetFromStart)
 	{
+		checkf(OwningSession.IsValid(), TEXT("GetSnapOffset: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		if (!GEditor)
 		{
 			return FVector::ZeroVector;
@@ -407,14 +426,16 @@ namespace BlenderControls
 
 		const float GridSize = GEditor->GetGridSize();
 		FVector SnapOffset;
-		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::Z)
+		if (Session->GetLockedAxis() == EAxisLock::X || Session->GetLockedAxis() == EAxisLock::Y || Session->
+			GetLockedAxis() == EAxisLock::Z)
 		{
 			const FVector SnapAxis = GrabContext.HelperAxisDir;
 			const float DistanceAlongAxis = FVector::DotProduct(OffsetFromStart, SnapAxis);
 			const float SnappedDistance = FMath::GridSnap(DistanceAlongAxis, GridSize);
 			SnapOffset = SnapAxis * SnappedDistance;
 		}
-		else if (LockedAxis == EAxisLock::XY || LockedAxis == EAxisLock::XZ || LockedAxis == EAxisLock::YZ)
+		else if (Session->GetLockedAxis() == EAxisLock::XY || Session->GetLockedAxis() == EAxisLock::XZ || Session->
+			GetLockedAxis() == EAxisLock::YZ)
 		{
 			const float DistanceAlongU = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisU);
 			const float DistanceAlongV = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisV);

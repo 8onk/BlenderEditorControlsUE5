@@ -1,4 +1,4 @@
-﻿#include "Input/TransformSession.h"
+﻿#include "TransformSession.h"
 #include "Editor.h"
 #include "Selection.h"
 #include "Framework/Application/SlateApplication.h"
@@ -23,9 +23,21 @@ namespace BlenderControls
 
 		InitializePivot();
 
-		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(TEXT("Blender Transform")));
+		if (FViewport* Viewport = GEditor->GetActiveViewport())
+		{
+			FIntPoint MousePosInt;
+			Viewport->GetMousePos(MousePosInt);
+			StartMousePos = FVector2D(MousePosInt);
+			CursorAnchorPoint = StartMousePos;
+			VirtualMousePosition = StartMousePos;
+			WrappedMousePosition = StartMousePos;
+		}
 
-		SwitchTool(InStartMode);
+		UE_LOG(LogTemp, Log, TEXT("Constructing TransformSession"));
+
+		//ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(TEXT("Blender Transform")));
+
+		//SwitchTool(InStartMode);
 	}
 
 	FTransformSession::~FTransformSession()
@@ -34,6 +46,8 @@ namespace BlenderControls
 		{
 			CurrentTool->OnEnd(/*bApply=*/false);
 		}
+
+		UE_LOG(LogTemp, Warning, TEXT("~FTransformSession"));
 	}
 
 	void FTransformSession::InitializePivot()
@@ -58,7 +72,7 @@ namespace BlenderControls
 
 		if (CurrentTool.IsValid())
 		{
-			CurrentTool->OnEnd(/*bApply=*/false);
+			CurrentTool->OnEnd(false);
 		}
 
 		ActiveMode = NewMode;
@@ -66,13 +80,13 @@ namespace BlenderControls
 		switch (NewMode)
 		{
 		case ETransformMode::Translate:
-			CurrentTool = MakeShared<FMoveTool>(AsShared(), LockedAxis);
+			CurrentTool = MakeShared<FMoveTool>(AsShared());
 			break;
 		case ETransformMode::Rotate:
-			CurrentTool = MakeShared<FRotateTool>(AsShared(), LockedAxis);
+			CurrentTool = MakeShared<FRotateTool>(AsShared());
 			break;
 		case ETransformMode::Scale:
-			CurrentTool = MakeShared<FScaleTool>(AsShared(), LockedAxis);
+			CurrentTool = MakeShared<FScaleTool>(AsShared());
 			break;
 		default:
 			CurrentTool.Reset();
@@ -95,15 +109,9 @@ namespace BlenderControls
 			else CurrentTool->Cancel();
 		}
 
-		if (ParentTxn)
-		{
-			if (!bApply) ParentTxn->Cancel();
-			ParentTxn.Reset();
-		}
-
 		bIsFinished = true;
 	}
-	
+
 	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp)
 	{
 		if (!CurrentTool.IsValid())

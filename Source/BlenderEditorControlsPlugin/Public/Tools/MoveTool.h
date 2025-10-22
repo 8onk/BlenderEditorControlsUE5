@@ -1,5 +1,4 @@
 #pragma once
-
 #include "BlenderToolBase.h"
 #include "BlenderEditorControlsEnums.h"
 
@@ -8,7 +7,7 @@ namespace BlenderControls
 	class FMoveTool : public FBlenderToolBase
 	{
 	public:
-		FMoveTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis);
+		FMoveTool(const TSharedRef<FTransformSession>& InSession);
 
 		/* FBlenderToolBase */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;

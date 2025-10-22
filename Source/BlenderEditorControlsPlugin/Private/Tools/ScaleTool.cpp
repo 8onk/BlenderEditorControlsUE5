@@ -1,5 +1,6 @@
 #include "Tools/ScaleTool.h"
 #include "LevelEditorViewport.h"
+#include "TransformSession.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Style/BlenderControlsStyle.h"
 #include "Tools/SharedPivot.h"
@@ -10,8 +11,8 @@
 
 namespace BlenderControls
 {
-	FScaleTool::FScaleTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis)
-		: FBlenderToolBase(InSession, ETransformMode::Scale, InAxis, TEXT("Scale"))
+	FScaleTool::FScaleTool(const TSharedRef<FTransformSession>& InSession)
+		: FBlenderToolBase(InSession, ETransformMode::Scale, TEXT("Scale"))
 	{
 	}
 
@@ -43,8 +44,9 @@ namespace BlenderControls
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (!GEditor || !SceneView || Session->bIsNumericInputActive)
+		if (!GEditor || !SceneView || Session->IsNumericInputActive())
 		{
 			return;
 		}
@@ -62,7 +64,7 @@ namespace BlenderControls
 		}
 
 		FVector FinalScaleMultiplier(1.0f);
-		switch (LockedAxis)
+		switch (Session->GetLockedAxis())
 		{
 		case EAxisLock::X:
 			FinalScaleMultiplier.X = ScaleFactor;
@@ -101,12 +103,12 @@ namespace BlenderControls
 			SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
 		}
 
-		VirtualPivot->Scale(SnappedScaleMultiplier, bUsingLocalSpace);
+		VirtualPivot->Scale(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
 
 		if (HudWidget.IsValid())
 		{
-			HudWidget->SetLineEndpoints(PivotViewportPosition, Session->VirtualMousePosition);
-			HudWidget->SetDashState(true, PivotViewportPosition, Session->VirtualMousePosition);
+			HudWidget->SetLineEndpoints(PivotViewportPosition, Session->GetVirtualMousePos());
+			HudWidget->SetDashState(true, PivotViewportPosition, Session->GetVirtualMousePos());
 			HudWidget->Invalidate(EInvalidateWidgetReason::Paint);
 		}
 
@@ -116,18 +118,19 @@ namespace BlenderControls
 	void FScaleTool::ApplyNumeric(double Value)
 	{
 		FBlenderToolBase::ApplyNumeric(Value);
-
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		
 		FVector ScaleMultiplier = FVector::OneVector;
-		const double Slot1 = Session->NumericSlots[0].GetTotal();
-		const double Slot2 = Session->NumericSlots[1].GetTotal();
-		const double Slot3 = Session->NumericSlots[2].GetTotal();
-
-		switch (LockedAxis)
+		const double Slot1 = Session->GetSlotTotalAtIndex(0);
+		const double Slot2 = Session->GetSlotTotalAtIndex(1);
+		const double Slot3 = Session->GetSlotTotalAtIndex(2);
+		
+		switch (Session->GetLockedAxis())
 		{
 		case EAxisLock::All:
 			ScaleMultiplier = FVector(Slot1, Slot2, Slot3);
 			break;
-
+		
 		case EAxisLock::X:
 			ScaleMultiplier.X = Slot1;
 			break;
@@ -137,7 +140,7 @@ namespace BlenderControls
 		case EAxisLock::Z:
 			ScaleMultiplier.Z = Slot1;
 			break;
-
+		
 		case EAxisLock::XY:
 			ScaleMultiplier.X = Slot1;
 			ScaleMultiplier.Y = Slot2;
@@ -151,128 +154,134 @@ namespace BlenderControls
 			ScaleMultiplier.Z = Slot2;
 			break;
 		}
-
-		VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
+		
+		VirtualPivot->Scale(ScaleMultiplier, Session->IsUsingLocalSpace());
 		UpdateHud();
 	}
 
 	void FScaleTool::UpdateHud()
 	{
-		if (!VirtualPivot || !HudWidget.IsValid() || !VirtualPivot->GetActiveElement().Actor)
-		{
-			return;
-		}
-
-		const FVector CurrentScale = VirtualPivot->GetActiveElement().Actor->GetActorScale3D();
-		const FVector StartScaleVec = VirtualPivot->GetStartTransform().GetScale3D();
-
-		// Safely calculate the live scale multiplier, avoiding division by zero
-		FVector LiveScaleMultiplier;
-		LiveScaleMultiplier.X = FMath::IsNearlyZero(StartScaleVec.X) ? 1.0f : CurrentScale.X / StartScaleVec.X;
-		LiveScaleMultiplier.Y = FMath::IsNearlyZero(StartScaleVec.Y) ? 1.0f : CurrentScale.Y / StartScaleVec.Y;
-		LiveScaleMultiplier.Z = FMath::IsNearlyZero(StartScaleVec.Z) ? 1.0f : CurrentScale.Z / StartScaleVec.Z;
-
-		static const TCHAR* Unit = TEXT(""); // Scale is unitless
-		static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
-		const bool bNumeric = Session->bIsNumericInputActive;
-		const FString Space = bUsingLocalSpace ? TEXT("local") : TEXT("global");
-
-		enum class EValueSlot : int32
-		{
-			X = 0,
-			Y = 1,
-			Z = 2
-		};
-
-		struct FHudFieldData
-		{
-			FString Label;
-			double LiveValue;
-			EValueSlot SlotIndex;
-		};
-
-		TArray<FHudFieldData> HudFields;
-		FString Suffix;
-		FString Separator = Sep;
-
-		switch (LockedAxis)
-		{
-		case EAxisLock::All:
-			HudFields.Add({TEXT("Scale X"), LiveScaleMultiplier.X, EValueSlot::X});
-			HudFields.Add({TEXT("Y"), LiveScaleMultiplier.Y, EValueSlot::Y});
-			HudFields.Add({TEXT("Z"), LiveScaleMultiplier.Z, EValueSlot::Z});
-			//Halve separation to make spacing between axis' uniform across tools since units are missing
-			Separator = TEXT("\u2002");
-			break;
-
-		case EAxisLock::X:
-			HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.X, EValueSlot::X});
-			Suffix = FString::Printf(TEXT("along %s X"), *Space);
-			break;
-
-		case EAxisLock::Y:
-			HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.Y, EValueSlot::X});
-			Suffix = FString::Printf(TEXT("along %s Y"), *Space);
-			break;
-
-		case EAxisLock::Z:
-			HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.Z, EValueSlot::X});
-			Suffix = FString::Printf(TEXT("along %s Z"), *Space);
-			break;
-
-		case EAxisLock::XY:
-			HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.X, EValueSlot::X});
-			HudFields.Add({TEXT(""), LiveScaleMultiplier.Y, EValueSlot::Y});
-			Suffix = FString::Printf(TEXT("locking %s Z"), *Space);
-			Separator = TEXT(" : ");
-			break;
-
-		case EAxisLock::XZ:
-			HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.X, EValueSlot::X});
-			HudFields.Add({TEXT(""), LiveScaleMultiplier.Z, EValueSlot::Y});
-			Suffix = FString::Printf(TEXT("locking %s Y"), *Space);
-			Separator = TEXT(" : ");
-			break;
-
-		case EAxisLock::YZ:
-			HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.Y, EValueSlot::X});
-			HudFields.Add({TEXT(""), LiveScaleMultiplier.Z, EValueSlot::Y});
-			Suffix = FString::Printf(TEXT("locking %s X"), *Space);
-			Separator = TEXT(" : ");
-			break;
-		}
-
-		TArray<FString> FormattedFields;
-		for (const FHudFieldData& FieldData : HudFields)
-		{
-			const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
-			FNumericSlotData DataToFormat;
-
-			if (bNumeric)
-			{
-				DataToFormat = Session->NumericSlots[SlotIndexInt];
-			}
-			else
-			{
-				DataToFormat.SlotState = ESlotState::Committed;
-				DataToFormat.CommittedValue = FieldData.LiveValue;
-			}
-
-			const bool bIsActive = bNumeric && (SlotIndexInt == Session->CurrentNumericSlotIndex);
-
-			FormattedFields.Add(HudWidget->FormatOneField(
-				FieldData.Label,
-				DataToFormat,
-				Unit,
-				bIsActive
-			));
-		}
-
-		const FString FieldsString = FString::Join(FormattedFields, *Separator);
-
-		HudString = FString::Printf(TEXT("%s %s"), *FieldsString, *Suffix).TrimEnd();
-		HudWidget->Update(FText::FromString(HudString));
+		FBlenderToolBase::UpdateHud();
 	}
+
+	//
+	// void FScaleTool::UpdateHud()
+	// {
+	// 	if (!VirtualPivot || !HudWidget.IsValid() || !VirtualPivot->GetActiveElement().Actor)
+	// 	{
+	// 		return;
+	// 	}
+	//
+	// 	const FVector CurrentScale = VirtualPivot->GetActiveElement().Actor->GetActorScale3D();
+	// 	const FVector StartScaleVec = VirtualPivot->GetStartTransform().GetScale3D();
+	//
+	// 	// Safely calculate the live scale multiplier, avoiding division by zero
+	// 	FVector LiveScaleMultiplier;
+	// 	LiveScaleMultiplier.X = FMath::IsNearlyZero(StartScaleVec.X) ? 1.0f : CurrentScale.X / StartScaleVec.X;
+	// 	LiveScaleMultiplier.Y = FMath::IsNearlyZero(StartScaleVec.Y) ? 1.0f : CurrentScale.Y / StartScaleVec.Y;
+	// 	LiveScaleMultiplier.Z = FMath::IsNearlyZero(StartScaleVec.Z) ? 1.0f : CurrentScale.Z / StartScaleVec.Z;
+	//
+	// 	static const TCHAR* Unit = TEXT(""); // Scale is unitless
+	// 	static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
+	// 	const bool bNumeric = Session->bIsNumericInputActive;
+	// 	const FString Space = bUsingLocalSpace ? TEXT("local") : TEXT("global");
+	//
+	// 	enum class EValueSlot : int32
+	// 	{
+	// 		X = 0,
+	// 		Y = 1,
+	// 		Z = 2
+	// 	};
+	//
+	// 	struct FHudFieldData
+	// 	{
+	// 		FString Label;
+	// 		double LiveValue;
+	// 		EValueSlot SlotIndex;
+	// 	};
+	//
+	// 	TArray<FHudFieldData> HudFields;
+	// 	FString Suffix;
+	// 	FString Separator = Sep;
+	//
+	// 	switch (LockedAxis)
+	// 	{
+	// 	case EAxisLock::All:
+	// 		HudFields.Add({TEXT("Scale X"), LiveScaleMultiplier.X, EValueSlot::X});
+	// 		HudFields.Add({TEXT("Y"), LiveScaleMultiplier.Y, EValueSlot::Y});
+	// 		HudFields.Add({TEXT("Z"), LiveScaleMultiplier.Z, EValueSlot::Z});
+	// 		//Halve separation to make spacing between axis' uniform across tools since units are missing
+	// 		Separator = TEXT("\u2002");
+	// 		break;
+	//
+	// 	case EAxisLock::X:
+	// 		HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.X, EValueSlot::X});
+	// 		Suffix = FString::Printf(TEXT("along %s X"), *Space);
+	// 		break;
+	//
+	// 	case EAxisLock::Y:
+	// 		HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.Y, EValueSlot::X});
+	// 		Suffix = FString::Printf(TEXT("along %s Y"), *Space);
+	// 		break;
+	//
+	// 	case EAxisLock::Z:
+	// 		HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.Z, EValueSlot::X});
+	// 		Suffix = FString::Printf(TEXT("along %s Z"), *Space);
+	// 		break;
+	//
+	// 	case EAxisLock::XY:
+	// 		HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.X, EValueSlot::X});
+	// 		HudFields.Add({TEXT(""), LiveScaleMultiplier.Y, EValueSlot::Y});
+	// 		Suffix = FString::Printf(TEXT("locking %s Z"), *Space);
+	// 		Separator = TEXT(" : ");
+	// 		break;
+	//
+	// 	case EAxisLock::XZ:
+	// 		HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.X, EValueSlot::X});
+	// 		HudFields.Add({TEXT(""), LiveScaleMultiplier.Z, EValueSlot::Y});
+	// 		Suffix = FString::Printf(TEXT("locking %s Y"), *Space);
+	// 		Separator = TEXT(" : ");
+	// 		break;
+	//
+	// 	case EAxisLock::YZ:
+	// 		HudFields.Add({TEXT("Scale"), LiveScaleMultiplier.Y, EValueSlot::X});
+	// 		HudFields.Add({TEXT(""), LiveScaleMultiplier.Z, EValueSlot::Y});
+	// 		Suffix = FString::Printf(TEXT("locking %s X"), *Space);
+	// 		Separator = TEXT(" : ");
+	// 		break;
+	// 	}
+	//
+	// 	TArray<FString> FormattedFields;
+	// 	for (const FHudFieldData& FieldData : HudFields)
+	// 	{
+	// 		const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
+	// 		FNumericSlotData DataToFormat;
+	//
+	// 		if (bNumeric)
+	// 		{
+	// 			DataToFormat = Session->NumericSlots[SlotIndexInt];
+	// 		}
+	// 		else
+	// 		{
+	// 			DataToFormat.SlotState = ESlotState::Committed;
+	// 			DataToFormat.CommittedValue = FieldData.LiveValue;
+	// 		}
+	//
+	// 		const bool bIsActive = bNumeric && (SlotIndexInt == Session->CurrentNumericSlotIndex);
+	//
+	// 		FormattedFields.Add(HudWidget->FormatOneField(
+	// 			FieldData.Label,
+	// 			DataToFormat,
+	// 			Unit,
+	// 			bIsActive
+	// 		));
+	// 	}
+	//
+	// 	const FString FieldsString = FString::Join(FormattedFields, *Separator);
+	//
+	// 	HudString = FString::Printf(TEXT("%s %s"), *FieldsString, *Suffix).TrimEnd();
+	// 	HudWidget->Update(FText::FromString(HudString));
+	// }
 
 	void FScaleTool::OnEnd(const bool bApply)
 	{
@@ -285,10 +294,13 @@ namespace BlenderControls
 
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
+		checkf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
-		const FVector X = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
-		const FVector Y = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
-		const FVector Z = bUsingLocalSpace ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
+		const FVector X = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
+		const FVector Y = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
+		const FVector Z = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
 
 		switch (AxisLock)
 		{
@@ -320,7 +332,10 @@ namespace BlenderControls
 
 	void FScaleTool::UpdateToolSettingsForAxisLock()
 	{
-		switch (LockedAxis)
+		checkf(OwningSession.IsValid(), TEXT("UpdateToolSettingsForAxisLock: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		switch (Session->GetLockedAxis())
 		{
 		case EAxisLock::X:
 		case EAxisLock::Y:

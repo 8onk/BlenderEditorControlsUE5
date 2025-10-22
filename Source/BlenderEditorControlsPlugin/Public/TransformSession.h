@@ -34,6 +34,9 @@ namespace BlenderControls
 		/** Returns true if the session has been ended and can be destroyed. */
 		bool IsFinished() const { return bIsFinished; }
 
+		/** Switches the active tool (e.g., from Move to Rotate). */
+		void SwitchTool(ETransformMode NewMode);
+
 		// --- Input Forwarding ---
 		void Tick(const float DeltaTime, FSlateApplication& SlateApp);
 		bool HandleKeyDownEvent(const FKeyEvent& KeyEvent);
@@ -61,9 +64,6 @@ namespace BlenderControls
 		void SetStartMousePos(FVector2D InVector) { StartMousePos = InVector; }
 
 	private:
-		/** Switches the active tool (e.g., from Move to Rotate). */
-		void SwitchTool(ETransformMode NewMode);
-
 		/** Captures the initial selection and calculates the pivot. */
 		void InitializePivot();
 
@@ -74,7 +74,7 @@ namespace BlenderControls
 		TSharedPtr<FSharedPivot> VirtualPivot;
 
 		/** The main undo/redo transaction for this entire operation. */
-		TUniquePtr<FScopedTransaction> ParentTxn;
+		//TUniquePtr<FScopedTransaction> ParentTxn;
 
 		// --- Shared State ---
 		ETransformMode ActiveMode = ETransformMode::None;

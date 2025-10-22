@@ -1,6 +1,5 @@
 #pragma once
 #include "Tools/BlenderToolBase.h"
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
 namespace BlenderControls
 {
@@ -11,7 +10,7 @@ namespace BlenderControls
 	class FScaleTool : public FBlenderToolBase
 	{
 	public:
-		explicit FScaleTool(TSharedPtr<FTransformSession> InSession, EAxisLock InAxis = EAxisLock::All);
+		explicit FScaleTool(const TSharedRef<FTransformSession>& InSession);
 
 		/* ---------- FBlenderToolBase overrides ---------- */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;

@@ -1,7 +1,6 @@
 ﻿#include "UI/TransformHUD.h"
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateTypes.h"
 #include "Widgets/Text/STextBlock.h"
@@ -142,85 +141,85 @@ namespace BlenderControls
 		AttachedViewport.Reset();
 	}
 
-	FString STransformHUD::FormatOneField(const FString& Label, FNumericSlotData& SlotData, const FString& Unit,
-	                                      bool bIsActiveSlot)
-	{
-		if (SlotData.SlotState == ESlotState::Pristine && !bIsActiveSlot)
-		{
-			if (Label.IsEmpty())
-			{
-				return TEXT("NONE");
-			}
-			return FString::Printf(TEXT("%s: NONE"), *Label);
-		}
-
-		FString ResultString;
-		if (SlotData.SlotState == ESlotState::InvalidInput)
-		{
-			ResultString = TEXT("INVALID");
-		}
-		else
-		{
-			const double TotalValue = SlotData.GetTotal();
-			ResultString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(TotalValue), *Unit);
-		}
-
-		if (!bIsActiveSlot)
-		{
-			if (Label.IsEmpty())
-			{
-				return ResultString;
-			}
-			return FString::Printf(TEXT("%s: %s"), *Label, *ResultString);
-		}
-
-		// 2. Build the live "input" part of the string (the content inside "[...]")
-		FString InputString;
-		switch (SlotData.SlotState)
-		{
-		case ESlotState::FirstEdit:
-		case ESlotState::InvalidInput:
-			InputString = FString::Printf(TEXT("%s|"), *SlotData.Display);
-			break;
-		case ESlotState::Additive:
-			InputString = FString::Printf(TEXT("%s %s%s|"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit,
-			                              *SlotData.Display);
-			break;
-		case ESlotState::Committed:
-			InputString = FString::Printf(TEXT("%s %s|"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit);
-			break;
-		case ESlotState::Pristine:
-		default:
-			{
-				FString FinalValueString = TEXT("|NONE|");
-
-				if (Label.IsEmpty())
-				{
-					return FinalValueString;
-				}
-
-				return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
-			}
-		}
-
-		if (SlotData.bIsReciprocal)
-		{
-			InputString = FString::Printf(TEXT("1/(%s)"), *InputString);
-		}
-
-		if (SlotData.bIsNegated)
-		{
-			InputString = FString::Printf(TEXT("-(%s)"), *InputString);
-		}
-
-		//Combine everything into the final string
-		FString FinalValueString = FString::Printf(TEXT("[%s] = %s"), *InputString, *ResultString);
-		if (Label.IsEmpty())
-		{
-			return FinalValueString;
-		}
-		return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
-	}
+	// FString STransformHUD::FormatOneField(const FString& Label, FNumericSlotData& SlotData, const FString& Unit,
+	//                                       bool bIsActiveSlot)
+	// {
+	// 	if (SlotData.SlotState == ESlotState::Pristine && !bIsActiveSlot)
+	// 	{
+	// 		if (Label.IsEmpty())
+	// 		{
+	// 			return TEXT("NONE");
+	// 		}
+	// 		return FString::Printf(TEXT("%s: NONE"), *Label);
+	// 	}
+	//
+	// 	FString ResultString;
+	// 	if (SlotData.SlotState == ESlotState::InvalidInput)
+	// 	{
+	// 		ResultString = TEXT("INVALID");
+	// 	}
+	// 	else
+	// 	{
+	// 		const double TotalValue = SlotData.GetTotal();
+	// 		ResultString = FString::Printf(TEXT("%s %s"), *ToTrimmed3(TotalValue), *Unit);
+	// 	}
+	//
+	// 	if (!bIsActiveSlot)
+	// 	{
+	// 		if (Label.IsEmpty())
+	// 		{
+	// 			return ResultString;
+	// 		}
+	// 		return FString::Printf(TEXT("%s: %s"), *Label, *ResultString);
+	// 	}
+	//
+	// 	// 2. Build the live "input" part of the string (the content inside "[...]")
+	// 	FString InputString;
+	// 	switch (SlotData.SlotState)
+	// 	{
+	// 	case ESlotState::FirstEdit:
+	// 	case ESlotState::InvalidInput:
+	// 		InputString = FString::Printf(TEXT("%s|"), *SlotData.Display);
+	// 		break;
+	// 	case ESlotState::Additive:
+	// 		InputString = FString::Printf(TEXT("%s %s%s|"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit,
+	// 		                              *SlotData.Display);
+	// 		break;
+	// 	case ESlotState::Committed:
+	// 		InputString = FString::Printf(TEXT("%s %s|"), *ToTrimmed3(SlotData.CommittedValue.Get(0.0)), *Unit);
+	// 		break;
+	// 	case ESlotState::Pristine:
+	// 	default:
+	// 		{
+	// 			FString FinalValueString = TEXT("|NONE|");
+	//
+	// 			if (Label.IsEmpty())
+	// 			{
+	// 				return FinalValueString;
+	// 			}
+	//
+	// 			return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
+	// 		}
+	// 	}
+	//
+	// 	if (SlotData.bIsReciprocal)
+	// 	{
+	// 		InputString = FString::Printf(TEXT("1/(%s)"), *InputString);
+	// 	}
+	//
+	// 	if (SlotData.bIsNegated)
+	// 	{
+	// 		InputString = FString::Printf(TEXT("-(%s)"), *InputString);
+	// 	}
+	//
+	// 	//Combine everything into the final string
+	// 	FString FinalValueString = FString::Printf(TEXT("[%s] = %s"), *InputString, *ResultString);
+	// 	if (Label.IsEmpty())
+	// 	{
+	// 		return FinalValueString;
+	// 	}
+	// 	return FString::Printf(TEXT("%s: %s"), *Label, *FinalValueString);
+	// }
 
 	FString STransformHUD::FormatMagnitude(float Magnitude, const TCHAR* Unit)
 	{

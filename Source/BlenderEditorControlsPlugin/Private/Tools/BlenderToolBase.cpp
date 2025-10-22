@@ -2,10 +2,9 @@
 #include "Editor.h"
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
-#include "Components/LineBatchComponent.h"
-#include "Input/TransformSession.h"
+#include "TransformSession.h"
+#include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly. 
 #include "Utils/BlenderMathHelpers.h"
-#include "Misc/DefaultValueHelper.h"
 #include "Tools/SharedPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
@@ -13,20 +12,24 @@
 //TODO: make GetSnapOffset abstract
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(TSharedPtr<FTransformSession> InSession, ETransformMode InMode, EAxisLock InAxis,
+	FBlenderToolBase::FBlenderToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
 	                                   const FString& InDisplayName)
-		: Session(InSession), Mode(InMode), LockedAxis(InAxis), DisplayName(InDisplayName), NumNumericSlots(3)
+		: OwningSession(InSession), Mode(InMode), DisplayName(InDisplayName), NumNumericSlots(3)
 	{
 	}
 
 	FBlenderToolBase::~FBlenderToolBase()
 	{
+		UE_LOG(LogTemp, Warning, TEXT("~FBlenderToolBase"));
 	}
 
 	void FBlenderToolBase::UpdateAxisLock()
 	{
+		checkf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		UpdateToolSettingsForAxisLock();
-		SetGrabContextAxisLock(LockedAxis);
+		SetGrabContextAxisLock(Session->LockedAxis);
 		RedrawAxisLines();
 
 		// Refresh
@@ -52,6 +55,9 @@ namespace BlenderControls
 
 	void FBlenderToolBase::RedrawAxisLines()
 	{
+		checkf(OwningSession.IsValid(), TEXT("RedrawAxisLines: Session was invalid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		// Clear any previous gizmos first
 		for (auto& Giz : AxisGizmos)
 		{
@@ -114,7 +120,7 @@ namespace BlenderControls
 			for (const FChildInfo& Child : VirtualPivot->GetChildren())
 			{
 				if (!Child.Actor) continue;
-				switch (LockedAxis)
+				switch (Session->LockedAxis)
 				{
 				case EAxisLock::XY:
 					AddAxis(EAxisLock::X, &Child);
@@ -130,14 +136,14 @@ namespace BlenderControls
 					break;
 				case EAxisLock::All: break;
 				default:
-					AddAxis(LockedAxis, &Child);
+					AddAxis(Session->LockedAxis, &Child);
 					break;
 				}
 			}
 		}
 		else
 		{
-			switch (LockedAxis)
+			switch (Session->LockedAxis)
 			{
 			case EAxisLock::XY:
 				AddAxis(EAxisLock::X, nullptr);
@@ -153,7 +159,7 @@ namespace BlenderControls
 				break;
 			case EAxisLock::All: break;
 			default:
-				AddAxis(LockedAxis, nullptr);
+				AddAxis(Session->LockedAxis, nullptr);
 				break;
 			}
 		}
@@ -173,48 +179,14 @@ namespace BlenderControls
 			return FLinearColor::White;
 		}
 	}
-
-	void FBlenderToolBase::DrawAxisLine(const EAxisLock InAxis, const FChildInfo* ChildInfo /*= nullptr*/) const
-	{
-		if (!CachedBatcher.IsValid()) return;
-
-		FVector Origin;
-		FVector AxisDir;
-
-		// Use the provided ChildInfo for local space drawing
-		if (ChildInfo && Session->IsUsingLocalSpace())
-		{
-			// Use the SAVED start transform from the FChildInfo struct
-			const FTransform& StartTransform = ChildInfo->Transform;
-
-			Origin = StartTransform.GetLocation();
-			const FVector WorldAxis = (InAxis == EAxisLock::X)
-				                          ? FVector::XAxisVector
-				                          : (InAxis == EAxisLock::Y)
-				                          ? FVector::YAxisVector
-				                          : FVector::ZAxisVector;
-			AxisDir = StartTransform.TransformVectorNoScale(WorldAxis);
-		}
-		else
-		{
-			// GLOBAL: Fall back to the shared pivot's start transform
-			Origin = VirtualPivot->GetStartTransform().GetLocation();
-			AxisDir = GetAxisVector(InAxis);
-		}
-
-		constexpr float LineLength = 10000.f;
-		const FVector LineStart = Origin - AxisDir.GetSafeNormal() * LineLength;
-		const FVector LineEnd = Origin + AxisDir.GetSafeNormal() * LineLength;
-
-		const FLinearColor Color = GetAxisColor(InAxis);
-		CachedBatcher->DrawLine(LineStart, LineEnd, Color, SDPG_World, 2.0f, 0.f);
-		CachedBatcher->MarkRenderStateDirty();
-	}
-
+	
 	UAxisLockGizmoComponent* FBlenderToolBase::SpawnAxisGizmo(const FVector& Origin, const FVector& AxisDir,
 	                                                          const FLinearColor& Color, float ThicknessPx,
 	                                                          float LineLength) const
 	{
+		checkf(OwningSession.IsValid(), TEXT("SpawnAxisGizmo: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
 		if (!World) return nullptr;
 
@@ -239,6 +211,9 @@ namespace BlenderControls
 
 	FVector FBlenderToolBase::GetAxisVector(const EAxisLock InAxis) const
 	{
+		checkf(OwningSession.IsValid(), TEXT("GetAxisVector: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
@@ -257,6 +232,9 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnBegin()
 	{
+		checkf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
 		{
@@ -374,7 +352,7 @@ namespace BlenderControls
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 		GrabContext.ViewForward = ViewForward;
 
-		SetGrabContextAxisLock(LockedAxis);
+		SetGrabContextAxisLock(Session->LockedAxis);
 		HudWidget = SNew(STransformHUD);
 		HudWidget->Attach();
 		UpdateHud();
@@ -402,11 +380,12 @@ namespace BlenderControls
 	{
 		UpdateHud();
 
-		if (!Viewport || !ViewportClient || !VirtualPivot)
+		if (!Viewport || !ViewportClient || !VirtualPivot || !GetSession().IsValid())
 		{
 			return;
 		}
 
+		const TSharedPtr<FTransformSession> Session = GetSession();
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
 
 		// If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
@@ -447,13 +426,19 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnEnd(const bool bApply)
 	{
+		if (!GetSession().IsValid())
+		{
+			return;
+		}
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		if (!GEditor || !VirtualPivot || !ViewportClient)
 		{
 			return;
 		}
 
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
-		LockedAxis = EAxisLock::All;
+		Session->LockedAxis = EAxisLock::All;
 		bPrecisionModeActive = false;
 		CurrentPrecisionFactor = 1.0f;
 		MouseDelta = FVector2D::ZeroVector;
@@ -506,6 +491,9 @@ namespace BlenderControls
 
 	void FBlenderToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
 	{
+		checkf(OwningSession.IsValid(), TEXT("SetSnappingEnabled: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		if (bSnappingEnabled == bNewSnappingEnabled)
 		{
 			return;
@@ -530,6 +518,9 @@ namespace BlenderControls
 
 	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis) const
 	{
+		checkf(OwningSession.IsValid(), TEXT("StartNewLock: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		Session->bIsAxisLockActive = true;
 		Session->bUsingLocalSpace = bLocalSpaceDefault;
 		Session->LockedAxis = NewAxis;
@@ -537,7 +528,10 @@ namespace BlenderControls
 
 	void FBlenderToolBase::HandleAxisLock(const EAxisLock AxisPressed)
 	{
-		if (!Session->IsAxisLockActive() || LockedAxis != AxisPressed)
+		checkf(OwningSession.IsValid(), TEXT("HandleAxisLock: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		if (!Session->IsAxisLockActive() || Session->LockedAxis != AxisPressed)
 		{
 			StartNewLock(AxisPressed);
 		}
@@ -553,15 +547,18 @@ namespace BlenderControls
 			{
 				Session->bIsAxisLockActive = false;
 				Session->bUsingLocalSpace = false;
-				LockedAxis = EAxisLock::All;
+				Session->LockedAxis = EAxisLock::All;
 			}
 		}
-		
+
 		UpdateAxisLock();
 	}
 
 	bool FBlenderToolBase::IsSingleAxisLocked() const
 	{
+		checkf(OwningSession.IsValid(), TEXT("IsSingleAxisLocked: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
 		if (Session->bIsAxisLockActive && GrabContext.HelperAxisDir != FVector::ZeroVector)
 		{
 			return true;
@@ -575,6 +572,8 @@ namespace BlenderControls
 		{
 			ParentTxn.Reset();
 		}
+
+		OnEnd(/*bApply=*/true);
 	}
 
 	void FBlenderToolBase::Cancel()
@@ -596,7 +595,11 @@ namespace BlenderControls
 			ParentTxn.Reset();
 		}
 
-		Session->SelectedActors.Empty();
+		OnEnd(/*bApply=*/false);
+	}
+
+	void FBlenderToolBase::UpdateHud()
+	{
 	}
 
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
@@ -613,243 +616,246 @@ namespace BlenderControls
 		return FString();
 	}
 
-	void FBlenderToolBase::BeginNumericMode()
-	{
-		Session->bIsNumericInputActive = true;
 
-		if (Mode == ETransformMode::Rotate)
-		{
-			for (auto& Slot : Session->NumericSlots)
-			{
-				Slot.bUsingDegrees = true;
-			}
-		}
-
-		ApplyNumeric();
-	}
-
-	void FBlenderToolBase::CycleNumericInputSlot()
-	{
-		FNumericSlotData& CurrentSlot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
-		CurrentSlot.CommittedValue = CurrentSlot.GetTotal();
-		if (!CurrentSlot.Display.IsEmpty())
-		{
-			if (CurrentSlot.LiveValue.IsSet())
-			{
-				CurrentSlot.LiveValue.Reset();
-			}
-
-			CurrentSlot.Display.Empty();
-			CurrentSlot.SlotState = ESlotState::Committed;
-		}
-		CurrentSlot.bIsReciprocal = false;
-		CurrentSlot.bIsNegated = false;
-
-		if (NumNumericSlots > 0)
-		{
-			Session->CurrentNumericSlotIndex = (Session->CurrentNumericSlotIndex + 1) % NumNumericSlots;
-		}
-
-		UpdateHud();
-
-		//DEBUG
-		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
-		{
-			Session->NumericSlots[i].Print();
-		}
-	}
-
-	void FBlenderToolBase::ExitNumericMode()
-	{
-		if (!Session.IsValid())
-		{
-			return;
-		}
-
-		Session->bIsNumericInputActive = false;
-		Session->NumericBuffer.Empty();
-		Session->CurrentNumericSlotIndex = 0;
-
-		for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
-		{
-			Session->NumericSlots[i] = FNumericSlotData();
-		}
-
-		OnActive(CurrentViewportMousePos);
-		UpdateHud();
-	}
-
-	void FBlenderToolBase::ClearLiveNumericValue()
-	{
-		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
-
-		Slot.LiveValue.Reset();
-
-		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
-		UpdateHud();
-	}
-
-	void FBlenderToolBase::UpdateActiveNumericSlot(const TCHAR Character)
-	{
-		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
-
-		switch (Slot.SlotState)
-		{
-		case ESlotState::Pristine:
-			Slot.SlotState = ESlotState::FirstEdit;
-			break;
-		case ESlotState::Committed:
-			Slot.SlotState = ESlotState::Additive;
-			break;
-		default:
-			break;
-		}
-
-		Slot.Display.AppendChar(Character);
-
-		double CurrentLiveValue = 0.0;
-		if (FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
-		{
-			if (Slot.GetTotal() < 0.0f)
-			{
-				Slot.LiveValue = -CurrentLiveValue;
-			}
-			else
-			{
-				Slot.LiveValue = CurrentLiveValue;
-			}
-		}
-		else
-		{
-			Slot.SlotState = ESlotState::InvalidInput;
-		}
-
-		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric();
-		UpdateHud();
-
-		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
-		{
-			Session->NumericSlots[i].Print();
-		}
-	}
-
-	void FBlenderToolBase::HandleBackspace()
-	{
-		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
-
-		if (!Slot.Display.IsEmpty())
-		{
-			Slot.Display.RemoveAt(Slot.Display.Len() - 1);
-		}
-		else
-		{
-			switch (Slot.SlotState)
-			{
-			case ESlotState::FirstEdit:
-				{
-					bool bOtherSlotsHaveValues = false;
-					for (int32 i = 0; i < 3; ++i)
-					{
-						if (i == Session->CurrentNumericSlotIndex) continue;
-
-						if (Session->NumericSlots[i].SlotState != ESlotState::Pristine)
-						{
-							bOtherSlotsHaveValues = true;
-							break;
-						}
-					}
-
-					if (bOtherSlotsHaveValues)
-					{
-						Slot.SlotState = ESlotState::Pristine;
-					}
-					else
-					{
-						ExitNumericMode();
-						return;
-					}
-					break;
-				}
-
-			case ESlotState::Pristine:
-				ExitNumericMode();
-				return;
-
-			case ESlotState::Additive:
-				Slot.SlotState = ESlotState::Committed;
-			case ESlotState::Committed:
-				{
-					const FString DisplayString = GetFormattedValueForEditing(Slot);
-					if (!DisplayString.IsEmpty())
-					{
-						Slot.Display = DisplayString;
-						Slot.Display.LeftChopInline(1);
-						Slot.CommittedValue.Reset();
-						Slot.SlotState = ESlotState::FirstEdit;
-					}
-				}
-				break;
-			}
-		}
-
-		double CurrentLiveValue = 0.0;
-
-		if (!Slot.Display.IsEmpty() && FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
-		{
-			Slot.LiveValue = CurrentLiveValue;
-
-			if (Slot.SlotState == ESlotState::InvalidInput)
-			{
-				Slot.SlotState = ESlotState::FirstEdit;
-			}
-		}
-		else
-		{
-			if (!Slot.Display.IsEmpty())
-			{
-				Slot.SlotState = ESlotState::InvalidInput;
-			}
-			else
-			{
-				Slot.LiveValue.Reset();
-			}
-		}
-
-		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric();
-
-		for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
-		{
-			Session->NumericSlots[i].Print();
-		}
-	}
-
-	void FBlenderToolBase::ToggleNegation()
-	{
-		if (!Session.IsValid() || !Session->bIsNumericInputActive)
-		{
-			return;
-		}
-
-		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
-		Slot.bIsNegated = !Slot.bIsNegated;
-		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric();
-		UpdateHud();
-	}
-
-	void FBlenderToolBase::ToggleReciprocal()
-	{
-		if (!Session.IsValid() || !Session->bIsNumericInputActive)
-		{
-			return;
-		}
-
-		FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
-		Slot.bIsReciprocal = !Slot.bIsReciprocal;
-		Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
-		ApplyNumeric();
-		UpdateHud();
-	}
+	//NUMERIC MODE
+	//
+	// void FBlenderToolBase::BeginNumericMode()
+	// {
+	// 	Session->bIsNumericInputActive = true;
+	//
+	// 	if (Mode == ETransformMode::Rotate)
+	// 	{
+	// 		for (auto& Slot : Session->NumericSlots)
+	// 		{
+	// 			Slot.bUsingDegrees = true;
+	// 		}
+	// 	}
+	//
+	// 	ApplyNumeric();
+	// }
+	//
+	// void FBlenderToolBase::CycleNumericInputSlot()
+	// {
+	// 	FNumericSlotData& CurrentSlot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
+	// 	CurrentSlot.CommittedValue = CurrentSlot.GetTotal();
+	// 	if (!CurrentSlot.Display.IsEmpty())
+	// 	{
+	// 		if (CurrentSlot.LiveValue.IsSet())
+	// 		{
+	// 			CurrentSlot.LiveValue.Reset();
+	// 		}
+	//
+	// 		CurrentSlot.Display.Empty();
+	// 		CurrentSlot.SlotState = ESlotState::Committed;
+	// 	}
+	// 	CurrentSlot.bIsReciprocal = false;
+	// 	CurrentSlot.bIsNegated = false;
+	//
+	// 	if (NumNumericSlots > 0)
+	// 	{
+	// 		Session->CurrentNumericSlotIndex = (Session->CurrentNumericSlotIndex + 1) % NumNumericSlots;
+	// 	}
+	//
+	// 	UpdateHud();
+	//
+	// 	//DEBUG
+	// 	for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+	// 	{
+	// 		Session->NumericSlots[i].Print();
+	// 	}
+	// }
+	//
+	// void FBlenderToolBase::ExitNumericMode()
+	// {
+	// 	if (!Session.IsValid())
+	// 	{
+	// 		return;
+	// 	}
+	//
+	// 	Session->bIsNumericInputActive = false;
+	// 	Session->NumericBuffer.Empty();
+	// 	Session->CurrentNumericSlotIndex = 0;
+	//
+	// 	for (int i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+	// 	{
+	// 		Session->NumericSlots[i] = FNumericSlotData();
+	// 	}
+	//
+	// 	OnActive(CurrentViewportMousePos);
+	// 	UpdateHud();
+	// }
+	//
+	// void FBlenderToolBase::ClearLiveNumericValue()
+	// {
+	// 	FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
+	//
+	// 	Slot.LiveValue.Reset();
+	//
+	// 	Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
+	// 	UpdateHud();
+	// }
+	//
+	// void FBlenderToolBase::UpdateActiveNumericSlot(const TCHAR Character)
+	// {
+	// 	FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
+	//
+	// 	switch (Slot.SlotState)
+	// 	{
+	// 	case ESlotState::Pristine:
+	// 		Slot.SlotState = ESlotState::FirstEdit;
+	// 		break;
+	// 	case ESlotState::Committed:
+	// 		Slot.SlotState = ESlotState::Additive;
+	// 		break;
+	// 	default:
+	// 		break;
+	// 	}
+	//
+	// 	Slot.Display.AppendChar(Character);
+	//
+	// 	double CurrentLiveValue = 0.0;
+	// 	if (FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
+	// 	{
+	// 		if (Slot.GetTotal() < 0.0f)
+	// 		{
+	// 			Slot.LiveValue = -CurrentLiveValue;
+	// 		}
+	// 		else
+	// 		{
+	// 			Slot.LiveValue = CurrentLiveValue;
+	// 		}
+	// 	}
+	// 	else
+	// 	{
+	// 		Slot.SlotState = ESlotState::InvalidInput;
+	// 	}
+	//
+	// 	Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
+	// 	ApplyNumeric();
+	// 	UpdateHud();
+	//
+	// 	for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+	// 	{
+	// 		Session->NumericSlots[i].Print();
+	// 	}
+	// }
+	//
+	// void FBlenderToolBase::HandleBackspace()
+	// {
+	// 	FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
+	//
+	// 	if (!Slot.Display.IsEmpty())
+	// 	{
+	// 		Slot.Display.RemoveAt(Slot.Display.Len() - 1);
+	// 	}
+	// 	else
+	// 	{
+	// 		switch (Slot.SlotState)
+	// 		{
+	// 		case ESlotState::FirstEdit:
+	// 			{
+	// 				bool bOtherSlotsHaveValues = false;
+	// 				for (int32 i = 0; i < 3; ++i)
+	// 				{
+	// 					if (i == Session->CurrentNumericSlotIndex) continue;
+	//
+	// 					if (Session->NumericSlots[i].SlotState != ESlotState::Pristine)
+	// 					{
+	// 						bOtherSlotsHaveValues = true;
+	// 						break;
+	// 					}
+	// 				}
+	//
+	// 				if (bOtherSlotsHaveValues)
+	// 				{
+	// 					Slot.SlotState = ESlotState::Pristine;
+	// 				}
+	// 				else
+	// 				{
+	// 					ExitNumericMode();
+	// 					return;
+	// 				}
+	// 				break;
+	// 			}
+	//
+	// 		case ESlotState::Pristine:
+	// 			ExitNumericMode();
+	// 			return;
+	//
+	// 		case ESlotState::Additive:
+	// 			Slot.SlotState = ESlotState::Committed;
+	// 		case ESlotState::Committed:
+	// 			{
+	// 				const FString DisplayString = GetFormattedValueForEditing(Slot);
+	// 				if (!DisplayString.IsEmpty())
+	// 				{
+	// 					Slot.Display = DisplayString;
+	// 					Slot.Display.LeftChopInline(1);
+	// 					Slot.CommittedValue.Reset();
+	// 					Slot.SlotState = ESlotState::FirstEdit;
+	// 				}
+	// 			}
+	// 			break;
+	// 		}
+	// 	}
+	//
+	// 	double CurrentLiveValue = 0.0;
+	//
+	// 	if (!Slot.Display.IsEmpty() && FDefaultValueHelper::ParseDouble(Slot.Display, CurrentLiveValue))
+	// 	{
+	// 		Slot.LiveValue = CurrentLiveValue;
+	//
+	// 		if (Slot.SlotState == ESlotState::InvalidInput)
+	// 		{
+	// 			Slot.SlotState = ESlotState::FirstEdit;
+	// 		}
+	// 	}
+	// 	else
+	// 	{
+	// 		if (!Slot.Display.IsEmpty())
+	// 		{
+	// 			Slot.SlotState = ESlotState::InvalidInput;
+	// 		}
+	// 		else
+	// 		{
+	// 			Slot.LiveValue.Reset();
+	// 		}
+	// 	}
+	//
+	// 	Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
+	// 	ApplyNumeric();
+	//
+	// 	for (int32 i = 0; i < UE_ARRAY_COUNT(Session->NumericSlots); ++i)
+	// 	{
+	// 		Session->NumericSlots[i].Print();
+	// 	}
+	// }
+	//
+	// void FBlenderToolBase::ToggleNegation()
+	// {
+	// 	if (!Session.IsValid() || !Session->bIsNumericInputActive)
+	// 	{
+	// 		return;
+	// 	}
+	//
+	// 	FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
+	// 	Slot.bIsNegated = !Slot.bIsNegated;
+	// 	Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
+	// 	ApplyNumeric();
+	// 	UpdateHud();
+	// }
+	//
+	// void FBlenderToolBase::ToggleReciprocal()
+	// {
+	// 	if (!Session.IsValid() || !Session->bIsNumericInputActive)
+	// 	{
+	// 		return;
+	// 	}
+	//
+	// 	FNumericSlotData& Slot = Session->NumericSlots[Session->CurrentNumericSlotIndex];
+	// 	Slot.bIsReciprocal = !Slot.bIsReciprocal;
+	// 	Session->NumericSlots[Session->CurrentNumericSlotIndex] = Slot;
+	// 	ApplyNumeric();
+	// 	UpdateHud();
+	// }
 } // namespace BlenderControls
