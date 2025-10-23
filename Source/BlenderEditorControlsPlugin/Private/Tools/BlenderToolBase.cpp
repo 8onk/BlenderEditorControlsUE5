@@ -340,6 +340,11 @@ namespace BlenderControls
 	void FBlenderToolBase::InitializeGrabContext(const FVector2D& InMousePos, const FVector& InRayOrigin,
 	                                             const FVector& InRayDirection)
 	{
+		if (!VirtualPivot.IsValid())
+		{
+			return;
+		}
+
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewForward;
 		GrabContext.StartMousePos = InMousePos;
@@ -408,9 +413,6 @@ namespace BlenderControls
 			return; // Bails if no ViewportClient or GEditor
 		}
 
-		// 2. Setup Undo/Redo
-		InitializeTransaction();
-
 		// 3. Calculate SceneView and base view vectors
 		if (!CacheSceneView())
 		{
@@ -426,6 +428,8 @@ namespace BlenderControls
 		CurrentMousePosition = MousePos;
 		CurrentViewportMousePos = MousePos;
 
+		InitializeTransaction();
+
 		// 6. Setup the GrabContext for transform calculations
 		InitializeGrabContext(MousePos, StartRayOrigin, StartRayDirection);
 
@@ -434,8 +438,6 @@ namespace BlenderControls
 
 		// 8. Restore state from session (axis locks, numeric input)
 		RestorePreviousState();
-
-		bIsToolActive = true;
 	}
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -524,9 +526,14 @@ namespace BlenderControls
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
 
+		if (!bApply)
+		{
+			VirtualPivot->RevertToStartState();
+		}
+
+		//Force the editor to redraw gizmos so that they are up to date 
 		if (GEditor)
 		{
-			//Force the editor to redraw gizmos so that they are up to date 
 			GEditor->NoteSelectionChange(/*bNotify=*/true);
 			GEditor->RedrawLevelEditingViewports(/*bInvalidateHitProxies:*/true);
 		}
@@ -657,7 +664,6 @@ namespace BlenderControls
 			ParentTxn.Reset();
 		}
 
-		VirtualPivot->RevertToStartState();
 		OnEnd(/*bApply=*/false);
 	}
 

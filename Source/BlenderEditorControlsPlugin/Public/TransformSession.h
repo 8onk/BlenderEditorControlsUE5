@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "BlenderEditorControlsEnums.h"
 #include "ToolSharedState.h"
-#include "ScopedTransaction.h"
 
 struct FKeyEvent;
 struct FPointerEvent;
