@@ -45,5 +45,6 @@ namespace BlenderControls
 		virtual bool GetTrackballRotationMode() override;
 		virtual void UpdateToolSettingsForAxisLock() override;
 		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const override;
+		virtual FText GetLiveTranslationHudText() const override;
 	};
 } // namespace BlenderControls

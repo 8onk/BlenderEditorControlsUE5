@@ -4,6 +4,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Commands/UICommandInfo.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
+#include "Input/Numeric/NumericInputProcessor.h"
 #include "Tools/SharedPivot.h"
 #include "Tools/BlenderToolBase.h"
 #include "Tools/MoveTool.h"
@@ -32,6 +33,8 @@ namespace BlenderControls
 			VirtualMousePosition = StartMousePos;
 			WrappedMousePosition = StartMousePos;
 		}
+
+		NumericInputProcessor = MakeUnique<FNumericInputProcessor>();
 	}
 
 	FTransformSession::~FTransformSession()
@@ -41,6 +44,7 @@ namespace BlenderControls
 			CurrentTool->OnEnd(/*bApply=*/false);
 		}
 
+		NumericInputProcessor.Reset();
 		UE_LOG(LogTemp, Warning, TEXT("~FTransformSession"));
 	}
 
@@ -69,27 +73,53 @@ namespace BlenderControls
 			CurrentTool->OnEnd(false);
 		}
 
+		FBlenderNumericState OldState;
+		if (CurrentTool.IsValid())
+		{
+			CurrentTool->OnEnd(false);
+			if (NumericInputProcessor.IsValid())
+			{
+				OldState = NumericInputProcessor->CurrentState;
+				bIsFirstTool = false;
+			}
+		}
+
 		ActiveMode = NewMode;
+		int NumNumericSlots = 3;
+		EBlenderNumericContext NumericContext = EBlenderNumericContext::Distance;
 
 		switch (NewMode)
 		{
 		case ETransformMode::Translate:
 			CurrentTool = MakeShared<FMoveTool>(AsShared());
+			NumericContext = EBlenderNumericContext::Distance;
 			break;
 		case ETransformMode::Rotate:
 			CurrentTool = MakeShared<FRotateTool>(AsShared());
+			NumNumericSlots = 1;
+			NumericContext = EBlenderNumericContext::Angle_Degrees;
 			break;
 		case ETransformMode::Scale:
 			CurrentTool = MakeShared<FScaleTool>(AsShared());
+			NumericContext = EBlenderNumericContext::Scale;
 			break;
 		default:
 			CurrentTool.Reset();
 			break;
 		}
 
-		if (CurrentTool.IsValid())
+		if (CurrentTool.IsValid() && NumericInputProcessor.IsValid())
 		{
 			CurrentTool->OnBegin();
+
+			if (bIsFirstTool)
+			{
+				NumericInputProcessor->Initialize(NumNumericSlots, NumericContext);
+			}
+			else
+			{
+				NumericInputProcessor->OnToolSwitch(NumNumericSlots, NumericContext, OldState);
+			}
 		}
 
 		//Force an immediate visual update after tool creation/switch (otherwise, there is a brief flicker idk why)
@@ -99,7 +129,7 @@ namespace BlenderControls
 			FIntPoint MousePosInt;
 			Viewport->GetMousePos(MousePosInt);
 			const FVector2D CurrentMousePos(MousePosInt);
-			
+
 			CurrentTool->OnActive(CurrentMousePos);
 		}
 	}
@@ -217,7 +247,19 @@ namespace BlenderControls
 			return true;
 		}
 
-		// --- Numeric Input and other commands would go here ---
+
+		if (!NumericInputProcessor.IsValid()) return false;
+
+		const bool bWasHandled = NumericInputProcessor->HandleInput(KeyEvent);
+		if (bWasHandled)
+		{
+			if (NumericInputProcessor->IsInNumericMode())
+			{
+				CurrentTool->ApplyNumeric();
+			}
+			CurrentTool->UpdateHud();
+			return true;
+		}
 
 		return false; // Let other systems handle the key if we didn't.
 	}

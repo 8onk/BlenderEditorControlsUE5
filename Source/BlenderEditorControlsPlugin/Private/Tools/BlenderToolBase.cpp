@@ -4,6 +4,7 @@
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
+#include "Input/Numeric/NumericInputProcessor.h"
 #include "Utils/BlenderMathHelpers.h"
 #include "Tools/SharedPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
@@ -27,6 +28,29 @@ namespace BlenderControls
 	{
 		checkf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		if (Session->GetNumericInputProcessor()->IsInNumericMode())
+		{
+			int32 NewSlotCount = 3;
+			switch (Session->LockedAxis)
+			{
+			case EAxisLock::X:
+			case EAxisLock::Y:
+			case EAxisLock::Z:
+				NewSlotCount = 1;
+				break;
+			case EAxisLock::XY:
+			case EAxisLock::XZ:
+			case EAxisLock::YZ:
+				NewSlotCount = 2;
+				break;
+			case EAxisLock::All:
+			default:
+				NewSlotCount = 3;
+				break;
+			}
+			Session->GetNumericInputProcessor()->ResetForAxisConstraint(NewSlotCount);
+		}
 
 		UpdateToolSettingsForAxisLock();
 		SetGrabContextAxisLock(Session->LockedAxis);
@@ -442,6 +466,16 @@ namespace BlenderControls
 
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (Session.IsValid() && Session->NumericInputProcessor->IsInNumericMode())
+		{
+			UpdateHud();
+			if (HudWidget.IsValid())
+			{
+				HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
+			}
+			return;
+		}
 		UpdateHud();
 
 		if (!Viewport || !ViewportClient || !VirtualPivot || !GetSession().IsValid())
@@ -450,9 +484,7 @@ namespace BlenderControls
 		}
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
-
 		// If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
 		if (TrueMouseDelta.IsNearlyZero())
 		{
@@ -460,7 +492,6 @@ namespace BlenderControls
 		}
 
 		Session->VirtualMousePosition += TrueMouseDelta;
-
 		Viewport->SetMouse(static_cast<int32>(Session->CursorAnchorPoint.X),
 		                   static_cast<int32>(Session->CursorAnchorPoint.Y));
 
@@ -669,6 +700,22 @@ namespace BlenderControls
 
 	void FBlenderToolBase::UpdateHud()
 	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid() || !Session->NumericInputProcessor.IsValid() || !HudWidget.IsValid())
+		{
+			return;
+		}
+
+		const TUniquePtr<FNumericInputProcessor>& Processor = Session->NumericInputProcessor;
+
+		if (Processor->IsInNumericMode())
+		{
+			HudWidget->Update(Processor->GetHudText());
+		}
+		else
+		{
+			HudWidget->Update(GetLiveTranslationHudText());
+		}
 	}
 
 	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)

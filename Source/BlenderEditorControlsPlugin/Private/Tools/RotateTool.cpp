@@ -34,7 +34,7 @@ namespace BlenderControls
 		TrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
 
-		CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+		CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 		HudWidget->SetCursorBrush(CursorBrush);
 		HudWidget->SetCursorSize(FVector2D(24, 24));
@@ -392,14 +392,14 @@ namespace BlenderControls
 		{
 			if (bEnabled)
 			{
-				CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+				CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
 					TEXT("BlenderEditorControls.Cursors.Trackball"));
 				HudWidget->SetCursorBrush(CursorBrush);
 				HudWidget->SetCursorOrientation(ECursorOrient::None);
 			}
 			else
 			{
-				CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+				CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
 					TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 				HudWidget->SetCursorBrush(CursorBrush);
 				HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
@@ -439,5 +439,10 @@ namespace BlenderControls
 			return FString::Printf(TEXT("%s%s"), *ValueString, Unit);
 		}
 		return FString();
+	}
+
+	FText FRotateTool::GetLiveTranslationHudText() const
+	{
+		return FText::FromString("");
 	}
 } // namespace BlenderControls

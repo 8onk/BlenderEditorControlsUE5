@@ -36,6 +36,7 @@ namespace BlenderControls
 
 	protected:
 		virtual void UpdateToolSettingsForAxisLock() override;
+		virtual FText GetLiveTranslationHudText() const override;
 
 		/* ——— state ——— */
 		FVector PivotWS = FVector::ZeroVector; // average loc

@@ -12,6 +12,7 @@ namespace BlenderControls
 	class FBlenderToolBase;
 	class FSharedPivot;
 	class STransformHUD;
+	class FNumericInputProcessor;
 
 	/**
 	 * Manages the state and lifecycle of a single, modal transform operation (e.g., from pressing 'G' to clicking to confirm).
@@ -62,12 +63,17 @@ namespace BlenderControls
 		void SetVirtualMousePos(FVector2D InVector) { VirtualMousePosition = InVector; }
 		void SetStartMousePos(FVector2D InVector) { StartMousePos = InVector; }
 
+		FNumericInputProcessor* GetNumericInputProcessor() const { return NumericInputProcessor.Get(); }
+
 	private:
 		/** Captures the initial selection and calculates the pivot. */
 		void InitializePivot();
 
 		/** The current active tool (Move, Rotate, or Scale). */
 		TSharedPtr<FBlenderToolBase> CurrentTool;
+
+		TUniquePtr<FNumericInputProcessor> NumericInputProcessor;
+		bool bIsFirstTool = true;
 
 		/** The pivot point manager for the selected actors. */
 		TSharedPtr<FSharedPivot> VirtualPivot;

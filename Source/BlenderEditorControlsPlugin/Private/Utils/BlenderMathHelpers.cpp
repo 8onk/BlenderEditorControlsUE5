@@ -4,7 +4,6 @@
 #include "Editor.h"
 #include "Tools/BlenderToolBase.h"
 #include "DrawDebugHelpers.h"
-#include "EntitySystem/MovieSceneEntitySystemRunner.h"
 
 namespace BlenderControls::MathHelper
 {
@@ -34,6 +33,12 @@ namespace BlenderControls::MathHelper
 		const FVector PlaneOrigin = GC.StartLocation;
 		const FVector MouseRayStart = RayOrigin - (RayDir * WORLD_MAX);
 		const FVector MouseRayEnd = RayOrigin + (RayDir * WORLD_MAX);
+
+		UE_LOG(LogTemp, Log, TEXT("MouseRayStart=(%f, %f, %f)  MouseRayEnd=(%f, %f, %f)  PlaneOrigin=(%f, %f, %f)"),
+		       MouseRayStart.X, MouseRayStart.Y, MouseRayStart.Z,
+		       MouseRayEnd.X, MouseRayEnd.Y, MouseRayEnd.Z,
+		       PlaneOrigin.X, PlaneOrigin.Y, PlaneOrigin.Z);
+
 
 		FVector IntersectionPoint = FMath::LinePlaneIntersection(MouseRayStart, MouseRayEnd, PlaneOrigin,
 		                                                         GC.HelperPlaneN);

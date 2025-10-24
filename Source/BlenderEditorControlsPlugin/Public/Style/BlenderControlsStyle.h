@@ -1,6 +1,6 @@
 #pragma once
 
-namespace BlenderEditorControls
+namespace BlenderControls
 {
     class FBlenderControlsStyle
     {

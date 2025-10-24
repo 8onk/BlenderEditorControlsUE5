@@ -6,7 +6,7 @@
 #include "Styling/SlateStyle.h"
 #include "Styling/SlateStyleRegistry.h"
 
-namespace BlenderEditorControls
+namespace BlenderControls
 {
     TSharedPtr<FSlateStyleSet> FBlenderControlsStyle::StyleInstance;
     static FName BlenderControlsStyleName(TEXT("BlenderEditorControlsStyle"));

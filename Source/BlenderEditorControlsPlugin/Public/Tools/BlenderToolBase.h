@@ -92,6 +92,7 @@ namespace BlenderControls
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
+		virtual FText GetLiveTranslationHudText() const = 0;
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock)
 		{
@@ -113,7 +114,7 @@ namespace BlenderControls
 
 		float CurrentNonTrackballRotationAngle = 0.0f;
 		float CachedNonTrackballRotationAngle = 0.0f;
-		
+
 		bool bIsToolActive = true;
 
 		FString HudString;

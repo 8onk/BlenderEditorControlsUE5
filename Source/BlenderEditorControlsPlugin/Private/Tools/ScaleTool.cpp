@@ -32,7 +32,7 @@ namespace BlenderControls
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
-		CursorBrush = BlenderEditorControls::FBlenderControlsStyle::Get().GetBrush(
+		CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 
 		HudWidget->SetCursorBrush(CursorBrush);
@@ -360,5 +360,10 @@ namespace BlenderControls
 			NumNumericSlots = 3;
 			break;
 		}
+	}
+
+	FText FScaleTool::GetLiveTranslationHudText() const
+	{
+		return FText::FromString("");
 	}
 } // namespace BlenderControls

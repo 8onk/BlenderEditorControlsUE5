@@ -4,7 +4,7 @@
 
 namespace BlenderControls
 {
-	class FMoveTool : public FBlenderToolBase
+	class FMoveTool final : public FBlenderToolBase
 	{
 	public:
 		FMoveTool(const TSharedRef<FTransformSession>& InSession);
@@ -20,6 +20,7 @@ namespace BlenderControls
 
 	protected:
 		virtual void UpdateToolSettingsForAxisLock() override;
+		virtual FText GetLiveTranslationHudText() const override;
 
 	private:
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
