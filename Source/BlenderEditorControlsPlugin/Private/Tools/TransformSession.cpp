@@ -274,7 +274,15 @@ namespace BlenderControls
 		FVector2D CurrentViewportMousePosition;
 		MathHelper::GetMousePosToViewportPos(FSlateApplication::Get().GetCursorPos(),
 		                                     CurrentViewportMousePosition);
-		CurrentTool->OnActive(CurrentViewportMousePosition);
+		if (NumericInputProcessor->IsInNumericMode())
+		{
+			CurrentTool->HandleMouseMovement(CurrentViewportMousePosition);
+		}
+		else
+		{
+			CurrentTool->OnActive(CurrentViewportMousePosition);
+		}
+
 		return true;
 	}
 

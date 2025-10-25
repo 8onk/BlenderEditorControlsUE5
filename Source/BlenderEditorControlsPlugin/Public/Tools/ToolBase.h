@@ -48,16 +48,12 @@ namespace BlenderControls
 		void InitializeUI();
 		void RestorePreviousState();
 		virtual void OnBegin();
+		void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
 		virtual void OnEnd(bool bApply);
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled);
 		bool IsSnappingEnabled() const { return bSnappingEnabled; }
-
-		void SetViewportMousePosition(FVector2D InViewportMousePosition)
-		{
-			CurrentViewportMousePos = InViewportMousePosition;
-		}
 
 		virtual void SetTrackballRotationMode(const bool bEnabled);
 		virtual bool GetTrackballRotationMode();

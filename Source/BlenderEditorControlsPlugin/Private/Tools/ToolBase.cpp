@@ -15,7 +15,7 @@
 namespace BlenderControls
 {
 	FToolBase::FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
-	                                   const FString& InDisplayName)
+	                     const FString& InDisplayName)
 		: OwningSession(InSession), Mode(InMode), DisplayName(InDisplayName), NumNumericSlots(3)
 	{
 	}
@@ -206,8 +206,8 @@ namespace BlenderControls
 	}
 
 	UAxisLockGizmoComponent* FToolBase::SpawnAxisGizmo(const FVector& Origin, const FVector& AxisDir,
-	                                                          const FLinearColor& Color, float ThicknessPx,
-	                                                          float LineLength) const
+	                                                   const FLinearColor& Color, float ThicknessPx,
+	                                                   float LineLength) const
 	{
 		checkf(OwningSession.IsValid(), TEXT("SpawnAxisGizmo: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -306,6 +306,7 @@ namespace BlenderControls
 		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 		ViewUp = SceneView->GetViewUp();
 		ViewRight = SceneView->GetViewRight();
+		ViewLocation = SceneView->ViewLocation;
 
 		if (ViewportClient->IsPerspective())
 		{
@@ -457,25 +458,14 @@ namespace BlenderControls
 		RestorePreviousState();
 	}
 
-	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
+	void FToolBase::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		// if (Session.IsValid() && Session->NumericInputProcessor->IsInNumericMode())
-		// {
-		// 	UpdateHud();
-		// 	if (HudWidget.IsValid())
-		// 	{
-		// 		HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
-		// 	}
-		// 	return;
-		// }
-		// UpdateHud();
+		if (!Session.IsValid())
+		{
+			return;
+		}
 
-		if (!bIsToolActive) return;
-
-		if (!Viewport || !ViewportClient || !VirtualPivot || !GetSession().IsValid()) return;
-
-		CurrentViewportMousePos = CurrentViewportMousePosition;
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
 		// If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
 		if (TrueMouseDelta.IsNearlyZero())
@@ -487,6 +477,7 @@ namespace BlenderControls
 		Viewport->SetMouse(static_cast<int32>(Session->CursorAnchorPoint.X),
 		                   static_cast<int32>(Session->CursorAnchorPoint.Y));
 
+		//Software cursor is part of HudWidget
 		if (HudWidget.IsValid())
 		{
 			const FVector2D TotalDelta = Session->VirtualMousePosition - Session->CursorAnchorPoint;
@@ -510,6 +501,18 @@ namespace BlenderControls
 		}
 
 		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
+	}
+
+	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
+	{
+		if (!bIsToolActive) return;
+
+		UpdateHud();
+
+		if (!Viewport || !ViewportClient || !VirtualPivot) return;
+
+		CurrentViewportMousePos = CurrentViewportMousePosition;
+		HandleMouseMovement(CurrentViewportMousePosition);
 	}
 
 	void FToolBase::OnEnd(const bool bApply)
