@@ -1,6 +1,7 @@
 #include "Tools/RotateTool.h"
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
+#include "BaseGizmos/TransformProxy.h"
 #include "Style/BlenderControlsStyle.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
@@ -18,13 +19,17 @@ namespace BlenderControls
 		FBlenderToolBase::OnBegin();
 		bTrackballModeEnabled = false;
 
-		FVector RayOrigin, RayDirection;
-		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
-
 		StartPivotTransform = VirtualPivot->GetStartTransform();
 		PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
 
+		FSceneViewFamilyContext ViewFamily(
+			FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags));
+		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
+
 		StartDragVector = CurrentMousePosition - PivotViewportPosition;
 		LastDragVector = StartDragVector;
 
@@ -34,7 +39,7 @@ namespace BlenderControls
 		TrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
 
-		CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
+		CursorBrush = FBlenderControlsStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 		HudWidget->SetCursorBrush(CursorBrush);
 		HudWidget->SetCursorSize(FVector2D(24, 24));
@@ -54,11 +59,13 @@ namespace BlenderControls
 
 		if (HudWidget.IsValid() && !bTrackballModeEnabled)
 		{
-			HudWidget->SetDashState(true, PivotViewportPosition, Session->GetVirtualMousePos());
+			HudWidget->SetDashState(/*bEnabled=*/true, /*InOriginPx=*/PivotViewportPosition,
+			                                     Session->GetVirtualMousePos());
 		}
 		else
 		{
-			HudWidget->SetDashState(false, PivotViewportPosition, Session->GetVirtualMousePos());
+			HudWidget->SetDashState(/*bEnabled=*/false, /*InOriginPx=*/PivotViewportPosition,
+			                                     Session->GetVirtualMousePos());
 		}
 
 		if (!GEditor || Session->IsNumericInputActive())
@@ -119,19 +126,9 @@ namespace BlenderControls
 			}
 
 			VirtualPivot->Rotate(GrabContext, AngleToApplyRad, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
-
 			LastDragVector = CurrentDragVector;
 		}
 
-		// if (HudWidget.IsValid() && !bTrackballModeEnabled)
-		// {
-		//     HudWidget->SetDashState(true, PivotViewportPosition, Session->VirtualMousePosition);
-		// }
-		// else
-		// {
-		//     HudWidget->SetDashState(false, PivotViewportPosition, Session->VirtualMousePosition);
-		// }
-		//
 		// UpdateHud();
 	}
 

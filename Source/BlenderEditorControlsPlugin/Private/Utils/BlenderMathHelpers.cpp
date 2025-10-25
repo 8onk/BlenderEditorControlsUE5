@@ -2,8 +2,9 @@
 #include "Math/Vector.h"
 #include "Engine/Engine.h"
 #include "Editor.h"
-#include "Tools/BlenderToolBase.h"
 #include "DrawDebugHelpers.h"
+#include "VectorUtil.h"
+#include "Tools/GrabContext.h"
 
 namespace BlenderControls::MathHelper
 {
@@ -30,15 +31,17 @@ namespace BlenderControls::MathHelper
 
 	FVector IntersectHelper(const FGrabContext& GC, const FVector& RayOrigin, const FVector& RayDir)
 	{
+		if (!UE::Geometry::VectorUtil::IsFinite(RayOrigin) ||
+			!UE::Geometry::VectorUtil::IsFinite(RayDir) || RayDir.IsNearlyZero() ||
+			!UE::Geometry::VectorUtil::IsFinite(GC.HelperPlaneN) || GC.HelperPlaneN.IsNearlyZero())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("IntersectHelper: invalid input; returning StartLocation."));
+			return GC.StartLocation;
+		}
+
 		const FVector PlaneOrigin = GC.StartLocation;
 		const FVector MouseRayStart = RayOrigin - (RayDir * WORLD_MAX);
 		const FVector MouseRayEnd = RayOrigin + (RayDir * WORLD_MAX);
-
-		UE_LOG(LogTemp, Log, TEXT("MouseRayStart=(%f, %f, %f)  MouseRayEnd=(%f, %f, %f)  PlaneOrigin=(%f, %f, %f)"),
-		       MouseRayStart.X, MouseRayStart.Y, MouseRayStart.Z,
-		       MouseRayEnd.X, MouseRayEnd.Y, MouseRayEnd.Z,
-		       PlaneOrigin.X, PlaneOrigin.Y, PlaneOrigin.Z);
-
 
 		FVector IntersectionPoint = FMath::LinePlaneIntersection(MouseRayStart, MouseRayEnd, PlaneOrigin,
 		                                                         GC.HelperPlaneN);

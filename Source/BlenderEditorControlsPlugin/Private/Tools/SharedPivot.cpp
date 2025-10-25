@@ -1,5 +1,7 @@
 #include "Tools/SharedPivot.h"
 #include "BlenderEditorControlsEnums.h"
+#include "BaseGizmos/TransformProxy.h"
+#include "Tools/GrabContext.h"
 
 namespace BlenderControls
 {

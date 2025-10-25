@@ -1,13 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BlenderEditorControlsEnums.h"
-#include "GrabContext.h"
-#include "EditorGizmos/TransformGizmo.h"
-#include "BaseGizmos/TransformProxy.h"
+
+class UTransformGizmo;
+class UTransformProxy;
 
 namespace BlenderControls
 {
+	enum class EAxisLock : uint8;
+	struct FGrabContext;
 	enum class EPivotMode : uint8;
 
 	struct FChildInfo
@@ -47,8 +48,8 @@ namespace BlenderControls
 		void ComputeBoundingBoxCenterPivot();
 		void ComputeActiveElementPivot();
 
-		FTransform PivotTransform;
-		FTransform StartPivotTransform;
+		FTransform PivotTransform = FTransform::Identity;
+		FTransform StartPivotTransform = FTransform::Identity;
 		TArray<FChildInfo> Children;
 		FChildInfo ActiveChild;
 		UTransformGizmo* Gizmo = nullptr;

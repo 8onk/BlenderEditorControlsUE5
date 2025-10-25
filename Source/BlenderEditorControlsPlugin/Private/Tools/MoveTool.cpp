@@ -22,7 +22,7 @@ namespace BlenderControls
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Translate);
 		ViewportClient->Invalidate();
 
-		CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
+		CursorBrush = FBlenderControlsStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.Move"));
 
 		HudWidget->SetCursorBrush(CursorBrush);

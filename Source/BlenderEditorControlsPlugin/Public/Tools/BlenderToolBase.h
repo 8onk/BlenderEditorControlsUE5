@@ -44,8 +44,7 @@ namespace BlenderControls
 		void InitializeTransaction();
 		bool CacheSceneView();
 		void CacheViewVectors();
-		void InitializeGrabContext(const FVector2D& InMousePos, const FVector& InRayOrigin,
-		                           const FVector& InRayDirection);
+		void InitializeGrabContext();
 		void InitializeUI();
 		void RestorePreviousState();
 		virtual void OnBegin();
@@ -126,7 +125,6 @@ namespace BlenderControls
 		FString DisplayName;
 		FViewport* Viewport = nullptr;
 		TSharedPtr<FSharedPivot> VirtualPivot;
-		FSceneView* SceneView = nullptr;
 		float PrecisionFactor = 0.1f;
 		float CurrentPrecisionFactor = 1.0f;
 		bool bPrecisionModeActive = false;
@@ -135,7 +133,7 @@ namespace BlenderControls
 		FLevelEditorViewportClient* ViewportClient = nullptr;
 		bool bLocalSpaceDefault;
 		FGrabContext GrabContext;
-		FVector2D MouseDelta;
+		FVector2D MouseDelta = FVector2D::ZeroVector;
 		FVector ViewUp;
 		FVector ViewRight;
 		FVector ViewLocation;

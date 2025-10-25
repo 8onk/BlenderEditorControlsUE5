@@ -20,6 +20,13 @@ namespace BlenderControls
 	{
 		FBlenderToolBase::OnBegin();
 
+		FSceneViewFamilyContext ViewFamily(
+			FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags));
+		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+
 		FVector RayOrigin, RayDirection;
 		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
 		PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
@@ -51,7 +58,7 @@ namespace BlenderControls
 
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (!GEditor || !SceneView || Session->IsNumericInputActive())
+		if (!GEditor || Session->IsNumericInputActive())
 		{
 			return;
 		}

@@ -3,6 +3,7 @@
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
+#include "BaseGizmos/TransformProxy.h"
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Utils/BlenderMathHelpers.h"
@@ -277,11 +278,6 @@ namespace BlenderControls
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = GLevelEditorModeTools().GetCoordSystem() == COORD_Local;
 
-		if (UWorld* World = GEditor->GetEditorWorldContext().World())
-		{
-			CachedBatcher = World->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent);
-		}
-
 		return true;
 	}
 
@@ -299,7 +295,7 @@ namespace BlenderControls
 		VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
 	}
 
-	bool FBlenderToolBase::CacheSceneView()
+	void FBlenderToolBase::CacheViewVectors()
 	{
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -307,24 +303,7 @@ namespace BlenderControls
 				ViewportClient->GetScene(),
 				ViewportClient->EngineShowFlags));
 
-		SceneView = ViewportClient->CalcSceneView(&ViewFamily);
-		if (!SceneView)
-		{
-			return false;
-		}
-
-		Viewport = ViewportClient->Viewport;
-		if (!Viewport)
-		{
-			return false;
-		}
-
-		ViewLocation = SceneView->ViewLocation;
-		return true;
-	}
-
-	void FBlenderToolBase::CacheViewVectors()
-	{
+		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 		ViewUp = SceneView->GetViewUp();
 		ViewRight = SceneView->GetViewRight();
 
@@ -361,28 +340,43 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::InitializeGrabContext(const FVector2D& InMousePos, const FVector& InRayOrigin,
-	                                             const FVector& InRayDirection)
+	void FBlenderToolBase::InitializeGrabContext()
 	{
 		if (!VirtualPivot.IsValid())
 		{
 			return;
 		}
 
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return;
+		}
+
 		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.HelperPlaneN = -ViewForward;
-		GrabContext.StartMousePos = InMousePos;
+		GrabContext.StartMousePos = Session->StartMousePos;
 		GrabContext.StartLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
 		GrabContext.HelperAxisDir = FVector::ZeroVector;
 		GrabContext.ViewForward = ViewForward;
 
-		// Calculate ScreenToWorldScale
+		FSceneViewFamilyContext ViewFamily(
+			FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags));
+
+		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+
+		FVector StartRayOrigin, StartRayDirection;
+		SceneView->DeprojectFVector2D(Session->StartMousePos, StartRayOrigin, StartRayDirection);
+
 		const FVector2D MousePosB = GrabContext.StartMousePos + FVector2D(1, 0);
 		FVector MousePosBOrigin, MousePosBDirection;
 		SceneView->DeprojectFVector2D(MousePosB, MousePosBOrigin, MousePosBDirection);
 
 		FVector MouseIntersectionA = MathHelper::IntersectHelper(
-			GrabContext, InRayOrigin, InRayDirection);
+			GrabContext, StartRayOrigin, StartRayDirection);
 		FVector MouseIntersectionB = MathHelper::IntersectHelper(
 			GrabContext, MousePosBOrigin, MousePosBDirection);
 
@@ -403,8 +397,8 @@ namespace BlenderControls
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 		HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
-		Session->VirtualMousePosition = Session->CursorAnchorPoint;
 		//Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
+		Session->VirtualMousePosition = Session->CursorAnchorPoint;
 	}
 
 	void FBlenderToolBase::RestorePreviousState()
@@ -438,15 +432,14 @@ namespace BlenderControls
 		}
 
 		// 3. Calculate SceneView and base view vectors
-		if (!CacheSceneView())
+		Viewport = ViewportClient->Viewport;
+		if (!Viewport)
 		{
 			return;
 		}
 		CacheViewVectors(); // Sets ViewUp, ViewRight, ViewForward
 
 		const FVector2D MousePos = Session->StartMousePos;
-		FVector StartRayOrigin, StartRayDirection;
-		SceneView->DeprojectFVector2D(MousePos, StartRayOrigin, StartRayDirection);
 
 		// 5. Set internal tool mouse state
 		CurrentMousePosition = MousePos;
@@ -455,7 +448,7 @@ namespace BlenderControls
 		InitializeTransaction();
 
 		// 6. Setup the GrabContext for transform calculations
-		InitializeGrabContext(MousePos, StartRayOrigin, StartRayDirection);
+		InitializeGrabContext();
 
 		// 7. Setup HUD and Cursors
 		InitializeUI();
