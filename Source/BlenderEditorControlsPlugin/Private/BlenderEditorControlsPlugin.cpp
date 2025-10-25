@@ -4,7 +4,7 @@
 #include "Modules/ModuleManager.h"
 #include "Logging/LogMacros.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
+#include "Input/InputProcessor.h"
 
 DEFINE_LOG_CATEGORY(LogBlenderEditorControls);
 
@@ -72,7 +72,7 @@ namespace BlenderControls
 
 	void FBlenderEditorControlsPluginModule::RegisterInputProcessor()
 	{
-		InputProcessor = MakeShared<FBlenderControlsInputProcessor>(CommandList);
+		InputProcessor = MakeShared<FInputProcessor>(CommandList);
 		InputProcessor->BindCommands();
 		constexpr int32 Priority = 100;
 		FSlateApplication::Get().RegisterInputPreProcessor(InputProcessor, Priority);

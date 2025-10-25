@@ -460,23 +460,22 @@ namespace BlenderControls
 	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (Session.IsValid() && Session->NumericInputProcessor->IsInNumericMode())
-		{
-			UpdateHud();
-			if (HudWidget.IsValid())
-			{
-				HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
-			}
-			return;
-		}
-		UpdateHud();
+		// if (Session.IsValid() && Session->NumericInputProcessor->IsInNumericMode())
+		// {
+		// 	UpdateHud();
+		// 	if (HudWidget.IsValid())
+		// 	{
+		// 		HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
+		// 	}
+		// 	return;
+		// }
+		// UpdateHud();
 
-		if (!Viewport || !ViewportClient || !VirtualPivot || !GetSession().IsValid())
-		{
-			return;
-		}
+		if (!bIsToolActive) return;
+
+		if (!Viewport || !ViewportClient || !VirtualPivot || !GetSession().IsValid()) return;
+
 		CurrentViewportMousePos = CurrentViewportMousePosition;
-
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
 		// If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
 		if (TrueMouseDelta.IsNearlyZero())

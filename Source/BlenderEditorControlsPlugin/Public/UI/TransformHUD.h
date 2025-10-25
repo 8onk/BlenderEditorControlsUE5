@@ -44,16 +44,6 @@ namespace BlenderControls
 			MouseViewportPx = InMousePx;
 		}
 
-		FString FormatOneField(
-			const FString& Label,
-			FNumericSlotData& SlotData,
-			const FString& Unit,
-			bool bIsActiveSlot);
-
-		FString FormatMagnitude(float Magnitude, const TCHAR* Unit);
-
-		static FString ToTrimmed3(double InValue);
-
 		void SetCursorBrush(const FSlateBrush* InBrush)
 		{
 			CursorBrush = InBrush;

@@ -38,7 +38,7 @@ namespace BlenderControls
 		void SwitchTool(ETransformMode NewMode);
 
 		// --- Input Forwarding ---
-		void Tick(const float DeltaTime, FSlateApplication& SlateApp);
+		void Tick(const float DeltaTime, FSlateApplication& SlateApp) const;
 		bool HandleKeyDownEvent(const FKeyEvent& KeyEvent);
 		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) const;
 		bool HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent);

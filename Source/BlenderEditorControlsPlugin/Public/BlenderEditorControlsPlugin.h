@@ -42,7 +42,7 @@ namespace BlenderControls
 		/* Persistent state */
 		static inline bool                           bPluginActive = false;
 		TSharedPtr<class FUICommandList>             CommandList;
-		TSharedPtr<class FBlenderControlsInputProcessor> InputProcessor;
+		TSharedPtr<class FInputProcessor> InputProcessor;
 		FDelegateHandle                              ToolMenuOwnerHandle;
 	};
 } // namespace BlenderControls

@@ -147,7 +147,7 @@ namespace BlenderControls
 		bIsFinished = true;
 	}
 
-	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp)
+	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp) const
 	{
 		if (!CurrentTool.IsValid())
 		{

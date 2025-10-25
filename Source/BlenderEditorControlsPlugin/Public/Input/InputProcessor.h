@@ -17,12 +17,12 @@ namespace BlenderControls
 	 * Its primary role is to create and manage the lifecycle of a FTransformSession.
 	 * It acts as a "gatekeeper", forwarding input to an active session when one exists.
 	 */
-	class FBlenderControlsInputProcessor : public IInputProcessor,
-	                                       public TSharedFromThis<FBlenderControlsInputProcessor>
+	class FInputProcessor : public IInputProcessor,
+	                                       public TSharedFromThis<FInputProcessor>
 	{
 	public:
-		explicit FBlenderControlsInputProcessor(TSharedPtr<FUICommandList> InCommandList);
-		~FBlenderControlsInputProcessor() = default;
+		explicit FInputProcessor(TSharedPtr<FUICommandList> InCommandList);
+		~FInputProcessor() = default;
 
 		void BindCommands();
 

@@ -1,4 +1,4 @@
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
+#include "Input/InputProcessor.h"
 #include "TransformSession.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Framework/Application/SlateApplication.h"
@@ -11,12 +11,12 @@
 
 namespace BlenderControls
 {
-	FBlenderControlsInputProcessor::FBlenderControlsInputProcessor(TSharedPtr<FUICommandList> InCommandList)
+	FInputProcessor::FInputProcessor(TSharedPtr<FUICommandList> InCommandList)
 		: CommandList(InCommandList)
 	{
 	}
 
-	void FBlenderControlsInputProcessor::BindCommands()
+	void FInputProcessor::BindCommands()
 	{
 		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
 
@@ -24,29 +24,29 @@ namespace BlenderControls
 		CommandList->MapAction(
 			Cmd.CommandTranslate,
 			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Translate); }),
-			FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CanStartTool)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandRotate,
 			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Rotate); }),
-			FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CanStartTool)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandScale,
 			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Scale); }),
-			FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CanStartTool)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandDuplicateAndMove,
-			FExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::DuplicateAndMovePressed),
-			FCanExecuteAction::CreateSP(this, &FBlenderControlsInputProcessor::CanStartTool)
+			FExecuteAction::CreateSP(this, &FInputProcessor::DuplicateAndMovePressed),
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 	}
 
-	void FBlenderControlsInputProcessor::Tick(const float DeltaTime, FSlateApplication& SlateApp,
+	void FInputProcessor::Tick(const float DeltaTime, FSlateApplication& SlateApp,
 	                                          TSharedRef<ICursor> Cursor)
 	{
 		// If a session exists, check if it has finished its work.
@@ -62,7 +62,7 @@ namespace BlenderControls
 		}
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
+	bool FInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
 		if (PressedKeys.Contains(KeyEvent.GetKey()))
 		{
@@ -86,13 +86,13 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
+	bool FInputProcessor::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
 		PressedKeys.Remove(KeyEvent.GetKey());
 		return false; // Never consume KeyUp, let other systems use it.
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseMoveEvent(FSlateApplication& SlateApp,
+	bool FInputProcessor::HandleMouseMoveEvent(FSlateApplication& SlateApp,
 	                                                          const FPointerEvent& MouseEvent)
 	{
 		// Forward mouse movement to the active session.
@@ -103,7 +103,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseButtonDownEvent(FSlateApplication& SlateApp,
+	bool FInputProcessor::HandleMouseButtonDownEvent(FSlateApplication& SlateApp,
 	                                                                const FPointerEvent& MouseEvent)
 	{
 		// Forward mouse clicks to the active session.
@@ -114,7 +114,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	bool FBlenderControlsInputProcessor::HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp,
+	bool FInputProcessor::HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp,
 	                                                                    const FPointerEvent& InWheelEvent,
 	                                                                    const FPointerEvent* InGestureEvent)
 	{
@@ -129,12 +129,12 @@ namespace BlenderControls
 
 	// --- Command Handler Implementations ---
 
-	bool FBlenderControlsInputProcessor::CanStartTool() const
+	bool FInputProcessor::CanStartTool() const
 	{
 		return !ActiveSession.IsValid();
 	}
 
-	void FBlenderControlsInputProcessor::OnTransformPressed(ETransformMode Mode)
+	void FInputProcessor::OnTransformPressed(ETransformMode Mode)
 	{
 		if (!CanStartTool()) return;
 		
@@ -142,7 +142,7 @@ namespace BlenderControls
 		ActiveSession->SwitchTool(Mode);
 	}
 
-	void FBlenderControlsInputProcessor::DuplicateAndMovePressed()
+	void FInputProcessor::DuplicateAndMovePressed()
 	{
 		if (CanStartTool() && GEditor && GEditor->GetSelectedActorCount() > 0)
 		{
@@ -161,7 +161,7 @@ namespace BlenderControls
 	// --- Helper Functions for Input Context ---
 	// (These are largely unchanged from your original implementation)
 
-	bool FBlenderControlsInputProcessor::ShouldHandleHotkeys(FSlateApplication& SlateApp) const
+	bool FInputProcessor::ShouldHandleHotkeys(FSlateApplication& SlateApp) const
 	{
 		if (!IsMouseOverLevelViewport() || SlateApp.AnyMenusVisible())
 		{
@@ -184,7 +184,7 @@ namespace BlenderControls
 		return true;
 	}
 
-	bool FBlenderControlsInputProcessor::IsMouseOverLevelViewport() const
+	bool FInputProcessor::IsMouseOverLevelViewport() const
 	{
 		auto& App = FSlateApplication::Get();
 		const FVector2D ScreenPos = App.GetCursorPos();

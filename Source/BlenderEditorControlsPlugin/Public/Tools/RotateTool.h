@@ -1,7 +1,6 @@
 #pragma once
 #include "Tools/BlenderToolBase.h"
 #include "Math/Quat.h"
-#include "Input/BlenderEditorControlsPluginInputProcessor.h"
 
 namespace BlenderControls
 {

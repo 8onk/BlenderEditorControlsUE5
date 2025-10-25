@@ -21,7 +21,7 @@ namespace BlenderControls
 			{
 				const FTransform ActorTransform = Actor->GetTransform();
 				const FQuat ActorRotation = ActorTransform.GetRotation();
-
+    
 				FChildInfo Child = {Actor, ActorTransform, ActorRotation};
 				Children.Add(Child);
 
