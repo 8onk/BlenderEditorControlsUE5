@@ -1,5 +1,5 @@
 #pragma once
-#include "Tools/BlenderToolBase.h"
+#include "Tools/ToolBase.h"
 
 namespace BlenderControls
 {
@@ -7,12 +7,12 @@ namespace BlenderControls
 	 * Scaling tool – supports uniform and axis-constrained scaling,
 	 * precision mode (Shift), numeric entry, and min-scale clamping.
 	 */
-	class FScaleTool : public FBlenderToolBase
+	class FScaleTool : public FToolBase
 	{
 	public:
 		explicit FScaleTool(const TSharedRef<FTransformSession>& InSession);
 
-		/* ---------- FBlenderToolBase overrides ---------- */
+		/* ---------- FToolBase overrides ---------- */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
 		virtual void UpdateHud() override;

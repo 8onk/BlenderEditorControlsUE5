@@ -1,15 +1,15 @@
 #pragma once
-#include "BlenderToolBase.h"
-#include "BlenderEditorControlsEnums.h"
+#include "ToolBase.h"
+#include "Enums.h"
 
 namespace BlenderControls
 {
-	class FMoveTool final : public FBlenderToolBase
+	class FMoveTool final : public FToolBase
 	{
 	public:
 		FMoveTool(const TSharedRef<FTransformSession>& InSession);
 
-		/* FBlenderToolBase */
+		/* FToolBase */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
 		virtual void UpdateHud() override;

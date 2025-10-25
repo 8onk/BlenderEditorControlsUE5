@@ -1,5 +1,5 @@
 // Style.cpp
-#include "Style/BlenderControlsStyle.h"
+#include "Style/Style.h"
 #include "Brushes/SlateImageBrush.h"
 #include "Interfaces/IPluginManager.h"
 #include "Misc/Paths.h"
@@ -8,7 +8,7 @@
 
 namespace BlenderControls
 {
-    TSharedPtr<FSlateStyleSet> FBlenderControlsStyle::StyleInstance;
+    TSharedPtr<FSlateStyleSet> FStyle::StyleInstance;
     static FName BlenderControlsStyleName(TEXT("BlenderEditorControlsStyle"));
 
     // Return NON-const pointers
@@ -24,7 +24,7 @@ namespace BlenderControls
         return new FSlateImageBrush(Style->RootToContentDir(RelPathNoExt, TEXT(".png")), Size);
     }
 
-    TSharedRef<FSlateStyleSet> FBlenderControlsStyle::Create()
+    TSharedRef<FSlateStyleSet> FStyle::Create()
     {
         TSharedRef<FSlateStyleSet> Style = MakeShareable(new FSlateStyleSet(GetStyleSetName()));
 
@@ -55,7 +55,7 @@ namespace BlenderControls
         return Style;
     }
 
-    void FBlenderControlsStyle::Initialize()
+    void FStyle::Initialize()
     {
         if (!StyleInstance.IsValid())
         {
@@ -64,7 +64,7 @@ namespace BlenderControls
         }
     }
 
-    void FBlenderControlsStyle::Shutdown()
+    void FStyle::Shutdown()
     {
         if (StyleInstance.IsValid())
         {
@@ -74,7 +74,7 @@ namespace BlenderControls
         }
     }
 
-    const ISlateStyle& FBlenderControlsStyle::Get()
+    const ISlateStyle& FStyle::Get()
     {
         if (!StyleInstance.IsValid())
         {
@@ -83,7 +83,7 @@ namespace BlenderControls
         return *StyleInstance.Get();
     }
 
-    FName FBlenderControlsStyle::GetStyleSetName()
+    FName FStyle::GetStyleSetName()
     {
         return BlenderControlsStyleName;
     }

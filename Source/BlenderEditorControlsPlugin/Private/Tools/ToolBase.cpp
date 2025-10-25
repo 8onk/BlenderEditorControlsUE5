@@ -1,4 +1,4 @@
-#include "Tools/BlenderToolBase.h"
+#include "Tools/ToolBase.h"
 #include "Editor.h"
 #include "EditorModeManager.h"
 #include "LevelEditorViewport.h"
@@ -6,7 +6,7 @@
 #include "BaseGizmos/TransformProxy.h"
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
-#include "Utils/BlenderMathHelpers.h"
+#include "Utils/MathHelpers.h"
 #include "Tools/SharedPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
@@ -14,18 +14,18 @@
 //TODO: make GetSnapOffset abstract
 namespace BlenderControls
 {
-	FBlenderToolBase::FBlenderToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
+	FToolBase::FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
 	                                   const FString& InDisplayName)
 		: OwningSession(InSession), Mode(InMode), DisplayName(InDisplayName), NumNumericSlots(3)
 	{
 	}
 
-	FBlenderToolBase::~FBlenderToolBase()
+	FToolBase::~FToolBase()
 	{
-		UE_LOG(LogTemp, Warning, TEXT("~FBlenderToolBase"));
+		UE_LOG(LogTemp, Warning, TEXT("~FToolBaseToolBase"));
 	}
 
-	void FBlenderToolBase::UpdateAxisLock()
+	void FToolBase::UpdateAxisLock()
 	{
 		checkf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -69,7 +69,7 @@ namespace BlenderControls
 		UpdateHud();
 	}
 
-	void FBlenderToolBase::ClearDrawnAxisLines()
+	void FToolBase::ClearDrawnAxisLines()
 	{
 		for (auto& Giz : AxisGizmos)
 		{
@@ -78,7 +78,7 @@ namespace BlenderControls
 		AxisGizmos.Empty();
 	}
 
-	void FBlenderToolBase::RedrawAxisLines()
+	void FToolBase::RedrawAxisLines()
 	{
 		checkf(OwningSession.IsValid(), TEXT("RedrawAxisLines: Session was invalid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -190,7 +190,7 @@ namespace BlenderControls
 		}
 	}
 
-	FLinearColor FBlenderToolBase::GetAxisColor(EAxisLock InAxis)
+	FLinearColor FToolBase::GetAxisColor(EAxisLock InAxis)
 	{
 		switch (InAxis)
 		{
@@ -205,7 +205,7 @@ namespace BlenderControls
 		}
 	}
 
-	UAxisLockGizmoComponent* FBlenderToolBase::SpawnAxisGizmo(const FVector& Origin, const FVector& AxisDir,
+	UAxisLockGizmoComponent* FToolBase::SpawnAxisGizmo(const FVector& Origin, const FVector& AxisDir,
 	                                                          const FLinearColor& Color, float ThicknessPx,
 	                                                          float LineLength) const
 	{
@@ -234,7 +234,7 @@ namespace BlenderControls
 		return Comp;
 	}
 
-	FVector FBlenderToolBase::GetAxisVector(const EAxisLock InAxis) const
+	FVector FToolBase::GetAxisVector(const EAxisLock InAxis) const
 	{
 		checkf(OwningSession.IsValid(), TEXT("GetAxisVector: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -255,7 +255,7 @@ namespace BlenderControls
 		return AxisVector.GetSafeNormal();
 	}
 
-	bool FBlenderToolBase::InitializeEditorState()
+	bool FToolBase::InitializeEditorState()
 	{
 		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
 		if (!ViewportClient)
@@ -281,7 +281,7 @@ namespace BlenderControls
 		return true;
 	}
 
-	void FBlenderToolBase::InitializeTransaction()
+	void FToolBase::InitializeTransaction()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		VirtualPivot = Session->VirtualPivot;
@@ -295,7 +295,7 @@ namespace BlenderControls
 		VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
 	}
 
-	void FBlenderToolBase::CacheViewVectors()
+	void FToolBase::CacheViewVectors()
 	{
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -340,7 +340,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::InitializeGrabContext()
+	void FToolBase::InitializeGrabContext()
 	{
 		if (!VirtualPivot.IsValid())
 		{
@@ -383,7 +383,7 @@ namespace BlenderControls
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 	}
 
-	void FBlenderToolBase::InitializeUI()
+	void FToolBase::InitializeUI()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
@@ -401,7 +401,7 @@ namespace BlenderControls
 		Session->VirtualMousePosition = Session->CursorAnchorPoint;
 	}
 
-	void FBlenderToolBase::RestorePreviousState()
+	void FToolBase::RestorePreviousState()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
@@ -420,7 +420,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::OnBegin()
+	void FToolBase::OnBegin()
 	{
 		checkf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -457,7 +457,7 @@ namespace BlenderControls
 		RestorePreviousState();
 	}
 
-	void FBlenderToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
+	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		// if (Session.IsValid() && Session->NumericInputProcessor->IsInNumericMode())
@@ -512,7 +512,7 @@ namespace BlenderControls
 		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
 	}
 
-	void FBlenderToolBase::OnEnd(const bool bApply)
+	void FToolBase::OnEnd(const bool bApply)
 	{
 		if (!GetSession().IsValid())
 		{
@@ -562,7 +562,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)
+	void FToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)
 	{
 		// Only proceed if the state is actually changing.
 		if (bNewPrecisionModeActive == bPrecisionModeActive)
@@ -581,7 +581,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
+	void FToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
 	{
 		checkf(OwningSession.IsValid(), TEXT("SetSnappingEnabled: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -599,16 +599,16 @@ namespace BlenderControls
 		}
 	}
 
-	void FBlenderToolBase::SetTrackballRotationMode(const bool bEnabled)
+	void FToolBase::SetTrackballRotationMode(const bool bEnabled)
 	{
 	}
 
-	bool FBlenderToolBase::GetTrackballRotationMode()
+	bool FToolBase::GetTrackballRotationMode()
 	{
 		return false;
 	}
 
-	void FBlenderToolBase::StartNewLock(const EAxisLock NewAxis) const
+	void FToolBase::StartNewLock(const EAxisLock NewAxis) const
 	{
 		checkf(OwningSession.IsValid(), TEXT("StartNewLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -619,7 +619,7 @@ namespace BlenderControls
 		UE_LOG(LogTemp, Log, TEXT("LockedAxis set to: %d"), static_cast<int32>(Session->LockedAxis));
 	}
 
-	void FBlenderToolBase::HandleAxisLock(const EAxisLock AxisPressed)
+	void FToolBase::HandleAxisLock(const EAxisLock AxisPressed)
 	{
 		checkf(OwningSession.IsValid(), TEXT("HandleAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -647,7 +647,7 @@ namespace BlenderControls
 		UpdateAxisLock();
 	}
 
-	bool FBlenderToolBase::IsSingleAxisLocked() const
+	bool FToolBase::IsSingleAxisLocked() const
 	{
 		checkf(OwningSession.IsValid(), TEXT("IsSingleAxisLocked: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -659,7 +659,7 @@ namespace BlenderControls
 		return false;
 	}
 
-	void FBlenderToolBase::Accept()
+	void FToolBase::Accept()
 	{
 		if (ParentTxn)
 		{
@@ -669,7 +669,7 @@ namespace BlenderControls
 		OnEnd(/*bApply=*/true);
 	}
 
-	void FBlenderToolBase::Cancel()
+	void FToolBase::Cancel()
 	{
 		if (!GEditor || !VirtualPivot)
 		{
@@ -690,7 +690,7 @@ namespace BlenderControls
 		OnEnd(/*bApply=*/false);
 	}
 
-	void FBlenderToolBase::UpdateHud()
+	void FToolBase::UpdateHud()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (!Session.IsValid() || !Session->NumericInputProcessor.IsValid() || !HudWidget.IsValid())
@@ -710,12 +710,12 @@ namespace BlenderControls
 		}
 	}
 
-	FVector FBlenderToolBase::GetSnapOffset(const FVector OffsetFromStart)
+	FVector FToolBase::GetSnapOffset(const FVector OffsetFromStart)
 	{
 		return FVector::ZeroVector;
 	}
 
-	FString FBlenderToolBase::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
+	FString FToolBase::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
 	{
 		if (Slot.CommittedValue.IsSet())
 		{

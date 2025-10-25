@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
-#include "BlenderEditorControlsEnums.h"
+#include "Enums.h"
 
 namespace BlenderControls
 {

@@ -1,8 +1,9 @@
 #include "Tools/ScaleTool.h"
+
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Style/BlenderControlsStyle.h"
+#include "Style/Style.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 
@@ -12,13 +13,13 @@
 namespace BlenderControls
 {
 	FScaleTool::FScaleTool(const TSharedRef<FTransformSession>& InSession)
-		: FBlenderToolBase(InSession, ETransformMode::Scale, TEXT("Scale"))
+		: FToolBase(InSession, ETransformMode::Scale, TEXT("Scale"))
 	{
 	}
 
 	void FScaleTool::OnBegin()
 	{
-		FBlenderToolBase::OnBegin();
+		FToolBase::OnBegin();
 
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -39,7 +40,7 @@ namespace BlenderControls
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
-		CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
+		CursorBrush = BlenderControls::FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 
 		HudWidget->SetCursorBrush(CursorBrush);
@@ -50,7 +51,7 @@ namespace BlenderControls
 
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+		FToolBase::OnActive(CurrentViewportMousePosition);
 		if (!bIsToolActive)
 		{
 			return;
@@ -129,7 +130,7 @@ namespace BlenderControls
 
 	void FScaleTool::ApplyNumeric(double Value)
 	{
-		FBlenderToolBase::ApplyNumeric(Value);
+		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		FVector ScaleMultiplier = FVector::OneVector;
@@ -173,7 +174,7 @@ namespace BlenderControls
 
 	void FScaleTool::UpdateHud()
 	{
-		FBlenderToolBase::UpdateHud();
+		FToolBase::UpdateHud();
 	}
 
 	//
@@ -297,7 +298,7 @@ namespace BlenderControls
 
 	void FScaleTool::OnEnd(const bool bApply)
 	{
-		FBlenderToolBase::OnEnd(bApply);
+		FToolBase::OnEnd(bApply);
 		if (HudWidget.IsValid())
 		{
 			HudWidget->SetDashState(false, FVector2D::ZeroVector, FVector2D::ZeroVector);

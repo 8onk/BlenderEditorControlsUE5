@@ -3,26 +3,26 @@
 #include "TransformSession.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Input/Numeric/NumericInputStructs.h"
-#include "Style/BlenderControlsStyle.h"
+#include "Style/Style.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
-#include "Utils/BlenderMathHelpers.h"
+#include "Utils/MathHelpers.h"
 
 namespace BlenderControls
 {
 	FMoveTool::FMoveTool(const TSharedRef<FTransformSession>& InSession)
-		: FBlenderToolBase(InSession, ETransformMode::Translate, TEXT("Move"))
+		: FToolBase(InSession, ETransformMode::Translate, TEXT("Move"))
 	{
 	}
 
 	void FMoveTool::OnBegin()
 	{
-		FBlenderToolBase::OnBegin();
+		FToolBase::OnBegin();
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Translate);
 		ViewportClient->Invalidate();
 
-		CursorBrush = FBlenderControlsStyle::Get().GetBrush(
+		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.Move"));
 
 		HudWidget->SetCursorBrush(CursorBrush);
@@ -45,7 +45,7 @@ namespace BlenderControls
 
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+		FToolBase::OnActive(CurrentViewportMousePosition);
 
 		if (!bIsToolActive)
 		{
@@ -137,7 +137,7 @@ namespace BlenderControls
 
 	void FMoveTool::ApplyNumeric(double Value)
 	{
-		FBlenderToolBase::ApplyNumeric(Value);
+		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (!Session.IsValid() || !VirtualPivot.IsValid()) return;
 
@@ -191,12 +191,12 @@ namespace BlenderControls
 
 	void FMoveTool::UpdateHud()
 	{
-		FBlenderToolBase::UpdateHud();
+		FToolBase::UpdateHud();
 	}
 
 	void FMoveTool::OnEnd(bool bApply)
 	{
-		FBlenderToolBase::OnEnd(bApply);
+		FToolBase::OnEnd(bApply);
 	}
 
 	void FMoveTool::UpdateToolSettingsForAxisLock()

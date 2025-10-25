@@ -6,11 +6,11 @@
 #include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Tools/SharedPivot.h"
-#include "Tools/BlenderToolBase.h"
+#include "Tools/ToolBase.h"
 #include "Tools/MoveTool.h"
 #include "Tools/RotateTool.h"
 #include "Tools/ScaleTool.h"
-#include "Utils/BlenderMathHelpers.h"
+#include "Utils/MathHelpers.h"
 
 namespace BlenderControls
 {

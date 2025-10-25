@@ -1,5 +1,5 @@
 #include "Tools/SharedPivot.h"
-#include "BlenderEditorControlsEnums.h"
+#include "Enums.h"
 #include "BaseGizmos/TransformProxy.h"
 #include "Tools/GrabContext.h"
 

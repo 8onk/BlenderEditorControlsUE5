@@ -2,7 +2,7 @@
 
 namespace BlenderControls
 {
-    class FBlenderControlsStyle
+    class FStyle
     {
     public:
         static void Initialize();

@@ -2,21 +2,21 @@
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
 #include "BaseGizmos/TransformProxy.h"
-#include "Style/BlenderControlsStyle.h"
+#include "Style/Style.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
-#include "Utils/BlenderMathHelpers.h"
+#include "Utils/MathHelpers.h"
 
 namespace BlenderControls
 {
 	FRotateTool::FRotateTool(const TSharedRef<FTransformSession>& InSession)
-		: FBlenderToolBase(InSession, ETransformMode::Rotate, TEXT("Rotate"))
+		: FToolBase(InSession, ETransformMode::Rotate, TEXT("Rotate"))
 	{
 	}
 
 	void FRotateTool::OnBegin()
 	{
-		FBlenderToolBase::OnBegin();
+		FToolBase::OnBegin();
 		bTrackballModeEnabled = false;
 
 		StartPivotTransform = VirtualPivot->GetStartTransform();
@@ -39,7 +39,7 @@ namespace BlenderControls
 		TrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
 
-		CursorBrush = FBlenderControlsStyle::Get().GetBrush(
+		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 		HudWidget->SetCursorBrush(CursorBrush);
 		HudWidget->SetCursorSize(FVector2D(24, 24));
@@ -49,7 +49,7 @@ namespace BlenderControls
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		FBlenderToolBase::OnActive(CurrentViewportMousePosition);
+		FToolBase::OnActive(CurrentViewportMousePosition);
 
 		if (!bIsToolActive)
 		{
@@ -135,7 +135,7 @@ namespace BlenderControls
 
 	void FRotateTool::ApplyNumeric(const double Value)
 	{
-		FBlenderToolBase::ApplyNumeric(Value);
+		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (bTrackballModeEnabled)
@@ -176,7 +176,7 @@ namespace BlenderControls
 
 	void FRotateTool::UpdateHud()
 	{
-		FBlenderToolBase::UpdateHud();
+		FToolBase::UpdateHud();
 	}
 
 	//
@@ -326,7 +326,7 @@ namespace BlenderControls
 
 	void FRotateTool::OnEnd(const bool bApply)
 	{
-		FBlenderToolBase::OnEnd(bApply);
+		FToolBase::OnEnd(bApply);
 	}
 
 	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)
@@ -336,7 +336,7 @@ namespace BlenderControls
 			return;
 		}
 
-		FBlenderToolBase::HandleAxisLock(AxisPressed);
+		FToolBase::HandleAxisLock(AxisPressed);
 	}
 
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
@@ -389,14 +389,14 @@ namespace BlenderControls
 		{
 			if (bEnabled)
 			{
-				CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
+				CursorBrush = BlenderControls::FStyle::Get().GetBrush(
 					TEXT("BlenderEditorControls.Cursors.Trackball"));
 				HudWidget->SetCursorBrush(CursorBrush);
 				HudWidget->SetCursorOrientation(ECursorOrient::None);
 			}
 			else
 			{
-				CursorBrush = BlenderControls::FBlenderControlsStyle::Get().GetBrush(
+				CursorBrush = BlenderControls::FStyle::Get().GetBrush(
 					TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 				HudWidget->SetCursorBrush(CursorBrush);
 				HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);

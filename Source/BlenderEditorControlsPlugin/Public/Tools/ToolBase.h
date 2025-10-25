@@ -1,7 +1,7 @@
 #pragma once
 
 #include "UObject/WeakObjectPtr.h"
-#include "BlenderEditorControlsEnums.h"
+#include "Enums.h"
 #include "GrabContext.h"
 #include "ScopedTransaction.h"
 #include "ToolSharedState.h"
@@ -15,12 +15,12 @@ namespace BlenderControls
 	struct FChildInfo;
 	class FSharedPivot;
 
-	class FBlenderToolBase : public TSharedFromThis<FBlenderToolBase>
+	class FToolBase : public TSharedFromThis<FToolBase>
 	{
 	public:
-		FBlenderToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
+		FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
 		                 const FString& InDisplayName);
-		virtual ~FBlenderToolBase();
+		virtual ~FToolBase();
 
 		/** Per-frame update from input-processor */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;

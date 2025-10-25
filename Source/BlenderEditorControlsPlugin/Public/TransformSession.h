@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "BlenderEditorControlsEnums.h"
+#include "Enums.h"
 #include "ToolSharedState.h"
 
 struct FKeyEvent;
@@ -9,7 +9,7 @@ struct FPointerEvent;
 
 namespace BlenderControls
 {
-	class FBlenderToolBase;
+	class FToolBase;
 	class FSharedPivot;
 	class STransformHUD;
 	class FNumericInputProcessor;
@@ -70,7 +70,7 @@ namespace BlenderControls
 		void InitializePivot();
 
 		/** The current active tool (Move, Rotate, or Scale). */
-		TSharedPtr<FBlenderToolBase> CurrentTool;
+		TSharedPtr<FToolBase> CurrentTool;
 
 		TUniquePtr<FNumericInputProcessor> NumericInputProcessor;
 		bool bIsFirstTool = true;
@@ -95,7 +95,7 @@ namespace BlenderControls
 		// --- Session Lifecycle ---
 		bool bIsFinished = false;
 
-		// Friend class declaration so FBlenderToolBase can access and modify session state
-		friend class FBlenderToolBase;
+		// Friend class declaration so FToolBase can access and modify session state
+		friend class FToolBase;
 	};
 }

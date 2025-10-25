@@ -1,5 +1,5 @@
 #pragma once
-#include "Tools/BlenderToolBase.h"
+#include "Tools/ToolBase.h"
 #include "Math/Quat.h"
 
 namespace BlenderControls
@@ -9,12 +9,12 @@ namespace BlenderControls
 	 * Handles axis-locked rotation, track-ball rotation, numeric entry, and
 	 * angle-snap (e.g. Ctrl for 5° increments).
 	 */
-	class FRotateTool : public FBlenderToolBase
+	class FRotateTool : public FToolBase
 	{
 	public:
 		explicit FRotateTool(const TSharedRef<FTransformSession>& InSession);
 
-		/* ---------- FBlenderToolBase overrides ---------- */
+		/* ---------- FToolBase overrides ---------- */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
 		virtual void UpdateHud() override;
