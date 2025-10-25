@@ -182,151 +182,32 @@ namespace BlenderControls
 	//
 	// void FRotateTool::UpdateHud()
 	// {
-	//     if (!VirtualPivot || !HudWidget.IsValid())
-	//     {
-	//         return;
-	//     }
-	//
-	//     const double LiveAngleDeg = FMath::RadiansToDegrees(AngleToApplyRad) * -1;
-	//     static const TCHAR* Unit = TEXT("\u00B0"); // Degree symbol
-	//     static const TCHAR* Sep = TEXT("\u2003"); // EM SPACE
-	//     const FString Space = bUsingLocalSpace ? TEXT("local") : TEXT("global");
-	//     const bool bNumeric = Session->bIsNumericInputActive;
-	//
-	//     enum class EValueSlot : int32
-	//     {
-	//         Angle = 0,
-	//         TrackballX = 0,
-	//         TrackballY = 1,
-	//     };
-	//
-	//     struct FHudFieldData
-	//     {
-	//         FString Label;
-	//         double LiveValue;
-	//         EValueSlot SlotIndex;
-	//     };
-	//
-	//     TArray<FHudFieldData> HudFields;
-	//     FString Suffix;
-	//     FString Header;
-	//
-	//     if (bTrackballModeEnabled)
-	//     {
-	//         const double LiveAngleY = FMath::RadiansToDegrees(TrackballMouseDelta.X);
-	//         const double LiveAngleX = FMath::RadiansToDegrees(TrackballMouseDelta.Y);
-	//
-	//         const int32 SlotX = static_cast<int32>(EValueSlot::TrackballX);
-	//         const int32 SlotY = static_cast<int32>(EValueSlot::TrackballY);
-	//
-	//         // This is a small helper function to format a single trackball value correctly.
-	//         // It handles all the required states: live, active numeric, and inactive numeric ("None").
-	//         auto FormatTrackballValue = [&](int32 SlotIndex, double LiveValue) -> FString
-	//         {
-	//             if (bNumeric)
-	//             {
-	//                 FNumericSlotData& SlotData = Session->NumericSlots[SlotIndex];
-	//                 if (Session->CurrentNumericSlotIndex == SlotIndex)
-	//                 {
-	//                     return HudWidget->FormatOneField(TEXT(""), SlotData, Unit, true);
-	//                 }
-	//
-	//                 if (SlotData.SlotState == ESlotState::Pristine)
-	//                 {
-	//                     return TEXT("NONE");
-	//                 }
-	//
-	//                 return FString::Printf(TEXT("%.2f%s"), SlotData.GetTotal(), Unit);
-	//             }
-	//
-	//             return FString::Printf(TEXT("%.2f"), LiveValue);
-	//         };
-	//
-	//         const FString FormattedX = FormatTrackballValue(SlotX, LiveAngleX);
-	//         const FString FormattedY = FormatTrackballValue(SlotY, LiveAngleY);
-	//
-	//         HudString = FString::Printf(TEXT("Trackball: %s %s"), *FormattedX, *FormattedY);
-	//         HudWidget->Update(FText::FromString(HudString));
-	//         return;
-	//     }
-	//
-	//     FString AxisString;
-	//     switch (LockedAxis)
-	//     {
-	//     case EAxisLock::All:
-	//         HudFields.Add({TEXT("Rotation"), LiveAngleDeg, EValueSlot::Angle});
-	//         break;
-	//     case EAxisLock::X:
-	//         AxisString = TEXT("X");
-	//         break;
-	//     case EAxisLock::Y:
-	//         AxisString = TEXT("Y");
-	//         break;
-	//     case EAxisLock::Z:
-	//         AxisString = TEXT("Z");
-	//         break;
-	//     case EAxisLock::XY:
-	//         AxisString = TEXT("Z");
-	//         break;
-	//     case EAxisLock::XZ:
-	//         AxisString = TEXT("Y");
-	//         break;
-	//     case EAxisLock::YZ:
-	//         AxisString = TEXT("X");
-	//         break;
-	//     }
-	//
-	//     if (!AxisString.IsEmpty())
-	//     {
-	//         HudFields.Add({TEXT("Rotation"), LiveAngleDeg, EValueSlot::Angle});
-	//         Suffix = FString::Printf(TEXT("along %s %s"), *Space, *AxisString);
-	//     }
-	//
-	//     TArray<FString> FormattedFields;
-	//     for (const FHudFieldData& FieldData : HudFields)
-	//     {
-	//         const int32 SlotIndexInt = static_cast<int32>(FieldData.SlotIndex);
-	//         FNumericSlotData DataToFormat;
-	//
-	//         if (bNumeric)
-	//         {
-	//             DataToFormat = Session->NumericSlots[SlotIndexInt];
-	//         }
-	//         else
-	//         {
-	//             DataToFormat.SlotState = ESlotState::Committed;
-	//             DataToFormat.CommittedValue = FieldData.LiveValue;
-	//         }
-	//
-	//         const bool bIsActive = bNumeric && (SlotIndexInt == Session->CurrentNumericSlotIndex);
-	//
-	//         FormattedFields.Add(HudWidget->FormatOneField(
-	//             FieldData.Label,
-	//             DataToFormat,
-	//             Unit,
-	//             bIsActive
-	//         ));
-	//     }
-	//
-	//     const FString FieldsString = FString::Join(FormattedFields, Sep);
-	//
-	//     HudString = FString::Printf(TEXT("%s%s %s"), *Header, *FieldsString, *Suffix).TrimEnd();
-	//     HudWidget->Update(FText::FromString(HudString));
-	//
-	//     // TEMPORARY LOG
-	//     if (bNumeric)
-	//     {
-	//         for (int i = 0; i < 3; ++i)
-	//         {
-	//             Session->NumericSlots[i].Print();
-	//             UE_LOG(LogTemp, Log, TEXT("NEW LINE    "));
-	//         }
-	//     }
 	// }
 
 	void FRotateTool::OnEnd(const bool bApply)
 	{
 		FToolBase::OnEnd(bApply);
+	}
+
+	void FRotateTool::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
+	{
+		FToolBase::HandleMouseMovement(CurrentViewportMousePosition);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return;
+		}
+
+		if (HudWidget.IsValid() && !bTrackballModeEnabled)
+		{
+			HudWidget->SetDashState(/*bEnabled=*/true, /*InOriginPx=*/PivotViewportPosition,
+			                                     Session->GetVirtualMousePos());
+		}
+		else
+		{
+			HudWidget->SetDashState(/*bEnabled=*/false, /*InOriginPx=*/PivotViewportPosition,
+			                                     Session->GetVirtualMousePos());
+		}
 	}
 
 	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)

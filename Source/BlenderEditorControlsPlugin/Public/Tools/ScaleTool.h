@@ -18,6 +18,7 @@ namespace BlenderControls
 		virtual void UpdateHud() override;
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
+		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
 
 	private:
 		FTransform StartPivotTransform;

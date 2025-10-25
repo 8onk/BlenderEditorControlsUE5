@@ -19,7 +19,7 @@ namespace BlenderControls
 	{
 	public:
 		FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
-		                 const FString& InDisplayName);
+		          const FString& InDisplayName);
 		virtual ~FToolBase();
 
 		/** Per-frame update from input-processor */
@@ -48,7 +48,7 @@ namespace BlenderControls
 		void InitializeUI();
 		void RestorePreviousState();
 		virtual void OnBegin();
-		void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
+		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
 		virtual void OnEnd(bool bApply);
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
@@ -70,12 +70,6 @@ namespace BlenderControls
 
 		void StartNewLock(EAxisLock NewAxis) const;
 		static FLinearColor GetAxisColor(EAxisLock InAxis);
-
-		TWeakObjectPtr<ULineBatchComponent> CachedBatcher;
-		float FallbackLineThickness = 2.0f;
-		const float MinLineThickness = 1.0f;
-		const float MaxLineThickness = 6.0f;
-		const float ReferenceDistance = 500.0f;
 
 		TArray<TWeakObjectPtr<UAxisLockGizmoComponent>> AxisGizmos;
 		UAxisLockGizmoComponent* SpawnAxisGizmo(const FVector& Origin,

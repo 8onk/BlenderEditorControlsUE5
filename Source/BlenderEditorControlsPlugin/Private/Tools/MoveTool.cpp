@@ -226,8 +226,7 @@ namespace BlenderControls
 	{
 		const FVector LiveDelta = VirtualPivot->GetActiveElement().Actor->GetActorLocation() - VirtualPivot->
 			GetStartLocation();
-
-		// Format it (this is your own logic)
+		
 		return FText::FromString(FString::Printf(
 			TEXT("Dx: %.3f m Dy: %.3f m Dz: %.3f m"),
 			LiveDelta.X, LiveDelta.Y, LiveDelta.Z
