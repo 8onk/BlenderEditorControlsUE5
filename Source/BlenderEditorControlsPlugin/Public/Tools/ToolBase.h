@@ -4,7 +4,6 @@
 #include "Enums.h"
 #include "GrabContext.h"
 #include "ScopedTransaction.h"
-#include "ToolSharedState.h"
 
 class UAxisLockGizmoComponent;
 
@@ -43,7 +42,6 @@ namespace BlenderControls
 
 		bool InitializeEditorState();
 		void InitializeTransaction();
-		bool CacheSceneView();
 		void CacheViewVectors();
 		void InitializeGrabContext();
 		void InitializeUI();
@@ -83,24 +81,17 @@ namespace BlenderControls
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
-		virtual FText GetLiveTranslationHudText() const = 0;
-		virtual FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const = 0;
-		virtual FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                     const FText& MagText) const = 0;
-		virtual FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const = 0;
+		virtual FText GetLiveHudText() const = 0;
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock)
 		{
 		}
 
-		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const;
 		void UpdateAxisLock();
 
 		virtual void UpdateToolSettingsForAxisLock()
 		{
-		}
+		};
 
 		TSharedPtr<FTransformSession> GetSession() const { return OwningSession.Pin(); }
 

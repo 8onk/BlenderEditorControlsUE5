@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Enums.h"
-#include "ToolSharedState.h"
 
 struct FKeyEvent;
 struct FPointerEvent;
@@ -58,7 +57,6 @@ namespace BlenderControls
 		void SetAxisLockActive(bool bActive) { bIsAxisLockActive = bActive; }
 		void SetUsingLocalSpace(bool bUsing) { bUsingLocalSpace = bUsing; }
 		void SetLockedAxis(EAxisLock InAxis) { LockedAxis = InAxis; }
-		double GetSlotTotalAtIndex(int index) { return NumericSlots[index].GetTotal(); }
 		void SetWrappedMousePos(FVector2D InVector) { WrappedMousePosition = InVector; }
 		void SetVirtualMousePos(FVector2D InVector) { VirtualMousePosition = InVector; }
 		void SetStartMousePos(FVector2D InVector) { StartMousePos = InVector; }
@@ -84,7 +82,6 @@ namespace BlenderControls
 		bool bUsingLocalSpace = false;
 		bool bIsAxisLockActive = false;
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
-		FNumericSlotData NumericSlots[3];
 		int32 CurrentNumericSlotIndex = 0;
 		bool bIsNumericInputActive = false;
 		FVector2D VirtualMousePosition;

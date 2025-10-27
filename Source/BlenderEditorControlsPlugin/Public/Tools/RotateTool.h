@@ -40,19 +40,15 @@ namespace BlenderControls
 		FVector2D TrackballMouseDelta;
 		float AngleToApplyRad;
 
-	protected:
+		FText BuildTrackballHudText(double LiveAngleX, double LiveAngleY, const FNumberFormattingOptions& NumFmt) const;
+
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetTrackballRotationMode(const bool bEnabled) override;
 		virtual bool GetTrackballRotationMode() override;
 		virtual void UpdateToolSettingsForAxisLock() override;
-		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const override;
 
-		virtual FText GetLiveTranslationHudText() const override;
-		virtual FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const override;
-		virtual FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                     const FText& MagText) const override;
-		virtual FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const override;
+		virtual FText GetLiveHudText() const override;
+		FText BuildFreeformHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const;
+		FText BuildSingleAxisHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const;
 	};
 } // namespace BlenderControls

@@ -724,21 +724,12 @@ namespace BlenderControls
 		}
 		else
 		{
-			HudWidget->Update(GetLiveTranslationHudText());
+			HudWidget->Update(GetLiveHudText());
 		}
 	}
 
 	FVector FToolBase::GetSnapOffset(const FVector OffsetFromStart)
 	{
 		return FVector::ZeroVector;
-	}
-
-	FString FToolBase::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
-	{
-		if (Slot.CommittedValue.IsSet())
-		{
-			return FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
-		}
-		return FString();
 	}
 } // namespace BlenderControls

@@ -13,7 +13,7 @@ namespace BlenderControls
 		// Call this from your tool's BeginTool()
 		void Initialize(int32 NumSlots, EBlenderNumericContext Context);
 
-		bool EvaluateSlot(FNumericInputSlot& Slot, float& OutResult);
+		bool EvaluateSlot(FNumericInputSlot& Slot, float& OutResult) const;
 
 		// Call this from your tool's OnToolSwitch()
 		void OnToolSwitch(int32 NewNumSlots, EBlenderNumericContext NewContext, const FBlenderNumericState& OldState);

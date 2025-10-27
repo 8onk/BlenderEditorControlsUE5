@@ -19,7 +19,6 @@ namespace BlenderControls
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
-		virtual FText GetNumericHudText() const override;
 
 	private:
 		FTransform StartPivotTransform;
@@ -38,13 +37,14 @@ namespace BlenderControls
 
 	protected:
 		virtual void UpdateToolSettingsForAxisLock() override;
-		virtual FText GetLiveTranslationHudText() const override;
-		virtual FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const override;
-		virtual FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                     const FText& MagText) const override;
-		virtual FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const override;
+		virtual FText GetNumericHudText() const override;
+		virtual FText GetLiveHudText() const override;
+		FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                           const FText& MagText) const;
+		FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                             const FText& MagText) const;
+		FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                           const FText& MagText) const;
 
 		/* ——— state ——— */
 		FVector PivotWS = FVector::ZeroVector; // average loc

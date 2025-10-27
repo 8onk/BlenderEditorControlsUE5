@@ -31,18 +31,6 @@ namespace BlenderControls
 		HudWidget->SetCursorOrientation(ECursorOrient::None);
 	}
 
-	FString FMoveTool::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
-	{
-		if (Slot.CommittedValue.IsSet())
-		{
-			static const TCHAR* Unit = TEXT("cm");
-			const FString ValueString = FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
-
-			return FString::Printf(TEXT("%s %s"), *ValueString, Unit);
-		}
-		return FString();
-	}
-
 	FText FMoveTool::GetNumericHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -320,16 +308,6 @@ namespace BlenderControls
 		FToolBase::UpdateHud();
 	}
 
-	//
-	// void FMoveTool::OnEnd(bool bApply)
-	// {
-	// 	FToolBase::OnEnd(bApply);
-	// }
-
-	void FMoveTool::UpdateToolSettingsForAxisLock()
-	{
-	}
-
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
 		checkf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
@@ -442,7 +420,7 @@ namespace BlenderControls
 		return SnapOffset;
 	}
 
-	FText FMoveTool::GetLiveTranslationHudText() const
+	FText FMoveTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (!Session.IsValid() || !VirtualPivot.IsValid())

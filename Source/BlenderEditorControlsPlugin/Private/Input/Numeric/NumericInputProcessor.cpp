@@ -13,16 +13,10 @@ namespace BlenderControls
 	                                          const FBlenderNumericState& OldState)
 	{
 		EBlenderNumericContext PreviousContext = OldState.ToolContext;
-		CurrentState = OldState; // Copy the entire state
+		CurrentState = OldState;
 		CurrentState.ToolContext = NewContext;
-		CurrentState.PreviousContext = PreviousContext; // Remember where we came from
+		CurrentState.PreviousContext = PreviousContext;
 		CurrentState.NumActiveSlots = NewNumSlots;
-
-		// // Fix slot count if it changes (e.g., Trackball to Move)
-		// if (CurrentState.Slots.Num() != NewNumSlots)
-		// {
-		// 	CurrentState.Slots.SetNum(NewNumSlots); // Adds/removes as needed
-		// }
 		CurrentState.ActiveSlotIndex = FMath::Min(CurrentState.ActiveSlotIndex, NewNumSlots);
 	}
 
@@ -64,11 +58,15 @@ namespace BlenderControls
 		if (TOptional<TCHAR> MaybeChar = FNumericParser::KeyToNumericChar(Key))
 		{
 			const TCHAR ParsedChar = MaybeChar.GetValue();
-			const bool bIsValidChar =
-				FChar::IsDigit(ParsedChar) || ParsedChar == TEXT('.') ||
-				(CurrentState.bIsEquationMode && (ParsedChar == TEXT('*') || ParsedChar == TEXT('+') || ParsedChar ==
-					TEXT('-') || ParsedChar ==
-					TEXT('/')));
+
+			//FOR EQUATION MODE
+			// const bool bIsValidChar =
+			// 	FChar::IsDigit(ParsedChar) || ParsedChar == TEXT('.') ||
+			// 	(CurrentState.bIsEquationMode && (ParsedChar == TEXT('*') || ParsedChar == TEXT('+') || ParsedChar ==
+			// 		TEXT('-') || ParsedChar ==
+			// 		TEXT('/')));
+
+			const bool bIsValidChar = FChar::IsDigit(ParsedChar) || ParsedChar == TEXT('.');
 
 			if (!bIsValidChar)
 			{
@@ -181,34 +179,34 @@ namespace BlenderControls
 		FString Char = KeyEvent.GetKey().GetDisplayName().ToString();
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
-		// --- Equation Mode Toggle ---
-		if (Char == TEXT("Num *") && !CurrentState.bIsEquationMode)
-		{
-			float CurrentValue = 0.f;
-			EvaluateSlot(ActiveSlot, CurrentValue);
-
-			CurrentState.bIsEquationMode = true;
-			ActiveSlot.bIsAdditive = false;
-			ActiveSlot.bIsNegative = false;
-			ActiveSlot.bIsReciprocal = false;
-			ActiveSlot.RawString = FString::SanitizeFloat(CurrentValue) + TEXT("*");
-			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
-			if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false;
-			return true;
-		}
-
-		if (KeyEvent.GetKey() == EKeys::Equals && KeyEvent.IsControlDown())
-		{
-			float CurrentValue = 0.f;
-			EvaluateSlot(ActiveSlot, CurrentValue);
-
-			CurrentState.bIsEquationMode = false;
-			ActiveSlot.bIsNegative = false;
-			ActiveSlot.bIsReciprocal = false;
-			ActiveSlot.RawString = FString::SanitizeFloat(CurrentValue);
-			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
-			return true;
-		}
+		// --- Equation Mode Toggle (disabled for now) ---
+		// if (Char == TEXT("Num *") && !CurrentState.bIsEquationMode)
+		// {
+		// 	float CurrentValue = 0.f;
+		// 	EvaluateSlot(ActiveSlot, CurrentValue);
+		//
+		// 	CurrentState.bIsEquationMode = true;
+		// 	ActiveSlot.bIsAdditive = false;
+		// 	ActiveSlot.bIsNegative = false;
+		// 	ActiveSlot.bIsReciprocal = false;
+		// 	ActiveSlot.RawString = FString::SanitizeFloat(CurrentValue) + TEXT("*");
+		// 	ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
+		// 	if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false;
+		// 	return true;
+		// }
+		//
+		// if (KeyEvent.GetKey() == EKeys::Equals && KeyEvent.IsControlDown())
+		// {
+		// 	float CurrentValue = 0.f;
+		// 	EvaluateSlot(ActiveSlot, CurrentValue);
+		//
+		// 	CurrentState.bIsEquationMode = false;
+		// 	ActiveSlot.bIsNegative = false;
+		// 	ActiveSlot.bIsReciprocal = false;
+		// 	ActiveSlot.RawString = FString::SanitizeFloat(CurrentValue);
+		// 	ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
+		// 	return true;
+		// }
 
 		// --- Simple Modifiers ---
 		if (CurrentState.bIsEquationMode) return false; // Handled by HandleCharacter
@@ -232,7 +230,16 @@ namespace BlenderControls
 	bool FNumericInputProcessor::HandleNavigation(const FKey& Key)
 	{
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
-		if (ActiveSlot.bIsEmpty) return false; // Can't navigate in |NONE|
+		if (ActiveSlot.bIsEmpty) return false;
+
+		if (ActiveSlot.bIsAdditive)
+		{
+			// "Flatten" the state, just like Backspace does
+			ActiveSlot.bIsAdditive = false;
+			ActiveSlot.RawString = FString::SanitizeFloat(ActiveSlot.BaseValue) + TEXT("cm");
+			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
+			ActiveSlot.BaseValue = 0.f;
+		}
 
 		if (Key == EKeys::Left)
 		{
@@ -287,7 +294,7 @@ namespace BlenderControls
 		// State 2: Active Slot [ ... | ... ]
 		if (SlotIndex == CurrentState.ActiveSlotIndex)
 		{
-			FString DisplayString = "";
+			FString InnerDisplayString = TEXT("");
 
 			// Additive prefix: [45 m 
 			if (Slot.bIsAdditive)
@@ -299,34 +306,37 @@ namespace BlenderControls
 					BaseForDisplay = FUnitFormatter::ConvertOnToolSwitch(
 						BaseForDisplay, CurrentState.PreviousContext, CurrentState.ToolContext);
 				}
-				DisplayString += FUnitFormatter::FormatValue(BaseForDisplay, CurrentState.ToolContext);
+				InnerDisplayString += FUnitFormatter::FormatValue(BaseForDisplay, CurrentState.ToolContext);
 			}
 
 			// RawString with cursor
 			FString CursoredString = Slot.RawString.Left(Slot.CursorIndex) + TEXT("|") + Slot.RawString.RightChop(
 				Slot.CursorIndex);
+			InnerDisplayString += CursoredString;
 
+			FString OuterDisplayString = TEXT("");
 			// Modifiers: [-(1/(...
-			if (Slot.bIsNegative) DisplayString += TEXT("-(");
-			if (Slot.bIsReciprocal) DisplayString += TEXT("1/(");
+			if (Slot.bIsNegative) OuterDisplayString += TEXT("-(");
+			if (Slot.bIsReciprocal) OuterDisplayString += TEXT("1/(");
 
-			DisplayString += CursoredString;
+			OuterDisplayString += InnerDisplayString;
 
-			if (Slot.bIsReciprocal) DisplayString += TEXT(")");
-			if (Slot.bIsNegative) DisplayString += TEXT(")");
+			if (Slot.bIsReciprocal) OuterDisplayString += TEXT(")");
+			if (Slot.bIsNegative) OuterDisplayString += TEXT(")");
 
 			// Result: ] = 50 m
 			float EvaluatedValue = 0.f;
+			FString ResultString;
 			if (EvaluateSlot(Slot, EvaluatedValue))
 			{
-				DisplayString += FString::Printf(
+				ResultString += FString::Printf(
 					TEXT("] = %s"), *FUnitFormatter::FormatValue(EvaluatedValue, CurrentState.ToolContext));
 			}
 			else
 			{
-				DisplayString += TEXT("] = INVALID");
+				ResultString += TEXT("] = INVALID");
 			}
-			return FString::Printf(TEXT("[%s"), *DisplayString);
+			return FString::Printf(TEXT("[%s%s"), *OuterDisplayString, *ResultString);
 		}
 
 		// State 3: Inactive, Set Slot
@@ -335,7 +345,7 @@ namespace BlenderControls
 		return FUnitFormatter::FormatValue(FinalValue, CurrentState.ToolContext);
 	}
 
-	bool FNumericInputProcessor::EvaluateSlot(FNumericInputSlot& Slot, float& OutResult)
+	bool FNumericInputProcessor::EvaluateSlot(FNumericInputSlot& Slot, float& OutResult) const
 	{
 		float ParsedValue = 0.f;
 

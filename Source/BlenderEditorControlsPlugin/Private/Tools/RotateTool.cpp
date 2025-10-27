@@ -2,6 +2,8 @@
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
 #include "BaseGizmos/TransformProxy.h"
+#include "Input/Numeric/NumericInputProcessor.h"
+#include "Input/Numeric/NumericInputStructs.h"
 #include "Style/Style.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
@@ -137,14 +139,26 @@ namespace BlenderControls
 	{
 		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
+		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
+		if (!Processor) return;
+		FBlenderNumericState& State = Processor->CurrentState;
 
 		if (bTrackballModeEnabled)
 		{
-			const float Slot1 = Session->GetSlotTotalAtIndex(0);
-			const float Slot2 = Session->GetSlotTotalAtIndex(1);
+			float Slot0 = 0.f;
+			float Slot1 = 0.f;
 
-			const float AngleXRad = FMath::DegreesToRadians(Slot2);
-			const float AngleYRad = FMath::DegreesToRadians(Slot1);
+			if (State.Slots.IsValidIndex(0))
+			{
+				Processor->EvaluateSlot(State.Slots[0], Slot0);
+			}
+			if (State.Slots.IsValidIndex(1))
+			{
+				Processor->EvaluateSlot(State.Slots[1], Slot1);
+			}
+
+			const float AngleXRad = FMath::DegreesToRadians(Slot1);
+			const float AngleYRad = FMath::DegreesToRadians(Slot0);
 
 			const FVector RotationAxis = (-ViewUp * AngleXRad) + (-ViewRight * AngleYRad);
 			const float RotationAngle = RotationAxis.Length();
@@ -167,8 +181,14 @@ namespace BlenderControls
 		}
 		else
 		{
-			const double TotalAngleDegrees = Session->GetSlotTotalAtIndex(0);
-			const double RadiansToRotate = FMath::DegreesToRadians(TotalAngleDegrees);
+			float Slot0 = 0.f;
+
+			if (State.Slots.IsValidIndex(0))
+			{
+				Processor->EvaluateSlot(State.Slots[0], Slot0);
+			}
+
+			const double RadiansToRotate = FMath::DegreesToRadians(Slot0);
 			VirtualPivot->Rotate(GrabContext, RadiansToRotate, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
 			UpdateHud();
 		}
@@ -178,11 +198,6 @@ namespace BlenderControls
 	{
 		FToolBase::UpdateHud();
 	}
-
-	//
-	// void FRotateTool::UpdateHud()
-	// {
-	// }
 
 	void FRotateTool::OnEnd(const bool bApply)
 	{
@@ -256,6 +271,23 @@ namespace BlenderControls
 		}
 	}
 
+	FText FRotateTool::BuildTrackballHudText(double LiveAngleX, double LiveAngleY,
+	                                         const FNumberFormattingOptions& NumFmt) const
+	{
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		const FText AngleX = FText::AsNumber(LiveAngleX, &NumFmt);
+		const FText AngleY = FText::AsNumber(LiveAngleY, &NumFmt);
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(FText::FromString(TEXT("Trackball:")));
+		HudArgs.Add(AngleX);
+		HudArgs.Add(AngleY);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
+	}
+
 	FVector FRotateTool::GetSnapOffset(const FVector OffsetFromStart)
 	{
 		return FVector::ZeroVector;
@@ -311,39 +343,95 @@ namespace BlenderControls
 		}
 	}
 
-	FString FRotateTool::GetFormattedValueForEditing(const FNumericSlotData& Slot) const
+	FText FRotateTool::GetLiveHudText() const
 	{
-		if (Slot.CommittedValue.IsSet())
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid() || !VirtualPivot.IsValid())
 		{
-			// Degree symbol
-			static const TCHAR* Unit = TEXT("\u00B0");
-			const FString ValueString = FString::Printf(TEXT("%g"), Slot.CommittedValue.Get(0.0));
-
-			return FString::Printf(TEXT("%s%s"), *ValueString, Unit);
+			return FText::GetEmpty();
 		}
-		return FString();
+
+		FNumberFormattingOptions NumFmt;
+		NumFmt.MaximumFractionalDigits = 2;
+		NumFmt.MinimumFractionalDigits = 2;
+		NumFmt.UseGrouping = false;
+
+		FText HudText;
+		switch (Session->GetLockedAxis())
+		{
+		case EAxisLock::All: // Trackball (Freeform)
+		default:
+			{
+				if (bTrackballModeEnabled)
+				{
+					const double LiveAngleY = FMath::RadiansToDegrees(TrackballMouseDelta.X);
+					const double LiveAngleX = FMath::RadiansToDegrees(TrackballMouseDelta.Y);
+					HudText = BuildTrackballHudText(LiveAngleX, LiveAngleY, NumFmt);
+				}
+				else
+				{
+					const double LiveAngleDeg = FMath::RadiansToDegrees(AngleToApplyRad) * -1;
+					HudText = BuildFreeformHudText(LiveAngleDeg, NumFmt);
+				}
+			}
+			break;
+
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+		case EAxisLock::XY:
+		case EAxisLock::XZ:
+		case EAxisLock::YZ:
+			const double LiveAngleDeg = FMath::RadiansToDegrees(AngleToApplyRad) * -1;
+			HudText = BuildSingleAxisHudText(LiveAngleDeg, NumFmt);
+			break;
+		}
+
+		return HudText;
 	}
 
-	FText FRotateTool::GetLiveTranslationHudText() const
+	FText FRotateTool::BuildSingleAxisHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const
 	{
-		return FText::FromString("");
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid()) return FText::GetEmpty();
+
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		const FText Rotation = FText::Format(
+			NSLOCTEXT("RotateHUD", "RotationFmt", "Rotation: {0}"),
+			FText::AsNumber(LiveAngleDeg, &NumFmt));
+
+		FText AxisName;
+		EAxisLock LockedAxis = Session->GetLockedAxis();
+
+		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ) AxisName = NSLOCTEXT("RotateHUD", "AxisX", "x");
+		else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
+			AxisName = NSLOCTEXT(
+				"RotateHUD", "AxisY", "y");
+		else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
+			AxisName = NSLOCTEXT(
+				"RotateHUD", "AxisZ", "z");
+
+		const FText Context = Session->IsUsingLocalSpace()
+			                      ? NSLOCTEXT("RotateHUD", "Local", "local")
+			                      : NSLOCTEXT("RotateHUD", "Global", "global");
+
+		const FText Along = FText::Format(
+			NSLOCTEXT("RotateHUD", "AlongFmt", "along {0} {1}"),
+			Context, AxisName);
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(Rotation);
+		HudArgs.Add(Along);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 
-	FText FRotateTool::BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		const FText& MagText) const
+	FText FRotateTool::BuildFreeformHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const
 	{
-		return FText::FromString("");
-	}
-
-	FText FRotateTool::BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		const FText& MagText) const
-	{
-		return FText::FromString("");
-	}
-
-	FText FRotateTool::BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		const FText& MagText) const
-	{
-		return FText::FromString("");
+		return FText::Format(
+			NSLOCTEXT("RotateHUD", "RotationFmt", "Rotation: {0}"),
+			FText::AsNumber(LiveAngleDeg, &NumFmt));
 	}
 } // namespace BlenderControls

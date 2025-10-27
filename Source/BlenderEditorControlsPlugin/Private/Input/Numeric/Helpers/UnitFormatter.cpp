@@ -32,15 +32,10 @@ namespace BlenderControls
 		//Will gives some precision error, but blender displays it like 4 m 43 cm etc.
 		auto FormatSmart = [](float V) -> FString
 		{
-			// Check if it's effectively an integer (e.g. 5.0)
-			if (FMath::IsNearlyEqual(V, FMath::RoundToFloat(V)))
-			{
-				return FString::Printf(TEXT("%.0f"), V);
-			}
-			else
-			{
-				return FString::Printf(TEXT("%.3f"), V);
-			}
+			FNumberFormattingOptions Opt;
+			Opt.MinimumFractionalDigits = 0; // don’t force decimals
+			Opt.MaximumFractionalDigits = 6; // up to this many, trimmed
+			return FText::AsNumber(V, &Opt).ToString();
 		};
 
 		switch (Context)

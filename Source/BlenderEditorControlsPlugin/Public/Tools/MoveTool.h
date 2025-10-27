@@ -15,18 +15,16 @@ namespace BlenderControls
 		virtual void UpdateHud() override;
 
 		virtual void OnBegin() override;
-		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const override;
 		virtual FText GetNumericHudText() const override;
 
 	protected:
-		virtual void UpdateToolSettingsForAxisLock() override;
-		virtual FText GetLiveTranslationHudText() const override;
-		virtual FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const override;
-		virtual FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                     const FText& MagText) const override;
-		virtual FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                                   const FText& MagText) const override;
+		virtual FText GetLiveHudText() const override;
+		FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                           const FText& MagText) const;
+		FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                             const FText& MagText) const;
+		FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                           const FText& MagText) const;
 
 	private:
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;

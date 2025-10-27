@@ -2,6 +2,8 @@
 
 #include "LevelEditorViewport.h"
 #include "TransformSession.h"
+#include "Input/Numeric/NumericInputProcessor.h"
+#include "Input/Numeric/NumericInputStructs.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Style/Style.h"
 #include "Tools/SharedPivot.h"
@@ -126,38 +128,56 @@ namespace BlenderControls
 		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
+		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
+		if (!Processor) return;
+
+		FBlenderNumericState& State = Processor->CurrentState;
+
 		FVector ScaleMultiplier = FVector::OneVector;
-		const double Slot1 = Session->GetSlotTotalAtIndex(0);
-		const double Slot2 = Session->GetSlotTotalAtIndex(1);
-		const double Slot3 = Session->GetSlotTotalAtIndex(2);
+		float Slot0 = 0.f;
+		float Slot1 = 0.f;
+		float Slot2 = 0.f;
+
+		if (State.Slots.IsValidIndex(0))
+		{
+			Processor->EvaluateSlot(State.Slots[0], Slot0);
+		}
+		if (State.Slots.IsValidIndex(1))
+		{
+			Processor->EvaluateSlot(State.Slots[1], Slot1);
+		}
+		if (State.Slots.IsValidIndex(2))
+		{
+			Processor->EvaluateSlot(State.Slots[2], Slot2);
+		}
 
 		switch (Session->GetLockedAxis())
 		{
 		case EAxisLock::All:
-			ScaleMultiplier = FVector(Slot1, Slot2, Slot3);
+			ScaleMultiplier = FVector(Slot0, Slot1, Slot2);
 			break;
 
 		case EAxisLock::X:
-			ScaleMultiplier.X = Slot1;
+			ScaleMultiplier.X = Slot0;
 			break;
 		case EAxisLock::Y:
-			ScaleMultiplier.Y = Slot1;
+			ScaleMultiplier.Y = Slot0;
 			break;
 		case EAxisLock::Z:
-			ScaleMultiplier.Z = Slot1;
+			ScaleMultiplier.Z = Slot0;
 			break;
 
 		case EAxisLock::XY:
-			ScaleMultiplier.X = Slot1;
-			ScaleMultiplier.Y = Slot2;
+			ScaleMultiplier.X = Slot0;
+			ScaleMultiplier.Y = Slot1;
 			break;
 		case EAxisLock::XZ:
-			ScaleMultiplier.X = Slot1;
-			ScaleMultiplier.Z = Slot2;
+			ScaleMultiplier.X = Slot0;
+			ScaleMultiplier.Z = Slot1;
 			break;
 		case EAxisLock::YZ:
-			ScaleMultiplier.Y = Slot1;
-			ScaleMultiplier.Z = Slot2;
+			ScaleMultiplier.Y = Slot0;
+			ScaleMultiplier.Z = Slot1;
 			break;
 		}
 
@@ -271,25 +291,25 @@ namespace BlenderControls
 		}
 	}
 
-	FText FScaleTool::GetLiveTranslationHudText() const
+	FText FScaleTool::GetLiveHudText() const
 	{
 		return FText::FromString("");
 	}
 
 	FText FScaleTool::BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		const FText& MagText) const
+	                                       const FText& MagText) const
 	{
 		return FText::FromString("");
 	}
 
 	FText FScaleTool::BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		const FText& MagText) const
+	                                         const FText& MagText) const
 	{
 		return FText::FromString("");
 	}
 
 	FText FScaleTool::BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		const FText& MagText) const
+	                                       const FText& MagText) const
 	{
 		return FText::FromString("");
 	}
