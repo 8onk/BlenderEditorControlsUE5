@@ -36,6 +36,7 @@ namespace BlenderControls
 
 		/** Set HUD string - must be implemented by inheriting classes */
 		virtual void UpdateHud();
+		virtual FText GetNumericHudText() const = 0;
 
 		// Getter for DisplayName
 		const FString& GetDisplayName() const { return DisplayName; }
@@ -64,6 +65,7 @@ namespace BlenderControls
 
 	private:
 		void RedrawAxisLines();
+		void OnExitNumericMode();
 
 		FLinearColor CachedSelectionColor;
 		UE::Widget::EWidgetMode InitialWidgetMode;
@@ -82,6 +84,12 @@ namespace BlenderControls
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual FText GetLiveTranslationHudText() const = 0;
+		virtual FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                                   const FText& MagText) const = 0;
+		virtual FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                                     const FText& MagText) const = 0;
+		virtual FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                                   const FText& MagText) const = 0;
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock)
 		{

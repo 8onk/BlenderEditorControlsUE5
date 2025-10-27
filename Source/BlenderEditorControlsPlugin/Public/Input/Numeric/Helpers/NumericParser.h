@@ -7,6 +7,7 @@ namespace BlenderControls
 	{
 	public:
 		static bool Evaluate(const FString& RawString, bool bIsEquationMode, float& OutResult);
+		static TOptional<TCHAR> KeyToNumericChar(const FKey& Key);
 
 	private:
 		static bool EvaluateSimple(const FString& RawString, float& OutResult);

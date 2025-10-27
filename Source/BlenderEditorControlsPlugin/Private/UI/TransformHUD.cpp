@@ -7,6 +7,8 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
 
+//TODO the software cursor should be rendered on top of the overlay panel
+
 namespace BlenderControls
 {
 	void STransformHUD::Construct(const FArguments&)
@@ -29,7 +31,7 @@ namespace BlenderControls
 		];
 	}
 
-	void STransformHUD::SetReadout(const FText& In)
+	void STransformHUD::SetReadout(const FText& In) const
 	{
 		if (ReadoutText)
 		{
@@ -37,7 +39,7 @@ namespace BlenderControls
 		}
 	}
 
-	void STransformHUD::SetNumericEcho(const FString& In)
+	void STransformHUD::SetNumericEcho(const FString& In) const
 	{
 		if (NumericText)
 		{
@@ -82,6 +84,7 @@ namespace BlenderControls
 		OverlayWrapper =
 			SNew(SOverlay)
 			+ SOverlay::Slot()
+			.ZOrder(0)
 			.VAlign(VAlign_Top)
 			.HAlign(HAlign_Fill)
 			[

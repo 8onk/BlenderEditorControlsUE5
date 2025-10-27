@@ -13,7 +13,7 @@ namespace BlenderControls
 		// Call this from your tool's BeginTool()
 		void Initialize(int32 NumSlots, EBlenderNumericContext Context);
 
-		bool EvaluateSlot(const FNumericInputSlot& Slot, float& OutResult) const;
+		bool EvaluateSlot(FNumericInputSlot& Slot, float& OutResult);
 
 		// Call this from your tool's OnToolSwitch()
 		void OnToolSwitch(int32 NewNumSlots, EBlenderNumericContext NewContext, const FBlenderNumericState& OldState);
@@ -21,9 +21,6 @@ namespace BlenderControls
 		// Call this from your tool's OnKeyPressed()
 		// Returns true if the key was "consumed" by the numeric system.
 		bool HandleInput(const FKeyEvent& KeyEvent);
-
-		// Call this from your tool's Tick() or OnKeyPressed() to update the HUD
-		FText GetHudText() const;
 
 		bool IsInNumericMode() const { return CurrentState.bIsInNumericMode; }
 
@@ -34,7 +31,10 @@ namespace BlenderControls
 		DECLARE_DELEGATE(FOnExitNumericMode);
 		FOnExitNumericMode OnExitNumericMode;
 
-		void ResetForAxisConstraint(int32 NumSlots);
+		void UpdativeActiveNumSlots(int32 NewNumSlots);
+
+		float GetTotalMagnitude();
+		FString BuildSlotDisplayString(int32 SlotIndex);
 
 	private:
 		// --- Input Handlers ---
@@ -47,12 +47,5 @@ namespace BlenderControls
 		// --- State Management ---
 		void EnterNumericMode(const FKeyEvent& KeyEvent);
 		void PropagateUniformScale(int32 SourceSlotIndex);
-
-		// --- HUD Generation ---
-		FText BuildHudString() const;
-		FString BuildSlotDisplayString(int32 SlotIndex) const;
-
-		// --- Evaluation ---
-		float GetTotalMagnitude() const;
 	};
 }

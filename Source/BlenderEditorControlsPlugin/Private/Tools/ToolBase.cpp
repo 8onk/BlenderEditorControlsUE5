@@ -32,7 +32,7 @@ namespace BlenderControls
 
 		if (Session->GetNumericInputProcessor()->IsInNumericMode())
 		{
-			int32 NewSlotCount = 3;
+			int32 NewSlotCount;
 			switch (Session->LockedAxis)
 			{
 			case EAxisLock::X:
@@ -50,7 +50,7 @@ namespace BlenderControls
 				NewSlotCount = 3;
 				break;
 			}
-			Session->GetNumericInputProcessor()->ResetForAxisConstraint(NewSlotCount);
+			Session->GetNumericInputProcessor()->UpdativeActiveNumSlots(NewSlotCount);
 		}
 
 		UpdateToolSettingsForAxisLock();
@@ -188,6 +188,11 @@ namespace BlenderControls
 				break;
 			}
 		}
+	}
+
+	void FToolBase::OnExitNumericMode()
+	{
+		OnActive(CurrentViewportMousePos);
 	}
 
 	FLinearColor FToolBase::GetAxisColor(EAxisLock InAxis)
@@ -397,7 +402,7 @@ namespace BlenderControls
 		// Setup Cursor
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
-		HudWidget->SetVirtualCursor(Session->GetWrappedCursorPos());
+		HudWidget->SetVirtualCursorPos(Session->GetWrappedCursorPos());
 		//Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
 		Session->VirtualMousePosition = Session->CursorAnchorPoint;
 	}
@@ -456,6 +461,11 @@ namespace BlenderControls
 
 		// 8. Restore state from session (axis locks, numeric input)
 		RestorePreviousState();
+
+		if (Session->NumericInputProcessor.IsValid())
+		{
+			Session->NumericInputProcessor->OnExitNumericMode.BindSP(AsShared(), &FToolBase::OnExitNumericMode);
+		}
 	}
 
 	void FToolBase::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
@@ -497,7 +507,7 @@ namespace BlenderControls
 				Session->WrappedMousePosition.Y += ViewportSize.Y;
 			}
 
-			HudWidget->SetVirtualCursor(Session->WrappedMousePosition);
+			HudWidget->SetVirtualCursorPos(Session->WrappedMousePosition);
 		}
 
 		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
@@ -562,6 +572,11 @@ namespace BlenderControls
 		{
 			GEditor->NoteSelectionChange(/*bNotify=*/true);
 			GEditor->RedrawLevelEditingViewports(/*bInvalidateHitProxies:*/true);
+		}
+
+		if (Session->NumericInputProcessor.IsValid())
+		{
+			Session->NumericInputProcessor->OnExitNumericMode.Unbind();
 		}
 	}
 
@@ -705,7 +720,7 @@ namespace BlenderControls
 
 		if (Processor->IsInNumericMode())
 		{
-			HudWidget->Update(Processor->GetHudText());
+			HudWidget->Update(GetNumericHudText());
 		}
 		else
 		{

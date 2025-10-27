@@ -210,6 +210,11 @@ namespace BlenderControls
 		}
 	}
 
+	FText FRotateTool::GetNumericHudText() const
+	{
+		return FText::GetEmpty();
+	}
+
 	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)
 	{
 		if (bTrackballModeEnabled)
@@ -320,6 +325,24 @@ namespace BlenderControls
 	}
 
 	FText FRotateTool::GetLiveTranslationHudText() const
+	{
+		return FText::FromString("");
+	}
+
+	FText FRotateTool::BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		const FText& MagText) const
+	{
+		return FText::FromString("");
+	}
+
+	FText FRotateTool::BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		const FText& MagText) const
+	{
+		return FText::FromString("");
+	}
+
+	FText FRotateTool::BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		const FText& MagText) const
 	{
 		return FText::FromString("");
 	}

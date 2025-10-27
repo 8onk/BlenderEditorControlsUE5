@@ -16,6 +16,33 @@ namespace BlenderControls
 		}
 	}
 
+	TOptional<TCHAR> FNumericParser::KeyToNumericChar(const FKey& Key)
+	{
+		if (Key == EKeys::Zero || Key == EKeys::NumPadZero) return TEXT('0');
+		if (Key == EKeys::One || Key == EKeys::NumPadOne) return TEXT('1');
+		if (Key == EKeys::Two || Key == EKeys::NumPadTwo) return TEXT('2');
+		if (Key == EKeys::Three || Key == EKeys::NumPadThree) return TEXT('3');
+		if (Key == EKeys::Four || Key == EKeys::NumPadFour) return TEXT('4');
+		if (Key == EKeys::Five || Key == EKeys::NumPadFive) return TEXT('5');
+		if (Key == EKeys::Six || Key == EKeys::NumPadSix) return TEXT('6');
+		if (Key == EKeys::Seven || Key == EKeys::NumPadSeven)return TEXT('7');
+		if (Key == EKeys::Eight || Key == EKeys::NumPadEight)return TEXT('8');
+		if (Key == EKeys::Nine || Key == EKeys::NumPadNine) return TEXT('9');
+
+		// decimal separators
+		if (Key == EKeys::Period || Key == EKeys::Decimal) return TEXT('.');
+		// (optionally) accept comma but normalize to '.'
+		if (Key == EKeys::Comma) return TEXT('.');
+
+		// equation ops
+		if (Key == EKeys::Hyphen || Key == EKeys::Subtract) return TEXT('-');
+		if (Key == EKeys::Add) return TEXT('+');
+		if (Key == EKeys::Multiply) return TEXT('*');
+		if (Key == EKeys::Divide || Key == EKeys::Slash) return TEXT('/');
+
+		return {};
+	}
+
 	bool FNumericParser::EvaluateSimple(const FString& RawString, float& OutResult)
 	{
 		FString Trimmed = RawString.TrimEnd();

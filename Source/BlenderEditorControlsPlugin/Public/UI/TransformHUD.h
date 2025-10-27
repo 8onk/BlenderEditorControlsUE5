@@ -28,8 +28,8 @@ namespace BlenderControls
 
 		void Construct(const FArguments&);
 
-		void SetReadout(const FText& In);
-		void SetNumericEcho(const FString& In);
+		void SetReadout(const FText& In) const;
+		void SetNumericEcho(const FString& In) const;
 
 		void Attach();
 		void Update(const FText& Readout, const FString& NumericEcho = TEXT(""));
@@ -68,7 +68,7 @@ namespace BlenderControls
 			Invalidate(EInvalidateWidgetReason::Paint);
 		}
 
-		void SetVirtualCursor(const FVector2D& InViewportPx)
+		void SetVirtualCursorPos(const FVector2D& InViewportPx)
 		{
 			VirtualCursorViewportPx = InViewportPx;
 			Invalidate(EInvalidateWidgetReason::Paint);
@@ -97,7 +97,7 @@ namespace BlenderControls
 		FVector2D MouseViewportPx = FVector2D::ZeroVector;
 
 		float DashPhase = 0.f; // passed as DashScreenOffset
-		float DashLengthPx = 4.0f; // ON length; gap = ON; period = 2*DashLengthPx
+		float DashLengthPx = 4.0f; // ON length; gap = ON; period  = 2*DashLengthPx
 		float DashThickness = 1.5f;
 
 		float PrevLen = 0.f; // for dL

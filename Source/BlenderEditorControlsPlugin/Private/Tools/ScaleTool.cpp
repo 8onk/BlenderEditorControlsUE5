@@ -201,6 +201,11 @@ namespace BlenderControls
 		}
 	}
 
+	FText FScaleTool::GetNumericHudText() const
+	{
+		return FText::GetEmpty();
+	}
+
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
 		checkf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
@@ -267,6 +272,24 @@ namespace BlenderControls
 	}
 
 	FText FScaleTool::GetLiveTranslationHudText() const
+	{
+		return FText::FromString("");
+	}
+
+	FText FScaleTool::BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		const FText& MagText) const
+	{
+		return FText::FromString("");
+	}
+
+	FText FScaleTool::BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		const FText& MagText) const
+	{
+		return FText::FromString("");
+	}
+
+	FText FScaleTool::BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		const FText& MagText) const
 	{
 		return FText::FromString("");
 	}

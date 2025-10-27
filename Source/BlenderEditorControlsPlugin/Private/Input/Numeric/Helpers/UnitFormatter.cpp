@@ -4,7 +4,7 @@
 namespace BlenderControls
 {
 	float FUnitFormatter::ConvertOnToolSwitch(float Value, EBlenderNumericContext From,
-	                                         EBlenderNumericContext To)
+	                                          EBlenderNumericContext To)
 	{
 		if (From == To) return Value;
 
@@ -29,22 +29,30 @@ namespace BlenderControls
 
 	FString FUnitFormatter::FormatValue(float Value, EBlenderNumericContext Context)
 	{
-		if (Context == EBlenderNumericContext::Angle_Degrees)
+		//Will gives some precision error, but blender displays it like 4 m 43 cm etc.
+		auto FormatSmart = [](float V) -> FString
 		{
-			// FString::SanitizeFloat formats to 1 decimal place
-			return FString::Printf(TEXT("%s°"), *FString::SanitizeFloat(Value));
-		}
+			// Check if it's effectively an integer (e.g. 5.0)
+			if (FMath::IsNearlyEqual(V, FMath::RoundToFloat(V)))
+			{
+				return FString::Printf(TEXT("%.0f"), V);
+			}
+			else
+			{
+				return FString::Printf(TEXT("%.3f"), V);
+			}
+		};
 
-		if (Context == EBlenderNumericContext::Distance)
+		switch (Context)
 		{
-			// 4544 m -> 4 km 544 m
-			// 0.022 m -> 2 cm 2 mm
-			// This is a complex function you'll need to write.
-			// For now, a simple "m"
-			return FString::Printf(TEXT("%s m"), *FString::SanitizeFloat(Value, 3));
-		}
+		case EBlenderNumericContext::Angle_Degrees:
+			return FormatSmart(Value) + TEXT("°");
 
-		// Default for Scale
-		return FString::Printf(TEXT("%s"), *FString::SanitizeFloat(Value, 3));
+		case EBlenderNumericContext::Distance:
+			return FormatSmart(Value) + TEXT(" cm");
+
+		default:
+			return FormatSmart(Value);
+		}
 	}
 }

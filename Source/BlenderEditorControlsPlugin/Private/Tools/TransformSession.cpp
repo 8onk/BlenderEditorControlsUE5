@@ -261,7 +261,7 @@ namespace BlenderControls
 			return true;
 		}
 
-		return false; // Let other systems handle the key if we didn't.
+		return true; // Disable all other inputs while any tool is active
 	}
 
 	bool FTransformSession::HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) const

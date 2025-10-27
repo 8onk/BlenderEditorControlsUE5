@@ -43,6 +43,120 @@ namespace BlenderControls
 		return FString();
 	}
 
+	FText FMoveTool::GetNumericHudText() const
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return FText::GetEmpty();
+		}
+
+		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
+
+		if (!Processor)
+		{
+			return FText::GetEmpty();
+		}
+
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		FNumberFormattingOptions NumFmt;
+		NumFmt.MaximumFractionalDigits = 3;
+		NumFmt.MinimumFractionalDigits = 3;
+		NumFmt.UseGrouping = false;
+
+		FFormatOrderedArguments HudArgs;
+
+		// Get total magnitude from the processor
+		const float Magnitude = Processor->GetTotalMagnitude();
+		const FText MagText = FText::Format(
+			NSLOCTEXT("MoveHUD", "MagFmt", "({0} cm)"),
+			FText::AsNumber(Magnitude, &NumFmt));
+
+		// Get the coordinate space (global/local)
+		const FText Context = Session->IsUsingLocalSpace()
+			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
+			                      : NSLOCTEXT("MoveHUD", "Global", "global");
+
+		switch (Session->GetLockedAxis())
+		{
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+			{
+				FString SlotString = Processor->BuildSlotDisplayString(0);
+				const FText D = FText::FromString(TEXT("D: ") + SlotString);
+
+				FText AxisName;
+				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
+				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "y");
+				else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+
+				const FText Along = FText::Format(
+					NSLOCTEXT("MoveHUD", "AlongFmt", "along {0} {1}"),
+					Context, AxisName);
+
+				HudArgs.Add(D);
+				HudArgs.Add(MagText);
+				HudArgs.Add(Along);
+				break;
+			}
+
+		case EAxisLock::XY: // Shift+Z
+		case EAxisLock::XZ: // Shift+Y
+		case EAxisLock::YZ: // Shift+X
+			{
+				// Get the formatted strings for the two active slots
+				FString Slot0 = Processor->BuildSlotDisplayString(0);
+				FString Slot1 = Processor->BuildSlotDisplayString(1);
+
+				const FText D1 = FText::FromString(TEXT("D: ") + Slot0);
+				const FText D2 = FText::FromString(TEXT("D: ") + Slot1);
+
+				FText LockingAxisName;
+				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+				else if (Session->GetLockedAxis() == EAxisLock::XZ)
+					LockingAxisName =
+						NSLOCTEXT("MoveHUD", "AxisY", "y");
+				else LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
+
+				const FText Locking = FText::Format(
+					NSLOCTEXT("MoveHUD", "LockingFmt", "locking {0} {1}"),
+					Context, LockingAxisName);
+
+				HudArgs.Add(D1);
+				HudArgs.Add(D2);
+				HudArgs.Add(MagText);
+				HudArgs.Add(Locking);
+				break;
+			}
+
+		case EAxisLock::All:
+		default:
+			{
+				// Get the formatted strings for all three slots
+				FString Dx_Str = Processor->BuildSlotDisplayString(0);
+				FString Dy_Str = Processor->BuildSlotDisplayString(1);
+				FString Dz_Str = Processor->BuildSlotDisplayString(2);
+
+				// Format with labels and padding
+				const FText Dx = FText::FromString(FString::Printf(TEXT("Dx: %s"), *Dx_Str));
+				const FText Dy = FText::FromString(FString::Printf(TEXT("Dy: %s"), *Dy_Str));
+				const FText Dz = FText::FromString(FString::Printf(TEXT("Dz: %s"), *Dz_Str));
+
+				HudArgs.Add(Dx);
+				HudArgs.Add(Dy);
+				HudArgs.Add(Dz);
+				HudArgs.Add(MagText);
+				break;
+			}
+		}
+
+		// Join all the built arguments with your gap string
+		return FText::Join(FText::FromString(Gap), HudArgs);
+	}
+
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
@@ -141,15 +255,27 @@ namespace BlenderControls
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (!Session.IsValid() || !VirtualPivot.IsValid()) return;
 
-		const FBlenderNumericState& State = Session->GetNumericInputProcessor()->CurrentState;
+		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
+		if (!Processor) return;
+
+		FBlenderNumericState& State = Processor->CurrentState;
 
 		float Slot0 = 0.f;
 		float Slot1 = 0.f;
 		float Slot2 = 0.f;
 
-		Session->GetNumericInputProcessor()->EvaluateSlot(State.Slots[0], Slot0);
-		Session->GetNumericInputProcessor()->EvaluateSlot(State.Slots[1], Slot1);
-		Session->GetNumericInputProcessor()->EvaluateSlot(State.Slots[2], Slot2);
+		if (State.Slots.IsValidIndex(0))
+		{
+			Processor->EvaluateSlot(State.Slots[0], Slot0);
+		}
+		if (State.Slots.IsValidIndex(1))
+		{
+			Processor->EvaluateSlot(State.Slots[1], Slot1);
+		}
+		if (State.Slots.IsValidIndex(2))
+		{
+			Processor->EvaluateSlot(State.Slots[2], Slot2);
+		}
 
 		FVector NumericDelta = FVector::ZeroVector;
 
@@ -194,43 +320,14 @@ namespace BlenderControls
 		FToolBase::UpdateHud();
 	}
 
-	void FMoveTool::OnEnd(bool bApply)
-	{
-		FToolBase::OnEnd(bApply);
-	}
+	//
+	// void FMoveTool::OnEnd(bool bApply)
+	// {
+	// 	FToolBase::OnEnd(bApply);
+	// }
 
 	void FMoveTool::UpdateToolSettingsForAxisLock()
 	{
-		// switch (Session->GetLockedAxis())
-		// {
-		// case EAxisLock::X:
-		// case EAxisLock::Y:
-		// case EAxisLock::Z:
-		// 	NumNumericSlots = 1;
-		// 	break;
-		//
-		// case EAxisLock::XY:
-		// case EAxisLock::XZ:
-		// case EAxisLock::YZ:
-		// 	NumNumericSlots = 2;
-		// 	break;
-		//
-		// case EAxisLock::All:
-		// default:
-		// 	NumNumericSlots = 3;
-		// 	break;
-		// }
-	}
-
-	FText FMoveTool::GetLiveTranslationHudText() const
-	{
-		const FVector LiveDelta = VirtualPivot->GetActiveElement().Actor->GetActorLocation() - VirtualPivot->
-			GetStartLocation();
-		
-		return FText::FromString(FString::Printf(
-			TEXT("Dx: %.3f m Dy: %.3f m Dz: %.3f m"),
-			LiveDelta.X, LiveDelta.Y, LiveDelta.Z
-		));
 	}
 
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
@@ -343,5 +440,169 @@ namespace BlenderControls
 		}
 
 		return SnapOffset;
+	}
+
+	FText FMoveTool::GetLiveTranslationHudText() const
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid() || !VirtualPivot.IsValid())
+		{
+			return FText::GetEmpty();
+		}
+
+		const FVector LiveDelta =
+			VirtualPivot->GetActiveElement().Actor->GetActorLocation() - VirtualPivot->GetStartLocation();
+
+		FNumberFormattingOptions NumFmt;
+		NumFmt.MaximumFractionalDigits = 3;
+		NumFmt.MinimumFractionalDigits = 3;
+		NumFmt.UseGrouping = false;
+
+		const float Magnitude = LiveDelta.Size();
+		const FText MagText = FText::Format(
+			FText::FromString(TEXT("({0} cm)")),
+			FText::AsNumber(Magnitude, &NumFmt));
+
+		FText HudText;
+		switch (Session->GetLockedAxis())
+		{
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+			HudText = BuildSingleAxisHudText(LiveDelta, NumFmt, MagText);
+			break;
+
+		case EAxisLock::XY:
+		case EAxisLock::XZ:
+		case EAxisLock::YZ:
+			HudText = BuildDualAxisHudText(LiveDelta, NumFmt, MagText);
+			break;
+
+		case EAxisLock::All:
+		default:
+			HudText = BuildFreeformHudText(LiveDelta, NumFmt, MagText);
+			break;
+		}
+
+		return HudText;
+	}
+
+	FText FMoveTool::BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+	                                      const FText& MagText) const
+	{
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		const FText Dx = FText::Format(
+			FText::FromString(TEXT("Dx: {0} cm")),
+			FText::AsNumber(LiveDelta.X, &NumFmt));
+
+		const FText Dy = FText::Format(
+			FText::FromString(TEXT("Dy: {0} cm")),
+			FText::AsNumber(LiveDelta.Y, &NumFmt));
+
+		const FText Dz = FText::Format(
+			FText::FromString(TEXT("Dz: {0} cm")),
+			FText::AsNumber(LiveDelta.Z, &NumFmt));
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(Dx);
+		HudArgs.Add(Dy);
+		HudArgs.Add(Dz);
+		HudArgs.Add(MagText);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
+	}
+
+	FText FMoveTool::BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+	                                        const FText& MagText) const
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		const FVector AxisVector = GetAxisVector(Session->GetLockedAxis());
+		const float SignedDelta = FVector::DotProduct(LiveDelta, AxisVector);
+
+		const FText D = FText::Format(
+			NSLOCTEXT("MoveHUD", "DFmt", "D: {0} cm"),
+			FText::AsNumber(SignedDelta, &NumFmt));
+
+		FText AxisName;
+		if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
+		else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "y");
+		else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+
+		const FText Context = Session->IsUsingLocalSpace()
+			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
+			                      : NSLOCTEXT("MoveHUD", "Global", "global");
+
+		const FText Along = FText::Format(
+			NSLOCTEXT("MoveHUD", "AlongFmt", "along {0} {1}"),
+			Context, AxisName);
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(D);
+		HudArgs.Add(MagText);
+		HudArgs.Add(Along);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
+	}
+
+	FText FMoveTool::BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+	                                      const FText& MagText) const
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		FVector Axis1, Axis2;
+		FText LockingAxisName;
+
+		if (Session->GetLockedAxis() == EAxisLock::XY) // Shift+Z
+		{
+			Axis1 = GetAxisVector(EAxisLock::X);
+			Axis2 = GetAxisVector(EAxisLock::Y);
+			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+		}
+		else if (Session->GetLockedAxis() == EAxisLock::XZ) // Shift+Y
+		{
+			Axis1 = GetAxisVector(EAxisLock::X);
+			Axis2 = GetAxisVector(EAxisLock::Z);
+			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisY", "y");
+		}
+		else // EAxisLock::YZ (Shift+X)
+		{
+			Axis1 = GetAxisVector(EAxisLock::Y);
+			Axis2 = GetAxisVector(EAxisLock::Z);
+			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
+		}
+
+		const float Delta1 = FVector::DotProduct(LiveDelta, Axis1);
+		const float Delta2 = FVector::DotProduct(LiveDelta, Axis2);
+
+		const FText D1 = FText::Format(
+			NSLOCTEXT("MoveHUD", "DFmt", "D: {0} cm"),
+			FText::AsNumber(Delta1, &NumFmt));
+
+		const FText D2 = FText::Format(
+			NSLOCTEXT("MoveHUD", "DFmt", "D: {0} cm"),
+			FText::AsNumber(Delta2, &NumFmt));
+
+		const FText Context = Session->IsUsingLocalSpace()
+			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
+			                      : NSLOCTEXT("MoveHUD", "Global", "global");
+
+		const FText Locking = FText::Format(
+			NSLOCTEXT("MoveHUD", "LockingFmt", "locking {0} {1}"),
+			Context, LockingAxisName);
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(D1);
+		HudArgs.Add(D2);
+		HudArgs.Add(MagText);
+		HudArgs.Add(Locking);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 }

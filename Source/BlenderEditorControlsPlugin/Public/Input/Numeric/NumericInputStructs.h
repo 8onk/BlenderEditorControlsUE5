@@ -19,6 +19,7 @@ namespace BlenderControls
 		FString RawString;
 		int32 CursorIndex = 0;
 		float BaseValue = 0.f;
+		float LastValidValue = BaseValue;
 		bool bIsAdditive = false;
 		bool bIsEmpty = true; // This is for the |NONE| state
 		bool bIsNegative = false;
@@ -33,18 +34,37 @@ namespace BlenderControls
 			bIsEmpty = true;
 			bIsNegative = false;
 			bIsReciprocal = false;
+			LastValidValue = BaseValue;
 		}
 
 		// Resets modifiers and string, but keeps BaseValue
-		void Finalize(float FinalValue)
+		void Finalize(float FinalValue, bool bWasEmpty)
 		{
 			RawString = "";
 			CursorIndex = 0;
 			BaseValue = FinalValue;
-			bIsAdditive = true; // Ready for next additive input
-			bIsEmpty = FMath::IsNearlyZero(FinalValue); // Becomes |NONE| if value is 0
+			bIsAdditive = !bWasEmpty;
+			LastValidValue = FinalValue;
+			bIsEmpty = bWasEmpty; 
 			bIsNegative = false;
 			bIsReciprocal = false;
+		}
+
+		void DebugPrint(int32 Index = -1) const
+		{
+			FString Prefix = (Index >= 0) ? FString::Printf(TEXT("Slot[%d]: "), Index) : TEXT("Slot: ");
+			UE_LOG(LogTemp, Warning,
+			       TEXT("%sRawString='%s', Cursor=%d, BaseValue=%.3f, Additive=%d, Empty=%d, Negative=%d, Reciprocal=%d"
+			       ),
+			       *Prefix,
+			       *RawString,
+			       CursorIndex,
+			       BaseValue,
+			       bIsAdditive,
+			       bIsEmpty,
+			       bIsNegative,
+			       bIsReciprocal
+			);
 		}
 	};
 
@@ -53,6 +73,7 @@ namespace BlenderControls
 	{
 		TArray<FNumericInputSlot> Slots;
 		int32 ActiveSlotIndex = 0;
+		int32 NumActiveSlots = 0;
 		bool bIsInNumericMode = false;
 		bool bIsUniformScaleMode = false;
 		bool bIsEquationMode = false;
@@ -65,12 +86,31 @@ namespace BlenderControls
 			for (int32 i = 0; i < NumSlots; ++i)
 			{
 				Slots.Add(FNumericInputSlot());
+				NumActiveSlots++;
 			}
 			ActiveSlotIndex = 0;
 			bIsInNumericMode = false;
 			bIsUniformScaleMode = false; // Must be set true by ScaleTool
 			ToolContext = Context;
 			PreviousContext = Context;
+		}
+
+		void DebugPrint() const
+		{
+			UE_LOG(LogTemp, Warning, TEXT("=== BlenderNumericState ==="));
+			UE_LOG(LogTemp, Warning, TEXT("ActiveSlotIndex=%d, InNumericMode=%d, UniformScale=%d, EquationMode=%d"),
+				ActiveSlotIndex,
+				bIsInNumericMode,
+				bIsUniformScaleMode,
+				bIsEquationMode
+			);
+			UE_LOG(LogTemp, Warning, TEXT("ToolContext=%d, PreviousContext=%d"), (int32)ToolContext, (int32)PreviousContext);
+
+			for (int32 i = 0; i < Slots.Num(); ++i)
+			{
+				Slots[i].DebugPrint(i);
+			}
+			UE_LOG(LogTemp, Warning, TEXT("==========================="));
 		}
 	};
 }

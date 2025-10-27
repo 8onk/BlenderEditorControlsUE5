@@ -9,7 +9,7 @@ namespace BlenderControls
 	 * Handles axis-locked rotation, track-ball rotation, numeric entry, and
 	 * angle-snap (e.g. Ctrl for 5° increments).
 	 */
-	class FRotateTool : public FToolBase
+	class FRotateTool final : public FToolBase
 	{
 	public:
 		explicit FRotateTool(const TSharedRef<FTransformSession>& InSession);
@@ -21,6 +21,7 @@ namespace BlenderControls
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
+		virtual FText GetNumericHudText() const override;
 
 		void SetTrackBallMode(const bool InTrackBallMode) { bTrackballModeEnabled = InTrackBallMode; }
 
@@ -45,6 +46,13 @@ namespace BlenderControls
 		virtual bool GetTrackballRotationMode() override;
 		virtual void UpdateToolSettingsForAxisLock() override;
 		virtual FString GetFormattedValueForEditing(const FNumericSlotData& Slot) const override;
+
 		virtual FText GetLiveTranslationHudText() const override;
+		virtual FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                                   const FText& MagText) const override;
+		virtual FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                                     const FText& MagText) const override;
+		virtual FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
+		                                   const FText& MagText) const override;
 	};
 } // namespace BlenderControls
