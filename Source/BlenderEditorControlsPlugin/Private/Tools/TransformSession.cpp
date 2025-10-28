@@ -209,7 +209,15 @@ namespace BlenderControls
 		}
 		if (KeyMatchesCommand(Cmd.CommandRotate))
 		{
-			SwitchTool(ETransformMode::Rotate);
+			if (ActiveMode == ETransformMode::Rotate)
+			{
+				const bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
+				CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
+			}
+			else
+			{
+				SwitchTool(ETransformMode::Rotate);
+			}
 			return true;
 		}
 		if (KeyMatchesCommand(Cmd.CommandScale))

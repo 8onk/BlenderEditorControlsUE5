@@ -18,6 +18,11 @@ namespace BlenderControls
 		CurrentState.PreviousContext = PreviousContext;
 		CurrentState.NumActiveSlots = NewNumSlots;
 		CurrentState.ActiveSlotIndex = FMath::Min(CurrentState.ActiveSlotIndex, NewNumSlots);
+
+		if (CurrentState.Slots.Num() < NewNumSlots)
+		{
+			CurrentState.Slots.SetNum(NewNumSlots); 
+		}
 	}
 
 
@@ -281,6 +286,11 @@ namespace BlenderControls
 
 	FString FNumericInputProcessor::BuildSlotDisplayString(int32 SlotIndex)
 	{
+		if (!CurrentState.Slots.IsValidIndex(SlotIndex))
+		{
+			return FString();
+		}
+
 		FNumericInputSlot& Slot = CurrentState.Slots[SlotIndex];
 
 		Slot.DebugPrint();

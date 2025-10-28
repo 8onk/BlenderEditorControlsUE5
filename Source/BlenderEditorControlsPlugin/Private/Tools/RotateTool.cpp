@@ -227,7 +227,111 @@ namespace BlenderControls
 
 	FText FRotateTool::GetNumericHudText() const
 	{
-		return FText::GetEmpty();
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return FText::GetEmpty();
+		}
+
+		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
+		if (!Processor)
+		{
+			return FText::GetEmpty();
+		}
+
+		// --- Setup ---
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+		FFormatOrderedArguments HudArgs;
+
+		// --- Dispatch based on axis lock ---
+		switch (Session->GetLockedAxis())
+		{
+		// --- CASE 1: AXIS-LOCKED (SINGLE SLOT) ---
+		// Dual-axis lock is treated as single-axis rotation
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+		case EAxisLock::XY:
+		case EAxisLock::XZ:
+		case EAxisLock::YZ:
+			{
+				// Safety check: Ensure the processor has the slot we need
+				if (!Processor->CurrentState.Slots.IsValidIndex(0))
+				{
+					return FText::GetEmpty();
+				}
+
+				// 1. Get the formatted slot string from the processor
+				FString SlotString = Processor->BuildSlotDisplayString(0);
+				HudArgs.Add(FText::FromString(TEXT("Rotation: ") + SlotString));
+
+				// 2. Get the axis name (copied from your Live HUD logic)
+				FText AxisName;
+				EAxisLock LockedAxis = Session->GetLockedAxis();
+				if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ)
+					AxisName = NSLOCTEXT(
+						"RotateHUD", "AxisX", "x");
+				else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
+					AxisName = NSLOCTEXT(
+						"RotateHUD", "AxisY", "y");
+				else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
+					AxisName = NSLOCTEXT(
+						"RotateHUD", "AxisZ", "z");
+
+				// 3. Get the context (global/local)
+				const FText Context = Session->IsUsingLocalSpace()
+					                      ? NSLOCTEXT("RotateHUD", "Local", "local")
+					                      : NSLOCTEXT("RotateHUD", "Global", "global");
+
+				// 4. Format the "along" string
+				const FText Along = FText::Format(
+					NSLOCTEXT("RotateHUD", "AlongFmt", "along {0} {1}"),
+					Context, AxisName);
+
+				HudArgs.Add(Along);
+				break;
+			}
+
+		// --- CASE 2: FREEFORM (CHECK TRACKBALL) ---
+		case EAxisLock::All:
+		default:
+			{
+				if (bTrackballModeEnabled)
+				{
+					// Trackball Mode (2 Slots)
+					// Safety check: Ensure the processor has 2 slots
+					if (!Processor->CurrentState.Slots.IsValidIndex(1))
+					{
+						return FText::GetEmpty();
+					}
+
+					FString Slot0 = Processor->BuildSlotDisplayString(0);
+					FString Slot1 = Processor->BuildSlotDisplayString(1);
+
+					HudArgs.Add(FText::FromString(TEXT("Trackball:")));
+					HudArgs.Add(FText::FromString(Slot0)); // Slot 0 is X Angle
+					HudArgs.Add(FText::FromString(Slot1)); // Slot 1 is Y Angle
+				}
+				else
+				{
+					// View-Aligned Mode (1 Slot)
+					// Safety check
+					if (!Processor->CurrentState.Slots.IsValidIndex(0))
+					{
+						return FText::GetEmpty();
+					}
+
+					FString SlotString = Processor->BuildSlotDisplayString(0);
+					HudArgs.Add(FText::FromString(TEXT("Rotation: ") + SlotString));
+					// No "along..." text for freeform view rotation
+				}
+				break;
+			}
+		}
+
+		// Join all the built arguments with your gap string
+		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 
 	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)
