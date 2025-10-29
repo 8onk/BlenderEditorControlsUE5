@@ -308,19 +308,16 @@ namespace BlenderControls
 			{
 				if (!Processor->CurrentState.Slots.IsValidIndex(2)) return FText::GetEmpty();
 
-				// Use padding to keep columns aligned
-				const int32 ColumnWidth = 25; // Scale strings are shorter than move strings
-
 				FString ScaleX_Str = Processor->BuildSlotDisplayString(0);
 				FString ScaleY_Str = Processor->BuildSlotDisplayString(1);
 				FString ScaleZ_Str = Processor->BuildSlotDisplayString(2);
 
 				const FText ScaleX =
-					FText::FromString(FString::Printf(TEXT("Scale X: %-*s"), ColumnWidth, *ScaleX_Str));
+					FText::FromString(FString::Printf(TEXT("Scale X: %s"), *ScaleX_Str));
 				const FText ScaleY =
-					FText::FromString(FString::Printf(TEXT("Scale Y: %-*s"), ColumnWidth, *ScaleY_Str));
+					FText::FromString(FString::Printf(TEXT("Scale Y: %s"), *ScaleY_Str));
 				const FText ScaleZ =
-					FText::FromString(FString::Printf(TEXT("Scale Z: %-*s"), ColumnWidth, *ScaleZ_Str));
+					FText::FromString(FString::Printf(TEXT("Scale Z: %s"), *ScaleZ_Str));
 
 				HudArgs.Add(ScaleX);
 				HudArgs.Add(ScaleY);
