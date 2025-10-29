@@ -271,13 +271,13 @@ namespace BlenderControls
 				EAxisLock LockedAxis = Session->GetLockedAxis();
 				if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ)
 					AxisName = NSLOCTEXT(
-						"RotateHUD", "AxisX", "x");
+						"RotateHUD", "AxisX", "X");
 				else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
 					AxisName = NSLOCTEXT(
-						"RotateHUD", "AxisY", "y");
+						"RotateHUD", "AxisY", "Y");
 				else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
 					AxisName = NSLOCTEXT(
-						"RotateHUD", "AxisZ", "z");
+						"RotateHUD", "AxisZ", "Z");
 
 				// 3. Get the context (global/local)
 				const FText Context = Session->IsUsingLocalSpace()
@@ -509,13 +509,13 @@ namespace BlenderControls
 		FText AxisName;
 		EAxisLock LockedAxis = Session->GetLockedAxis();
 
-		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ) AxisName = NSLOCTEXT("RotateHUD", "AxisX", "x");
+		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ) AxisName = NSLOCTEXT("RotateHUD", "AxisX", "X");
 		else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
 			AxisName = NSLOCTEXT(
-				"RotateHUD", "AxisY", "y");
+				"RotateHUD", "AxisY", "Y");
 		else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
 			AxisName = NSLOCTEXT(
-				"RotateHUD", "AxisZ", "z");
+				"RotateHUD", "AxisZ", "Z");
 
 		const FText Context = Session->IsUsingLocalSpace()
 			                      ? NSLOCTEXT("RotateHUD", "Local", "local")

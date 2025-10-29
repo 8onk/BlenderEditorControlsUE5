@@ -77,9 +77,9 @@ namespace BlenderControls
 				const FText D = FText::FromString(TEXT("D: ") + SlotString);
 
 				FText AxisName;
-				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
-				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "y");
-				else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
+				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
+				else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
 
 				const FText Along = FText::Format(
 					NSLOCTEXT("MoveHUD", "AlongFmt", "along {0} {1}"),
@@ -103,11 +103,11 @@ namespace BlenderControls
 				const FText D2 = FText::FromString(TEXT("D: ") + Slot1);
 
 				FText LockingAxisName;
-				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
 				else if (Session->GetLockedAxis() == EAxisLock::XZ)
 					LockingAxisName =
-						NSLOCTEXT("MoveHUD", "AxisY", "y");
-				else LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
+						NSLOCTEXT("MoveHUD", "AxisY", "Y");
+				else LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
 
 				const FText Locking = FText::Format(
 					NSLOCTEXT("MoveHUD", "LockingFmt", "locking {0} {1}"),
@@ -507,9 +507,9 @@ namespace BlenderControls
 			FText::AsNumber(SignedDelta, &NumFmt));
 
 		FText AxisName;
-		if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
-		else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "y");
-		else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+		if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
+		else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
+		else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
 
 		const FText Context = Session->IsUsingLocalSpace()
 			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
@@ -541,19 +541,19 @@ namespace BlenderControls
 		{
 			Axis1 = GetAxisVector(EAxisLock::X);
 			Axis2 = GetAxisVector(EAxisLock::Y);
-			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "z");
+			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
 		}
 		else if (Session->GetLockedAxis() == EAxisLock::XZ) // Shift+Y
 		{
 			Axis1 = GetAxisVector(EAxisLock::X);
 			Axis2 = GetAxisVector(EAxisLock::Z);
-			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisY", "y");
+			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
 		}
 		else // EAxisLock::YZ (Shift+X)
 		{
 			Axis1 = GetAxisVector(EAxisLock::Y);
 			Axis2 = GetAxisVector(EAxisLock::Z);
-			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "x");
+			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
 		}
 
 		const float Delta1 = FVector::DotProduct(LiveDelta, Axis1);

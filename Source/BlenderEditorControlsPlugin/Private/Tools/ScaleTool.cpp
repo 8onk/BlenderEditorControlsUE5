@@ -223,7 +223,113 @@ namespace BlenderControls
 
 	FText FScaleTool::GetNumericHudText() const
 	{
-		return FText::GetEmpty();
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return FText::GetEmpty();
+		}
+
+		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
+		if (!Processor)
+		{
+			return FText::GetEmpty();
+		}
+
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+		FFormatOrderedArguments HudArgs;
+
+		switch (Session->GetLockedAxis())
+		{
+		// --- CASE 1: SINGLE-AXIS LOCK ---
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+			{
+				if (!Processor->CurrentState.Slots.IsValidIndex(0)) return FText::GetEmpty();
+
+				FString SlotString = Processor->BuildSlotDisplayString(0);
+				HudArgs.Add(FText::FromString(TEXT("Scale: ") + SlotString));
+
+				FText AxisName;
+				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("ScaleHUD", "AxisX", "x");
+				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("ScaleHUD", "AxisY", "y");
+				else AxisName = NSLOCTEXT("ScaleHUD", "AxisZ", "z");
+
+				const FText Context = Session->IsUsingLocalSpace()
+					                      ? NSLOCTEXT("ScaleHUD", "Local", "local")
+					                      : NSLOCTEXT("ScaleHUD", "Global", "global");
+
+				const FText Along = FText::Format(
+					NSLOCTEXT("ScaleHUD", "AlongFmt", "along {0} {1}"),
+					Context, AxisName);
+
+				HudArgs.Add(Along);
+				break;
+			}
+
+		// --- CASE 2: DUAL-AXIS LOCK ---
+		case EAxisLock::XY:
+		case EAxisLock::XZ:
+		case EAxisLock::YZ:
+			{
+				// Uniform mode shows 2 linked slots, non-uniform (after tab) shows 2 separate slots.
+				// Our processor now has 2 slots in this mode.
+				if (!Processor->CurrentState.Slots.IsValidIndex(1)) return FText::GetEmpty();
+
+				FString Slot0 = Processor->BuildSlotDisplayString(0);
+				FString Slot1 = Processor->BuildSlotDisplayString(1);
+
+				HudArgs.Add(FText::FromString(TEXT("Scale: ") + Slot0));
+				HudArgs.Add(FText::FromString(TEXT("Scale: ") + Slot1));
+
+				FText LockingAxisName;
+				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = NSLOCTEXT("ScaleHUD", "AxisZ", "z");
+				else if (Session->GetLockedAxis() == EAxisLock::XZ)
+					LockingAxisName = NSLOCTEXT(
+						"ScaleHUD", "AxisY", "y");
+				else LockingAxisName = NSLOCTEXT("ScaleHUD", "AxisX", "x");
+
+				const FText Context = Session->IsUsingLocalSpace()
+					                      ? NSLOCTEXT("ScaleHUD", "Local", "local")
+					                      : NSLOCTEXT("ScaleHUD", "Global", "global");
+
+				const FText Locking = FText::Format(
+					NSLOCTEXT("ScaleHUD", "LockingFmt", "locking {0} {1}"),
+					Context, LockingAxisName);
+
+				HudArgs.Add(Locking);
+				break;
+			}
+
+		// --- CASE 3: FREEFORM (DEFAULT) ---
+		case EAxisLock::All:
+		default:
+			{
+				if (!Processor->CurrentState.Slots.IsValidIndex(2)) return FText::GetEmpty();
+
+				// Use padding to keep columns aligned
+				const int32 ColumnWidth = 25; // Scale strings are shorter than move strings
+
+				FString ScaleX_Str = Processor->BuildSlotDisplayString(0);
+				FString ScaleY_Str = Processor->BuildSlotDisplayString(1);
+				FString ScaleZ_Str = Processor->BuildSlotDisplayString(2);
+
+				const FText ScaleX =
+					FText::FromString(FString::Printf(TEXT("Scale X: %-*s"), ColumnWidth, *ScaleX_Str));
+				const FText ScaleY =
+					FText::FromString(FString::Printf(TEXT("Scale Y: %-*s"), ColumnWidth, *ScaleY_Str));
+				const FText ScaleZ =
+					FText::FromString(FString::Printf(TEXT("Scale Z: %-*s"), ColumnWidth, *ScaleZ_Str));
+
+				HudArgs.Add(ScaleX);
+				HudArgs.Add(ScaleY);
+				HudArgs.Add(ScaleZ);
+				break;
+			}
+		}
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
@@ -293,24 +399,162 @@ namespace BlenderControls
 
 	FText FScaleTool::GetLiveHudText() const
 	{
-		return FText::FromString("");
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid() || !VirtualPivot.IsValid())
+		{
+			return FText::GetEmpty();
+		}
+
+		const FVector CurrentScale = VirtualPivot->GetActiveElement().Actor->GetActorScale3D();
+		const FVector StartScaleVec = VirtualPivot->GetStartTransform().GetScale3D();
+
+		FVector LiveScale;
+		LiveScale.X = FMath::IsNearlyZero(StartScaleVec.X) ? 1.0f : CurrentScale.X / StartScaleVec.X;
+		LiveScale.Y = FMath::IsNearlyZero(StartScaleVec.Y) ? 1.0f : CurrentScale.Y / StartScaleVec.Y;
+		LiveScale.Z = FMath::IsNearlyZero(StartScaleVec.Z) ? 1.0f : CurrentScale.Z / StartScaleVec.Z;
+
+		// Scale is unitless, 3 decimal places
+		FNumberFormattingOptions NumFmt;
+		NumFmt.MaximumFractionalDigits = 3;
+		NumFmt.MinimumFractionalDigits = 3;
+		NumFmt.UseGrouping = false;
+
+		FText HudText;
+		switch (Session->GetLockedAxis())
+		{
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+			HudText = BuildSingleAxisHudText(LiveScale, NumFmt);
+			break;
+
+		case EAxisLock::XY:
+		case EAxisLock::XZ:
+		case EAxisLock::YZ:
+			HudText = BuildDualAxisHudText(LiveScale, NumFmt);
+			break;
+
+		case EAxisLock::All:
+		default:
+			HudText = BuildFreeformHudText(LiveScale, NumFmt);
+			break;
+		}
+
+		return HudText;
 	}
 
-	FText FScaleTool::BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-	                                       const FText& MagText) const
+	FText FScaleTool::BuildFreeformHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const
 	{
-		return FText::FromString("");
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		const FText ScaleX = FText::Format(
+			NSLOCTEXT("ScaleHUD", "ScaleXFmt", "Scale X: {0}"),
+			FText::AsNumber(LiveScale.X, &NumFmt));
+
+		const FText ScaleY = FText::Format(
+			NSLOCTEXT("ScaleHUD", "ScaleYFmt", "Scale Y: {0}"),
+			FText::AsNumber(LiveScale.Y, &NumFmt));
+
+		const FText ScaleZ = FText::Format(
+			NSLOCTEXT("ScaleHUD", "ScaleZFmt", "Scale Z: {0}"),
+			FText::AsNumber(LiveScale.Z, &NumFmt));
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(ScaleX);
+		HudArgs.Add(ScaleY);
+		HudArgs.Add(ScaleZ);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 
-	FText FScaleTool::BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-	                                         const FText& MagText) const
+	FText FScaleTool::BuildSingleAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const
 	{
-		return FText::FromString("");
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		// In single-axis scale, only one component will be non-1.0
+		float ScaleValue = 1.0f;
+		FText AxisName;
+
+		if (Session->GetLockedAxis() == EAxisLock::X)
+		{
+			ScaleValue = LiveScale.X;
+			AxisName = NSLOCTEXT("ScaleHUD", "AxisX", "x");
+		}
+		else if (Session->GetLockedAxis() == EAxisLock::Y)
+		{
+			ScaleValue = LiveScale.Y;
+			AxisName = NSLOCTEXT("ScaleHUD", "AxisY", "y");
+		}
+		else // EAxisLock::Z
+		{
+			ScaleValue = LiveScale.Z;
+			AxisName = NSLOCTEXT("ScaleHUD", "AxisZ", "z");
+		}
+
+		const FText Scale = FText::Format(
+			NSLOCTEXT("ScaleHUD", "ScaleFmt", "Scale: {0}"),
+			FText::AsNumber(ScaleValue, &NumFmt));
+
+		const FText Context = Session->IsUsingLocalSpace()
+			                      ? NSLOCTEXT("ScaleHUD", "Local", "local")
+			                      : NSLOCTEXT("ScaleHUD", "Global", "global");
+
+		const FText Along = FText::Format(
+			NSLOCTEXT("ScaleHUD", "AlongFmt", "along {0} {1}"),
+			Context, AxisName);
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(Scale);
+		HudArgs.Add(Along);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 
-	FText FScaleTool::BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-	                                       const FText& MagText) const
+	FText FScaleTool::BuildDualAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const
 	{
-		return FText::FromString("");
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		// In dual-axis (plane) lock, scale is uniform on both axes
+		float ScaleValue = 1.0f;
+		FText LockingAxisName;
+
+		if (Session->GetLockedAxis() == EAxisLock::XY) // Shift+Z
+		{
+			ScaleValue = LiveScale.X; // X and Y will be the same
+			LockingAxisName = NSLOCTEXT("ScaleHUD", "AxisZ", "z");
+		}
+		else if (Session->GetLockedAxis() == EAxisLock::XZ) // Shift+Y
+		{
+			ScaleValue = LiveScale.X; // X and Z will be the same
+			LockingAxisName = NSLOCTEXT("ScaleHUD", "AxisY", "y");
+		}
+		else // EAxisLock::YZ (Shift+X)
+		{
+			ScaleValue = LiveScale.Y; // Y and Z will be the same
+			LockingAxisName = NSLOCTEXT("ScaleHUD", "AxisX", "x");
+		}
+
+		const FText Scale = FText::Format(
+			NSLOCTEXT("ScaleHUD", "ScaleFmt", "Scale: {0}"),
+			FText::AsNumber(ScaleValue, &NumFmt));
+
+		const FText Context = Session->IsUsingLocalSpace()
+			                      ? NSLOCTEXT("ScaleHUD", "Local", "local")
+			                      : NSLOCTEXT("ScaleHUD", "Global", "global");
+
+		const FText Locking = FText::Format(
+			NSLOCTEXT("ScaleHUD", "LockingFmt", "locking {0} {1}"),
+			Context, LockingAxisName);
+
+		FFormatOrderedArguments HudArgs;
+		HudArgs.Add(Scale);
+		HudArgs.Add(Locking);
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 } // namespace BlenderControls

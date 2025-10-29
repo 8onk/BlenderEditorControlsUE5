@@ -39,12 +39,9 @@ namespace BlenderControls
 		virtual void UpdateToolSettingsForAxisLock() override;
 		virtual FText GetNumericHudText() const override;
 		virtual FText GetLiveHudText() const override;
-		FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                           const FText& MagText) const;
-		FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                             const FText& MagText) const;
-		FText BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
-		                           const FText& MagText) const;
+		FText BuildFreeformHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
+		FText BuildSingleAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
+		FText BuildDualAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
 
 		/* ——— state ——— */
 		FVector PivotWS = FVector::ZeroVector; // average loc
