@@ -48,10 +48,10 @@ namespace BlenderControls
 		bool IsMouseOverLevelViewport() const;
 
 		/** Checks if a transform can be started (i.e., no session is currently active). */
-		bool CanStartTool() const;
+		bool IsSessionValid() const;
 
 		// --- Command Handlers for Starting a Session ---
-		void OnTransformPressed(ETransformMode Mode);
+		void OnTransformStart(ETransformMode Mode, bool bDuplicateSelection = false);
 		void DuplicateAndMovePressed();
 
 		/** The command list for binding hotkeys. */

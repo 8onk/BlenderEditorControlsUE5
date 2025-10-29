@@ -14,7 +14,7 @@
 
 namespace BlenderControls
 {
-	FTransformSession::FTransformSession(ETransformMode InStartMode)
+	FTransformSession::FTransformSession(ETransformMode InStartMode, bool bDuplicateSelection)
 	{
 		if (!GEditor || GEditor->GetSelectedActorCount() == 0)
 		{
@@ -23,6 +23,19 @@ namespace BlenderControls
 		}
 
 		InitializePivot();
+
+		if (bDuplicateSelection)
+		{
+			InitializeTransaction(TEXT("Duplicate Selection"));
+
+			UWorld* World = GEditor->GetEditorWorldContext().World();
+			if (World)
+			{
+				ULevel* Level = World->GetCurrentLevel();
+				constexpr bool bOffsetLocations = false; // Blender parity
+				GEditor->edactDuplicateSelected(Level, bOffsetLocations);
+			}
+		}
 
 		if (FViewport* Viewport = GEditor->GetActiveViewport())
 		{
@@ -62,6 +75,21 @@ namespace BlenderControls
 
 		constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
 		VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
+	}
+
+	void FTransformSession::InitializeTransaction(const FString& InTransactionName)
+	{
+		if (ScopedTransaction)
+		{
+			return;
+		}
+
+		FText TransactionName = FText::FromString(InTransactionName + TEXT(" - BlenderEditorControls"));
+		ScopedTransaction = MakeUnique<FScopedTransaction>(TransactionName);
+		for (auto Actor : SelectedActors)
+		{
+			Actor->Modify();
+		}
 	}
 
 	void FTransformSession::SwitchTool(ETransformMode NewMode)
@@ -120,6 +148,11 @@ namespace BlenderControls
 			{
 				NumericInputProcessor->OnToolSwitch(NumNumericSlots, NumericContext, OldState);
 			}
+
+			if (!ScopedTransaction)
+			{
+				InitializeTransaction(CurrentTool->GetDisplayName());
+			}
 		}
 
 		//Force an immediate visual update after tool creation/switch (otherwise, there is a brief flicker idk why)
@@ -140,9 +173,20 @@ namespace BlenderControls
 
 		if (CurrentTool.IsValid())
 		{
-			if (bApply) CurrentTool->Accept();
-			else CurrentTool->Cancel();
+			if (bApply)
+			{
+				CurrentTool->Accept();
+				ScopedTransaction.Reset();
+			}
+			else
+			{
+				CurrentTool->Cancel();
+				//Abort Transaction
+				ScopedTransaction->Cancel();
+				ScopedTransaction.Reset();
+			}
 		}
+
 
 		bIsFinished = true;
 	}

@@ -41,7 +41,7 @@ namespace BlenderControls
 		const FString& GetDisplayName() const { return DisplayName; }
 
 		bool InitializeEditorState();
-		void InitializeTransaction();
+		void InitializePivot();
 		void CacheViewVectors();
 		void InitializeGrabContext();
 		void InitializeUI();
@@ -107,7 +107,7 @@ namespace BlenderControls
 
 		FString HudString;
 
-		TUniquePtr<FScopedTransaction> ParentTxn;
+		//TUniquePtr<FScopedTransaction> ParentTxn;
 
 		TWeakPtr<FTransformSession> OwningSession;
 		ETransformMode Mode;

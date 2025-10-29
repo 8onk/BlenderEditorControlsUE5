@@ -286,17 +286,10 @@ namespace BlenderControls
 		return true;
 	}
 
-	void FToolBase::InitializeTransaction()
+	void FToolBase::InitializePivot()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		VirtualPivot = Session->VirtualPivot;
-
-		// Start transaction for undo
-		ParentTxn = MakeUnique<FScopedTransaction>(FText::FromString(DisplayName));
-		for (auto Actor : Session->SelectedActors)
-		{
-			Actor->Modify();
-		}
 		VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
 	}
 
@@ -451,7 +444,7 @@ namespace BlenderControls
 		CurrentMousePosition = MousePos;
 		CurrentViewportMousePos = MousePos;
 
-		InitializeTransaction();
+		InitializePivot();
 
 		// 6. Setup the GrabContext for transform calculations
 		InitializeGrabContext();
@@ -679,10 +672,10 @@ namespace BlenderControls
 
 	void FToolBase::Accept()
 	{
-		if (ParentTxn)
-		{
-			ParentTxn.Reset();
-		}
+		// if (ParentTxn)
+		// {
+		// 	ParentTxn.Reset();
+		// }
 
 		OnEnd(/*bApply=*/true);
 	}
@@ -699,11 +692,11 @@ namespace BlenderControls
 		// Reset pivot to start location
 
 		// Abort undo-tracking
-		if (ParentTxn)
-		{
-			ParentTxn->Cancel();
-			ParentTxn.Reset();
-		}
+		// if (ParentTxn)
+		// {
+		// 	ParentTxn->Cancel();
+		// 	ParentTxn.Reset();
+		// }
 
 		OnEnd(/*bApply=*/false);
 	}

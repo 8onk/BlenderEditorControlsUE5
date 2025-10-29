@@ -23,31 +23,31 @@ namespace BlenderControls
 		// The FCanExecuteAction ensures they only fire when no session is active (as defined by CanStartTool()).
 		CommandList->MapAction(
 			Cmd.CommandTranslate,
-			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Translate); }),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
+			FExecuteAction::CreateLambda([this]() { OnTransformStart(ETransformMode::Translate); }),
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandRotate,
-			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Rotate); }),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
+			FExecuteAction::CreateLambda([this]() { OnTransformStart(ETransformMode::Rotate); }),
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandScale,
-			FExecuteAction::CreateLambda([this]() { OnTransformPressed(ETransformMode::Scale); }),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
+			FExecuteAction::CreateLambda([this]() { OnTransformStart(ETransformMode::Scale); }),
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandDuplicateAndMove,
 			FExecuteAction::CreateSP(this, &FInputProcessor::DuplicateAndMovePressed),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
 		);
 	}
 
 	void FInputProcessor::Tick(const float DeltaTime, FSlateApplication& SlateApp,
-	                                          TSharedRef<ICursor> Cursor)
+	                           TSharedRef<ICursor> Cursor)
 	{
 		// If a session exists, check if it has finished its work.
 		if (ActiveSession.IsValid() && ActiveSession->IsFinished())
@@ -64,17 +64,16 @@ namespace BlenderControls
 
 	bool FInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
 	{
+		if (ActiveSession.IsValid())
+		{
+			return ActiveSession->HandleKeyDownEvent(KeyEvent);
+		}
+
 		if (PressedKeys.Contains(KeyEvent.GetKey()))
 		{
 			return false; // Prevent re-handling from key-repeat
 		}
 		PressedKeys.Add(KeyEvent.GetKey());
-
-		// If a session is active, it gets priority and consumes the input.
-		if (ActiveSession.IsValid())
-		{
-			return ActiveSession->HandleKeyDownEvent(KeyEvent);
-		}
 
 		// If no session is active, check if we should start one.
 		if (ShouldHandleHotkeys(SlateApp))
@@ -93,7 +92,7 @@ namespace BlenderControls
 	}
 
 	bool FInputProcessor::HandleMouseMoveEvent(FSlateApplication& SlateApp,
-	                                                          const FPointerEvent& MouseEvent)
+	                                           const FPointerEvent& MouseEvent)
 	{
 		// Forward mouse movement to the active session.
 		if (ActiveSession.IsValid())
@@ -104,7 +103,7 @@ namespace BlenderControls
 	}
 
 	bool FInputProcessor::HandleMouseButtonDownEvent(FSlateApplication& SlateApp,
-	                                                                const FPointerEvent& MouseEvent)
+	                                                 const FPointerEvent& MouseEvent)
 	{
 		// Forward mouse clicks to the active session.
 		if (ActiveSession.IsValid())
@@ -115,8 +114,8 @@ namespace BlenderControls
 	}
 
 	bool FInputProcessor::HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp,
-	                                                                    const FPointerEvent& InWheelEvent,
-	                                                                    const FPointerEvent* InGestureEvent)
+	                                                     const FPointerEvent& InWheelEvent,
+	                                                     const FPointerEvent* InGestureEvent)
 	{
 		// Block mouse wheel (zoom) while a tool is active.
 		if (ActiveSession.IsValid())
@@ -129,37 +128,26 @@ namespace BlenderControls
 
 	// --- Command Handler Implementations ---
 
-	bool FInputProcessor::CanStartTool() const
+	bool FInputProcessor::IsSessionValid() const
 	{
-		return !ActiveSession.IsValid();
+		return ActiveSession.IsValid();
 	}
 
-	void FInputProcessor::OnTransformPressed(ETransformMode Mode)
+	void FInputProcessor::OnTransformStart(ETransformMode Mode, bool bDuplicateSelection)
 	{
-		if (!CanStartTool()) return;
-		
-		ActiveSession = MakeShared<FTransformSession>(Mode);
+		if (IsSessionValid()) return;
+
+		ActiveSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
 		ActiveSession->SwitchTool(Mode);
 	}
 
 	void FInputProcessor::DuplicateAndMovePressed()
 	{
-		if (CanStartTool() && GEditor && GEditor->GetSelectedActorCount() > 0)
+		if (GEditor && GEditor->GetSelectedActorCount() > 0)
 		{
-			// The duplication action must happen *before* the session starts.
-			const FScopedTransaction Transaction(FText::FromString(TEXT("Duplicate Actors")));
-			ULevel* Level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
-			constexpr bool bOffsetLocations = false; // Blender doesn't offset by default
-			GEditor->edactDuplicateSelected(Level, bOffsetLocations);
-
-			// Now, start the session in Translate mode on the new selection.
-			OnTransformPressed(ETransformMode::Translate);
+			OnTransformStart(ETransformMode::Translate, /*bDuplicateSelection*/true);
 		}
 	}
-
-
-	// --- Helper Functions for Input Context ---
-	// (These are largely unchanged from your original implementation)
 
 	bool FInputProcessor::ShouldHandleHotkeys(FSlateApplication& SlateApp) const
 	{

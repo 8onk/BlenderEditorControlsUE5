@@ -24,7 +24,7 @@ namespace BlenderControls
 		 * Begins a new transform session.
 		 * @param InStartMode The initial tool to activate (Translate, Rotate, or Scale).
 		 */
-		FTransformSession(ETransformMode InStartMode);
+		FTransformSession(ETransformMode InStartMode, bool bDuplicateSelection = false);
 		~FTransformSession();
 
 		/** Finalizes the operation, either applying or canceling the changes. */
@@ -66,6 +66,7 @@ namespace BlenderControls
 	private:
 		/** Captures the initial selection and calculates the pivot. */
 		void InitializePivot();
+		void InitializeTransaction(const FString& InTransactionName);
 
 		/** The current active tool (Move, Rotate, or Scale). */
 		TSharedPtr<FToolBase> CurrentTool;
@@ -88,6 +89,8 @@ namespace BlenderControls
 		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
 		FVector2D WrappedMousePosition = FVector2D::ZeroVector;
 		FVector2D StartMousePos = FVector2D::ZeroVector;
+
+		TUniquePtr<FScopedTransaction> ScopedTransaction;
 
 		// --- Session Lifecycle ---
 		bool bIsFinished = false;
