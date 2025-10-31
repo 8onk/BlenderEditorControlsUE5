@@ -47,6 +47,9 @@ namespace BlenderControls
 			WrappedMousePosition = StartMousePos;
 		}
 
+
+		UE_LOG(LogTemp, Warning, TEXT("Running"));
+
 		NumericInputProcessor = MakeUnique<FNumericInputProcessor>();
 	}
 

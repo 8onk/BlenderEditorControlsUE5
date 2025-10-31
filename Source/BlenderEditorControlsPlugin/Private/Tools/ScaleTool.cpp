@@ -9,7 +9,7 @@
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 
-// NOTE gizmo automatically sets to local for scaling, since UE doesnt support global mode for scaling
+// NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling unlike this tool
 //TODO when switching from another tool to scale, object origin gets shifted
 
 namespace BlenderControls
@@ -22,6 +22,9 @@ namespace BlenderControls
 	void FScaleTool::OnBegin()
 	{
 		FToolBase::OnBegin();
+
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		Session->GetNumericInputProcessor()->SetUniformScaleMode(true);
 
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(

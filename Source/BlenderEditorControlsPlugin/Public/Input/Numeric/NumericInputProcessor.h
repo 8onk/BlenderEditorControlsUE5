@@ -31,7 +31,7 @@ namespace BlenderControls
 		DECLARE_DELEGATE(FOnExitNumericMode);
 		FOnExitNumericMode OnExitNumericMode;
 
-		void UpdativeActiveNumSlots(int32 NewNumSlots);
+		void UpdateActiveNumSlots(int32 NewNumSlots);
 
 		float GetTotalMagnitude();
 		FString BuildSlotDisplayString(int32 SlotIndex);

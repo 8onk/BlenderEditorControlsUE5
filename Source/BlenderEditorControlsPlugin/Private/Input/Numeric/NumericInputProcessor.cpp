@@ -53,7 +53,7 @@ namespace BlenderControls
 		return false; // Key not handled by numeric system
 	}
 
-	void FNumericInputProcessor::UpdativeActiveNumSlots(int32 NewNumSlots)
+	void FNumericInputProcessor::UpdateActiveNumSlots(int32 NewNumSlots)
 	{
 		CurrentState.NumActiveSlots = NewNumSlots;
 	}
@@ -174,7 +174,6 @@ namespace BlenderControls
 		ActiveSlot.Finalize(FinalValue, bWasSlotEmpty);
 
 		CurrentState.ActiveSlotIndex = (CurrentState.ActiveSlotIndex + 1) % CurrentState.NumActiveSlots;
-		CurrentState.bIsUniformScaleMode = false;
 
 		return true;
 	}

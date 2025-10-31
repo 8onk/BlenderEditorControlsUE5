@@ -7,8 +7,6 @@
 #include "ScopedTransaction.h"
 #include "SLevelViewport.h"
 
-//TODO cant enter trackball rotation mode
-
 namespace BlenderControls
 {
 	FInputProcessor::FInputProcessor(TSharedPtr<FUICommandList> InCommandList)
@@ -24,25 +22,25 @@ namespace BlenderControls
 		CommandList->MapAction(
 			Cmd.CommandTranslate,
 			FExecuteAction::CreateLambda([this]() { OnTransformStart(ETransformMode::Translate); }),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandRotate,
 			FExecuteAction::CreateLambda([this]() { OnTransformStart(ETransformMode::Rotate); }),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandScale,
 			FExecuteAction::CreateLambda([this]() { OnTransformStart(ETransformMode::Scale); }),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 
 		CommandList->MapAction(
 			Cmd.CommandDuplicateAndMove,
 			FExecuteAction::CreateSP(this, &FInputProcessor::DuplicateAndMovePressed),
-			FCanExecuteAction::CreateSP(this, &FInputProcessor::IsSessionValid)
+			FCanExecuteAction::CreateSP(this, &FInputProcessor::CanStartTool)
 		);
 	}
 
@@ -128,14 +126,14 @@ namespace BlenderControls
 
 	// --- Command Handler Implementations ---
 
-	bool FInputProcessor::IsSessionValid() const
+	bool FInputProcessor::CanStartTool() const
 	{
-		return ActiveSession.IsValid();
+		return !ActiveSession.IsValid();
 	}
 
 	void FInputProcessor::OnTransformStart(ETransformMode Mode, bool bDuplicateSelection)
 	{
-		if (IsSessionValid()) return;
+		if (ActiveSession.IsValid()) return;
 
 		ActiveSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
 		ActiveSession->SwitchTool(Mode);

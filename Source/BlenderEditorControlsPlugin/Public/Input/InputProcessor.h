@@ -46,9 +46,8 @@ namespace BlenderControls
 		/** Checks if it's appropriate to handle hotkeys (e.g., viewport is focused). */
 		bool ShouldHandleHotkeys(FSlateApplication& SlateApp) const;
 		bool IsMouseOverLevelViewport() const;
-
-		/** Checks if a transform can be started (i.e., no session is currently active). */
-		bool IsSessionValid() const;
+		
+		bool CanStartTool() const;
 
 		// --- Command Handlers for Starting a Session ---
 		void OnTransformStart(ETransformMode Mode, bool bDuplicateSelection = false);

@@ -50,7 +50,7 @@ namespace BlenderControls
 				NewSlotCount = 3;
 				break;
 			}
-			Session->GetNumericInputProcessor()->UpdativeActiveNumSlots(NewSlotCount);
+			Session->GetNumericInputProcessor()->UpdateActiveNumSlots(NewSlotCount);
 		}
 
 		UpdateToolSettingsForAxisLock();
@@ -627,7 +627,6 @@ namespace BlenderControls
 		Session->bIsAxisLockActive = true;
 		Session->bUsingLocalSpace = bLocalSpaceDefault;
 		Session->LockedAxis = NewAxis;
-		UE_LOG(LogTemp, Log, TEXT("LockedAxis set to: %d"), static_cast<int32>(Session->LockedAxis));
 	}
 
 	void FToolBase::HandleAxisLock(const EAxisLock AxisPressed)
