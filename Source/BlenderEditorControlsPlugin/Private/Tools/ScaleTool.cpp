@@ -129,6 +129,7 @@ namespace BlenderControls
 	void FScaleTool::ApplyNumeric(double Value)
 	{
 		FToolBase::ApplyNumeric(Value);
+		//UE_LOG(LogHAL, Log, TEXT("Apply numeric called!"));
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();

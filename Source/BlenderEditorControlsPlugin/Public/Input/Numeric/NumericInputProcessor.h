@@ -43,9 +43,10 @@ namespace BlenderControls
 		bool HandleTab();
 		bool HandleModifiers(const FKeyEvent& KeyEvent);
 		bool HandleNavigation(const FKey& Key);
+		void HandleScalePropagation();
+		void PropagateUniformScale(int32 SourceSlotIndex);
 
 		// --- State Management ---
 		void EnterNumericMode(const FKeyEvent& KeyEvent);
-		void PropagateUniformScale(int32 SourceSlotIndex);
 	};
 }

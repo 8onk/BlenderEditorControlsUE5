@@ -21,7 +21,7 @@ namespace BlenderControls
 
 		if (CurrentState.Slots.Num() < NewNumSlots)
 		{
-			CurrentState.Slots.SetNum(NewNumSlots); 
+			CurrentState.Slots.SetNum(NewNumSlots);
 		}
 	}
 
@@ -291,6 +291,16 @@ namespace BlenderControls
 		}
 
 		FNumericInputSlot& Slot = CurrentState.Slots[SlotIndex];
+		const bool bIsActiveSlot = (SlotIndex == CurrentState.ActiveSlotIndex);
+
+		//Render master slot for all slave slots if they are empty for scale tool
+		if (CurrentState.ToolContext == EBlenderNumericContext::Scale &&
+			SlotIndex > 0 && 
+			Slot.bIsEmpty && 
+			!bIsActiveSlot)
+		{
+			return BuildSlotDisplayString(0);
+		}
 
 		Slot.DebugPrint();
 
@@ -356,6 +366,26 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::EvaluateSlot(FNumericInputSlot& Slot, float& OutResult) const
 	{
+		if (CurrentState.ToolContext == EBlenderNumericContext::Scale)
+		{
+			int32 CurrentSlotIndex = &Slot - &CurrentState.Slots[0];
+
+			if (CurrentSlotIndex > 0 && Slot.bIsEmpty)
+			{
+				if (CurrentState.ActiveSlotIndex == CurrentSlotIndex)
+				{
+					OutResult = 1.0f;
+					Slot.LastValidValue = 1.0f;
+					return true;
+				}
+				else
+				{
+					FNumericInputSlot& MasterSlot = const_cast<FNumericInputSlot&>(CurrentState.Slots[0]);
+					return EvaluateSlot(MasterSlot, OutResult);
+				}
+			}
+		}
+
 		float ParsedValue = 0.f;
 
 		// 1. Get value from parser
