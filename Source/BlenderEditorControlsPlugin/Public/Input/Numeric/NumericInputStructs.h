@@ -78,7 +78,7 @@ namespace BlenderControls
 		bool bIsUniformScaleMode = false;
 		bool bIsEquationMode = false;
 		EBlenderNumericContext ToolContext = EBlenderNumericContext::Distance;
-		EBlenderNumericContext PreviousContext = EBlenderNumericContext::Distance;
+		EBlenderNumericContext InitialContext = EBlenderNumericContext::Distance;
 
 		void Initialize(int32 NumSlots, EBlenderNumericContext Context)
 		{
@@ -92,7 +92,7 @@ namespace BlenderControls
 			bIsInNumericMode = false;
 			bIsUniformScaleMode = false; // Must be set true by ScaleTool
 			ToolContext = Context;
-			PreviousContext = Context;
+			InitialContext = Context;
 		}
 
 		void DebugPrint() const
@@ -104,7 +104,7 @@ namespace BlenderControls
 				bIsUniformScaleMode,
 				bIsEquationMode
 			);
-			UE_LOG(LogTemp, Warning, TEXT("ToolContext=%d, PreviousContext=%d"), (int32)ToolContext, (int32)PreviousContext);
+			UE_LOG(LogTemp, Warning, TEXT("ToolContext=%d, InitialContext=%d"), (int32)ToolContext, (int32)InitialContext);
 
 			for (int32 i = 0; i < Slots.Num(); ++i)
 			{

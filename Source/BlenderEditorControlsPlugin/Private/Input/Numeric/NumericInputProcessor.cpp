@@ -12,16 +12,19 @@ namespace BlenderControls
 	void FNumericInputProcessor::OnToolSwitch(int32 NewNumSlots, EBlenderNumericContext NewContext,
 	                                          const FBlenderNumericState& OldState)
 	{
-		EBlenderNumericContext PreviousContext = OldState.ToolContext;
 		CurrentState = OldState;
 		CurrentState.ToolContext = NewContext;
-		CurrentState.PreviousContext = PreviousContext;
 		CurrentState.NumActiveSlots = NewNumSlots;
 		CurrentState.ActiveSlotIndex = FMath::Min(CurrentState.ActiveSlotIndex, NewNumSlots);
 
 		if (CurrentState.Slots.Num() < NewNumSlots)
 		{
 			CurrentState.Slots.SetNum(NewNumSlots);
+		}
+
+		if (CurrentState.Slots[CurrentState.ActiveSlotIndex].RawString.IsEmpty())
+		{
+			CurrentState.InitialContext = NewContext;
 		}
 	}
 
@@ -103,7 +106,7 @@ namespace BlenderControls
 	{
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
-		ActiveSlot.DebugPrint();
+		//ActiveSlot.DebugPrint();
 
 		if (ActiveSlot.RawString.Len() > 0 && ActiveSlot.CursorIndex > 0)
 		{
@@ -240,7 +243,22 @@ namespace BlenderControls
 		{
 			// "Flatten" the state, just like Backspace does
 			ActiveSlot.bIsAdditive = false;
-			ActiveSlot.RawString = FString::SanitizeFloat(ActiveSlot.BaseValue) + TEXT("cm");
+
+			FString Suffix;
+			switch (CurrentState.ToolContext)
+			{
+			case EBlenderNumericContext::Angle_Degrees:
+				Suffix = TEXT("°");
+				break;
+			case EBlenderNumericContext::Distance:
+				Suffix = TEXT("cm");
+				break;
+			case EBlenderNumericContext::Scale:
+			default:
+				Suffix = TEXT("");
+				break;
+			}
+			ActiveSlot.RawString = FString::SanitizeFloat(ActiveSlot.BaseValue) + Suffix;
 			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
 			ActiveSlot.BaseValue = 0.f;
 		}
@@ -295,14 +313,14 @@ namespace BlenderControls
 
 		//Render master slot for all slave slots if they are empty for scale tool
 		if (CurrentState.ToolContext == EBlenderNumericContext::Scale &&
-			SlotIndex > 0 && 
-			Slot.bIsEmpty && 
+			SlotIndex > 0 &&
+			Slot.bIsEmpty &&
 			!bIsActiveSlot)
 		{
 			return BuildSlotDisplayString(0);
 		}
 
-		Slot.DebugPrint();
+		//Slot.DebugPrint();
 
 		// State 1: |NONE|
 		if (Slot.bIsEmpty)
@@ -318,14 +336,19 @@ namespace BlenderControls
 			// Additive prefix: [45 m 
 			if (Slot.bIsAdditive)
 			{
-				// Note: This BaseValue needs to be formatted in its *original* context
 				float BaseForDisplay = Slot.BaseValue;
-				if (CurrentState.PreviousContext != CurrentState.ToolContext)
+				EBlenderNumericContext ContextForFormatting = CurrentState.InitialContext;
+				if (CurrentState.ToolContext == EBlenderNumericContext::Scale)
 				{
-					BaseForDisplay = FUnitFormatter::ConvertOnToolSwitch(
-						BaseForDisplay, CurrentState.PreviousContext, CurrentState.ToolContext);
+					if (CurrentState.InitialContext != EBlenderNumericContext::Scale)
+					{
+						BaseForDisplay = FUnitFormatter::ConvertOnToolSwitch(
+							BaseForDisplay, CurrentState.InitialContext, EBlenderNumericContext::Scale);
+					}
+					ContextForFormatting = EBlenderNumericContext::Scale;
 				}
-				InnerDisplayString += FUnitFormatter::FormatValue(BaseForDisplay, CurrentState.ToolContext);
+
+				InnerDisplayString += FUnitFormatter::FormatValue(BaseForDisplay, ContextForFormatting);
 			}
 
 			// RawString with cursor
@@ -397,13 +420,11 @@ namespace BlenderControls
 
 		// 2. Handle conversion from previous tool
 		float BaseValue = Slot.BaseValue;
-		if (CurrentState.PreviousContext != CurrentState.ToolContext)
+		if (CurrentState.InitialContext != CurrentState.ToolContext)
 		{
-			// We've switched tools. We must convert the BaseValue and ParsedValue
-			// e.g., Move (Meters) -> Rotate (Degrees)
-			BaseValue = FUnitFormatter::ConvertOnToolSwitch(BaseValue, CurrentState.PreviousContext,
+			BaseValue = FUnitFormatter::ConvertOnToolSwitch(BaseValue, CurrentState.InitialContext,
 			                                                CurrentState.ToolContext);
-			ParsedValue = FUnitFormatter::ConvertOnToolSwitch(ParsedValue, CurrentState.PreviousContext,
+			ParsedValue = FUnitFormatter::ConvertOnToolSwitch(ParsedValue, CurrentState.InitialContext,
 			                                                  CurrentState.ToolContext);
 		}
 
@@ -413,7 +434,7 @@ namespace BlenderControls
 		// 4. Apply Modifiers
 		if (Slot.bIsReciprocal)
 		{
-			if (FMath::IsNearlyZero(Value)) return false; // Divide by zero
+			if (FMath::IsNearlyZero(Value)) return false;
 			Value = 1.0f / Value;
 		}
 		if (Slot.bIsNegative)
