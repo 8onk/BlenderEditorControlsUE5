@@ -44,7 +44,7 @@ namespace BlenderControls
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
-		CursorBrush = BlenderControls::FStyle::Get().GetBrush(
+		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 
 		HudWidget->SetCursorBrush(CursorBrush);
@@ -114,6 +114,7 @@ namespace BlenderControls
 		FVector SnappedScaleMultiplier = FinalScaleMultiplier;
 		if (bSnappingEnabled)
 		{
+			UE_LOG(LogTemp, Log, TEXT("true"));
 			const float SnappingIncrement = GEditor->GetScaleGridSize();
 			SnappedScaleMultiplier.X = FMath::GridSnap(FinalScaleMultiplier.X, SnappingIncrement);
 			SnappedScaleMultiplier.Y = FMath::GridSnap(FinalScaleMultiplier.Y, SnappingIncrement);
@@ -121,7 +122,6 @@ namespace BlenderControls
 		}
 
 		VirtualPivot->Scale(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
-
 		UpdateHud();
 	}
 
@@ -143,14 +143,17 @@ namespace BlenderControls
 		if (State.Slots.IsValidIndex(0))
 		{
 			Processor->EvaluateSlot(State.Slots[0], Slot0);
+			UE_LOG(LogTemp, Warning, TEXT("Slot0 value: %f"), Slot0);
 		}
 		if (State.Slots.IsValidIndex(1))
 		{
 			Processor->EvaluateSlot(State.Slots[1], Slot1);
+			UE_LOG(LogTemp, Warning, TEXT("Slot1 value: %f"), Slot1);
 		}
 		if (State.Slots.IsValidIndex(2))
 		{
 			Processor->EvaluateSlot(State.Slots[2], Slot2);
+			UE_LOG(LogTemp, Warning, TEXT("Slot2 value: %f"), Slot2);
 		}
 
 		switch (Session->GetLockedAxis())
@@ -184,22 +187,12 @@ namespace BlenderControls
 		}
 
 		VirtualPivot->Scale(ScaleMultiplier, Session->IsUsingLocalSpace());
-		UpdateHud();
 	}
 
 	void FScaleTool::UpdateHud()
 	{
 		FToolBase::UpdateHud();
 	}
-
-	//
-	// void FScaleTool::UpdateHud()
-	// {  
-	// 	if (!VirtualPivot || !HudWidget.IsValid() || !VirtualPivot->GetActiveElement().Actor)
-	// 	{
-	// 		return;
-	// 	}
-	// }
 
 	void FScaleTool::OnEnd(const bool bApply)
 	{

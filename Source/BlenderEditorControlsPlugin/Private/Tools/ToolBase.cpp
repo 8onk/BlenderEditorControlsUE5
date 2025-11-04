@@ -514,8 +514,6 @@ namespace BlenderControls
 	{
 		if (!bIsToolActive) return;
 
-		UpdateHud();
-
 		if (!Viewport || !ViewportClient || !VirtualPivot) return;
 
 		CurrentViewportMousePos = CurrentViewportMousePosition;

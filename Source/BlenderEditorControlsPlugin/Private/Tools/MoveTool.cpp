@@ -235,6 +235,7 @@ namespace BlenderControls
 		}
 
 		VirtualPivot->Translate(Session->IsUsingLocalSpace(), Session->GetLockedAxis(), LiveDelta);
+		UpdateHud();
 	}
 
 	void FMoveTool::ApplyNumeric(double Value)

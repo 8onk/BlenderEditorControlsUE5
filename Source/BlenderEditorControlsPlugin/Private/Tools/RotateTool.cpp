@@ -131,7 +131,7 @@ namespace BlenderControls
 			LastDragVector = CurrentDragVector;
 		}
 
-		// UpdateHud();
+		UpdateHud();
 	}
 
 
@@ -169,7 +169,6 @@ namespace BlenderControls
 			// Check for zero rotation to avoid issues with GetSafeNormal()
 			if (FMath::IsNearlyZero(RotationAngle))
 			{
-				UpdateHud();
 				return;
 			}
 
@@ -193,7 +192,6 @@ namespace BlenderControls
 			const double RadiansToRotate = FMath::DegreesToRadians(Slot0);
 			VirtualPivot->Rotate(GrabContext, RadiansToRotate, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
 		}
-		UpdateHud();
 	}
 
 	void FRotateTool::UpdateHud()
