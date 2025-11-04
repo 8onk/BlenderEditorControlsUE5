@@ -111,18 +111,19 @@ namespace BlenderControls
 
 		if (ActiveSlot.RawString.Len() > 0 && ActiveSlot.CursorIndex > 0)
 		{
-			// Case 1: Deleting from RawString
 			ActiveSlot.RawString.RemoveAt(ActiveSlot.CursorIndex - 1);
 			ActiveSlot.CursorIndex--;
 		}
 		else if (ActiveSlot.bIsAdditive)
 		{
-			// Case 2: We are in [45 m |] and hit backspace
-			//PERHAPS NEED TO STORE UNIT AND RETRIEVE IT, otheriwse, when we subtract 45 cm, we get 45. 
 			ActiveSlot.bIsAdditive = false;
-			ActiveSlot.RawString = FString::SanitizeFloat(ActiveSlot.BaseValue);
+			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.ToolContext);
 			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
 			ActiveSlot.BaseValue = 0.f;
+
+			//Subtract immediately the fetched string
+			ActiveSlot.RawString.RemoveAt(ActiveSlot.CursorIndex - 1);
+			ActiveSlot.CursorIndex--;
 		}
 		else if (!ActiveSlot.bIsEmpty)
 		{
@@ -249,22 +250,7 @@ namespace BlenderControls
 		{
 			// "Flatten" the state, just like Backspace does
 			ActiveSlot.bIsAdditive = false;
-
-			FString Suffix;
-			switch (CurrentState.ToolContext)
-			{
-			case EBlenderNumericContext::Angle_Degrees:
-				Suffix = TEXT("°");
-				break;
-			case EBlenderNumericContext::Distance:
-				Suffix = TEXT("cm");
-				break;
-			case EBlenderNumericContext::Scale:
-			default:
-				Suffix = TEXT("");
-				break;
-			}
-			ActiveSlot.RawString = FString::SanitizeFloat(ActiveSlot.BaseValue) + Suffix;
+			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.ToolContext);
 			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
 			ActiveSlot.BaseValue = 0.f;
 		}

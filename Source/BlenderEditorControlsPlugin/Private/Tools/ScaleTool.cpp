@@ -114,13 +114,12 @@ namespace BlenderControls
 		FVector SnappedScaleMultiplier = FinalScaleMultiplier;
 		if (bSnappingEnabled)
 		{
-			UE_LOG(LogTemp, Log, TEXT("true"));
 			const float SnappingIncrement = GEditor->GetScaleGridSize();
 			SnappedScaleMultiplier.X = FMath::GridSnap(FinalScaleMultiplier.X, SnappingIncrement);
 			SnappedScaleMultiplier.Y = FMath::GridSnap(FinalScaleMultiplier.Y, SnappingIncrement);
 			SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
 		}
-
+		
 		VirtualPivot->Scale(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
 		UpdateHud();
 	}
@@ -143,17 +142,14 @@ namespace BlenderControls
 		if (State.Slots.IsValidIndex(0))
 		{
 			Processor->EvaluateSlot(State.Slots[0], Slot0);
-			UE_LOG(LogTemp, Warning, TEXT("Slot0 value: %f"), Slot0);
 		}
 		if (State.Slots.IsValidIndex(1))
 		{
 			Processor->EvaluateSlot(State.Slots[1], Slot1);
-			UE_LOG(LogTemp, Warning, TEXT("Slot1 value: %f"), Slot1);
 		}
 		if (State.Slots.IsValidIndex(2))
 		{
 			Processor->EvaluateSlot(State.Slots[2], Slot2);
-			UE_LOG(LogTemp, Warning, TEXT("Slot2 value: %f"), Slot2);
 		}
 
 		switch (Session->GetLockedAxis())
@@ -186,7 +182,8 @@ namespace BlenderControls
 			break;
 		}
 
-		VirtualPivot->Scale(ScaleMultiplier, Session->IsUsingLocalSpace());
+		bool bUsingLocalSpace = Session->GetLockedAxis() == EAxisLock::All ? true : Session->IsUsingLocalSpace();
+		VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
 	}
 
 	void FScaleTool::UpdateHud()

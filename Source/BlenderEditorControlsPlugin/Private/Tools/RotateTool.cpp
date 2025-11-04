@@ -416,6 +416,8 @@ namespace BlenderControls
 				HudWidget->SetCursorBrush(CursorBrush);
 				HudWidget->SetCursorOrientation(ECursorOrient::None);
 				ClearAxisGizmos();
+				ApplyNumeric();
+				UpdateHud();
 			}
 			else
 			{
@@ -428,8 +430,6 @@ namespace BlenderControls
 
 			bTrackballModeEnabled = bEnabled;
 		}
-
-		ApplyNumeric();
 	}
 
 	bool FRotateTool::GetTrackballRotationMode()
