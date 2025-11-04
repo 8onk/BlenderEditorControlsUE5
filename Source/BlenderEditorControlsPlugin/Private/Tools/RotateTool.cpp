@@ -140,7 +140,10 @@ namespace BlenderControls
 		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
-		if (!Processor) return;
+		if (!Processor)
+		{
+			return;
+		}
 		FBlenderNumericState& State = Processor->CurrentState;
 
 		if (bTrackballModeEnabled)
@@ -177,7 +180,6 @@ namespace BlenderControls
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
 			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
-			UpdateHud();
 		}
 		else
 		{
@@ -190,8 +192,8 @@ namespace BlenderControls
 
 			const double RadiansToRotate = FMath::DegreesToRadians(Slot0);
 			VirtualPivot->Rotate(GrabContext, RadiansToRotate, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
-			UpdateHud();
 		}
+		UpdateHud();
 	}
 
 	void FRotateTool::UpdateHud()
@@ -411,23 +413,25 @@ namespace BlenderControls
 		{
 			if (bEnabled)
 			{
-				CursorBrush = BlenderControls::FStyle::Get().GetBrush(
+				CursorBrush = FStyle::Get().GetBrush(
 					TEXT("BlenderEditorControls.Cursors.Trackball"));
 				HudWidget->SetCursorBrush(CursorBrush);
 				HudWidget->SetCursorOrientation(ECursorOrient::None);
+				ClearAxisGizmos();
 			}
 			else
 			{
-				CursorBrush = BlenderControls::FStyle::Get().GetBrush(
+				CursorBrush = FStyle::Get().GetBrush(
 					TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 				HudWidget->SetCursorBrush(CursorBrush);
 				HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
+				UpdateAxisLock();
 			}
 
 			bTrackballModeEnabled = bEnabled;
-
-			UpdateAxisLock();
 		}
+
+		ApplyNumeric();
 	}
 
 	bool FRotateTool::GetTrackballRotationMode()

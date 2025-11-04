@@ -16,14 +16,12 @@ namespace BlenderControls
 
 		/* ---------- FToolBase overrides ---------- */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
-		virtual void ApplyNumeric(double Value) override;
+		virtual void ApplyNumeric(double Value = 0.0f) override;
 		virtual void UpdateHud() override;
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
 		virtual FText GetNumericHudText() const override;
-
-		void SetTrackBallMode(const bool InTrackBallMode) { bTrackballModeEnabled = InTrackBallMode; }
 
 		virtual void HandleAxisLock(EAxisLock AxisPressed) override;
 

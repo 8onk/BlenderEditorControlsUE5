@@ -10,7 +10,6 @@
 #include "UI/TransformHUD.h"
 
 // NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling unlike this tool
-//TODO when switching from another tool to scale, object origin gets shifted
 
 namespace BlenderControls
 {
@@ -129,7 +128,6 @@ namespace BlenderControls
 	void FScaleTool::ApplyNumeric(double Value)
 	{
 		FToolBase::ApplyNumeric(Value);
-		//UE_LOG(LogHAL, Log, TEXT("Apply numeric called!"));
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();

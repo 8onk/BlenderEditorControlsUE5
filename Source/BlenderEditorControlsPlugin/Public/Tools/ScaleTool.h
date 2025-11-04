@@ -31,7 +31,7 @@ namespace BlenderControls
 		float InitialMouseToPivotDistance;
 		float LastMouseToPivotDistance;
 		float CurrentMouseToPivotDistance;
-		float ScaleFactor;
+		float ScaleFactor = 1.0f;
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
 

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Enums.h"
+#include "Input/Numeric/NumericInputProcessor.h"
 
 struct FKeyEvent;
 struct FPointerEvent;
@@ -47,7 +48,13 @@ namespace BlenderControls
 		EAxisLock GetLockedAxis() const { return LockedAxis; }
 		bool IsUsingLocalSpace() const { return bUsingLocalSpace; }
 		bool IsAxisLockActive() const { return bIsAxisLockActive; }
-		bool IsNumericInputActive() const { return bIsNumericInputActive; }
+
+		bool IsNumericInputActive() const
+		{
+			if (NumericInputProcessor.IsValid()) return NumericInputProcessor->IsInNumericMode();
+			else return false;
+		}
+
 		const TArray<TWeakObjectPtr<AActor>>& GetSelectedActors() const { return SelectedActors; }
 		const FVector2D& GetVirtualMousePos() const { return VirtualMousePosition; }
 		const FVector2D& GetWrappedCursorPos() const { return WrappedMousePosition; }
@@ -84,7 +91,6 @@ namespace BlenderControls
 		bool bIsAxisLockActive = false;
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
 		int32 CurrentNumericSlotIndex = 0;
-		bool bIsNumericInputActive = false;
 		FVector2D VirtualMousePosition;
 		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
 		FVector2D WrappedMousePosition = FVector2D::ZeroVector;

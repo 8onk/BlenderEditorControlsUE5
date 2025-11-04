@@ -99,11 +99,7 @@ namespace BlenderControls
 	{
 		if (ActiveMode == NewMode && CurrentTool.IsValid()) return;
 
-		if (CurrentTool.IsValid())
-		{
-			CurrentTool->OnEnd(false);
-		}
-
+		//Capture OldState for NumericProcessor and EndTool 
 		FBlenderNumericState OldState;
 		if (CurrentTool.IsValid())
 		{
@@ -150,6 +146,11 @@ namespace BlenderControls
 			else
 			{
 				NumericInputProcessor->OnToolSwitch(NumNumericSlots, NumericContext, OldState);
+			}
+
+			if (NumericInputProcessor->IsInNumericMode())
+			{
+				CurrentTool->ApplyNumeric();
 			}
 
 			if (!ScopedTransaction)

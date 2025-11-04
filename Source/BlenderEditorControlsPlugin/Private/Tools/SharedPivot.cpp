@@ -277,7 +277,7 @@ namespace BlenderControls
 		{
 			if (Child.Actor)
 			{
-				Child.Actor->SetActorTransform(Child.Transform);
+				const FVector TargetStartLoc = Child.Transform.GetLocation();
 			}
 		}
 

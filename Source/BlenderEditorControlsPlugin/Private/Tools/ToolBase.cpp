@@ -58,7 +58,7 @@ namespace BlenderControls
 		RedrawAxisLines();
 
 		// Refresh
-		if (Session->bIsNumericInputActive)
+		if (Session->IsNumericInputActive())
 		{
 			ApplyNumeric();
 		}
@@ -83,12 +83,7 @@ namespace BlenderControls
 		checkf(OwningSession.IsValid(), TEXT("RedrawAxisLines: Session was invalid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		// Clear any previous gizmos first
-		for (auto& Giz : AxisGizmos)
-		{
-			if (Giz.IsValid()) Giz->DestroyComponent();
-		}
-		AxisGizmos.Empty();
+		ClearAxisGizmos();
 
 		auto AddAxis = [&](EAxisLock Axis, const FChildInfo* ChildInfo)
 		{
@@ -190,6 +185,15 @@ namespace BlenderControls
 		}
 	}
 
+	void FToolBase::ClearAxisGizmos()
+	{
+		for (auto& Giz : AxisGizmos)
+		{
+			if (Giz.IsValid()) Giz->DestroyComponent();
+		}
+		AxisGizmos.Empty();
+	}
+	
 	void FToolBase::OnExitNumericMode()
 	{
 		OnActive(CurrentViewportMousePos);
@@ -411,12 +415,12 @@ namespace BlenderControls
 			ClearDrawnAxisLines();
 			UpdateAxisLock();
 		}
-
-		// Restore numeric mode
-		if (Session->IsNumericInputActive())
-		{
-			ApplyNumeric();
-		}
+		//
+		// // Restore numeric mode
+		// if (Session->IsNumericInputActive())
+		// {
+		// 	ApplyNumeric();
+		// }
 	}
 
 	void FToolBase::OnBegin()
@@ -538,8 +542,6 @@ namespace BlenderControls
 		MouseDelta = FVector2D::ZeroVector;
 		CurrentMousePosition = FVector2D::ZeroVector;
 
-		VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
-
 		ViewportClient->SetWidgetMode(InitialWidgetMode);
 		constexpr bool bShowWidget = true;
 		ViewportClient->ShowWidget(bShowWidget);
@@ -559,6 +561,7 @@ namespace BlenderControls
 		{
 			VirtualPivot->RevertToStartState();
 		}
+		VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
 
 		//Force the editor to redraw gizmos so that they are up to date 
 		if (GEditor)
@@ -604,19 +607,10 @@ namespace BlenderControls
 
 		bSnappingEnabled = bNewSnappingEnabled;
 
-		if (!Session->bIsNumericInputActive)
+		if (!Session->IsNumericInputActive())
 		{
 			OnActive(CurrentMousePosition);
 		}
-	}
-
-	void FToolBase::SetTrackballRotationMode(const bool bEnabled)
-	{
-	}
-
-	bool FToolBase::GetTrackballRotationMode()
-	{
-		return false;
 	}
 
 	void FToolBase::StartNewLock(const EAxisLock NewAxis) const

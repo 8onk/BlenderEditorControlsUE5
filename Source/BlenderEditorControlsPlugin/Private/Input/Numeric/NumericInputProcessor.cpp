@@ -22,7 +22,8 @@ namespace BlenderControls
 			CurrentState.Slots.SetNum(NewNumSlots);
 		}
 
-		if (CurrentState.Slots[CurrentState.ActiveSlotIndex].RawString.IsEmpty())
+		if (CurrentState.Slots[CurrentState.ActiveSlotIndex].RawString.IsEmpty() && !CurrentState.Slots[CurrentState.
+			ActiveSlotIndex].bIsAdditive)
 		{
 			CurrentState.InitialContext = NewContext;
 		}
@@ -175,6 +176,11 @@ namespace BlenderControls
 		EvaluateSlot(ActiveSlot, FinalValue);
 
 		ActiveSlot.Finalize(FinalValue, bWasSlotEmpty);
+
+		if (CurrentState.InitialContext != CurrentState.ToolContext)
+		{
+			CurrentState.InitialContext = CurrentState.ToolContext;
+		}
 
 		CurrentState.ActiveSlotIndex = (CurrentState.ActiveSlotIndex + 1) % CurrentState.NumActiveSlots;
 

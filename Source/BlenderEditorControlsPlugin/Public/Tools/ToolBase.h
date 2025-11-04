@@ -82,6 +82,7 @@ namespace BlenderControls
 		FVector GetAxisVector(EAxisLock InAxis) const;
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual FText GetLiveHudText() const = 0;
+		void ClearAxisGizmos();
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock)
 		{
