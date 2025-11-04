@@ -27,22 +27,6 @@ namespace BlenderControls
 		{
 			CurrentState.InitialContext = NewContext;
 		}
-
-		// if (NewContext != EBlenderNumericContext::Scale && CurrentState.bIsUniformScaleMode)
-		// {
-		// 	CurrentState.bIsUniformScaleMode = false;
-		//
-		// 	// if (OldState.bIsUniformScaleMode && NewContext != EBlenderNumericContext::Scale)
-		// 	// {
-		// 	// 	if (CurrentState.Slots.Num() > 1)
-		// 	// 	{
-		// 	// 		for (int32 i = 1; i < CurrentState.Slots.Num(); ++i)
-		// 	// 		{
-		// 	// 			CurrentState.Slots[i].Reset();
-		// 	// 		}
-		// 	// 	}
-		// 	// }
-		// }
 	}
 
 
@@ -241,7 +225,7 @@ namespace BlenderControls
 		// --- Simple Modifiers ---
 		if (CurrentState.bIsEquationMode) return false; // Handled by HandleCharacter
 
-		if (Char == TEXT("Hyphen"))
+		if (Char == TEXT("Hyphen") || Char == TEXT("Num -"))
 		{
 			if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false; // Activate slot
 			ActiveSlot.bIsNegative = !ActiveSlot.bIsNegative;
@@ -262,12 +246,19 @@ namespace BlenderControls
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 		if (ActiveSlot.bIsEmpty) return false;
 
-		if (ActiveSlot.bIsAdditive)
+		if (ActiveSlot.bIsAdditive && ActiveSlot.RawString.IsEmpty())
 		{
-			// "Flatten" the state, just like Backspace does
 			ActiveSlot.bIsAdditive = false;
 			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.ToolContext);
 			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
+			ActiveSlot.BaseValue = 0.f;
+		}
+		else if (ActiveSlot.bIsAdditive && !ActiveSlot.RawString.IsEmpty())
+		{
+			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.InitialContext) +
+				ActiveSlot.RawString;
+			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
+			ActiveSlot.bIsAdditive = false;
 			ActiveSlot.BaseValue = 0.f;
 		}
 
@@ -353,7 +344,6 @@ namespace BlenderControls
 						BaseForDisplay = FUnitFormatter::ConvertOnToolSwitch(
 							BaseForDisplay, CurrentState.InitialContext, EBlenderNumericContext::Scale);
 					}
-					ContextForFormatting = EBlenderNumericContext::Scale;
 				}
 
 				InnerDisplayString += FUnitFormatter::FormatValue(BaseForDisplay, ContextForFormatting);

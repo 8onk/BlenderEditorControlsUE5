@@ -52,9 +52,32 @@ namespace BlenderControls
 			return true;
 		}
 
+		FRegexPattern NumberPattern(TEXT("(-?\\d*\\.?\\d+)")); // Matches ints and floats
+		FRegexMatcher Matcher(NumberPattern, RawString);
+
+		float Sum = 0.f;
+		int32 NumberCount = 0;
+
+		while (Matcher.FindNext())
+		{
+			++NumberCount;
+
+			FString NumberStr = Matcher.GetCaptureGroup(0);
+			float Value = FCString::Atof(*NumberStr);
+
+			Sum += Value;
+		}
+
+		if ((NumberCount == 2 || NumberCount == 1) && RawString.Contains(" cm") || RawString.Contains("°"))
+		{
+			OutResult = Sum;
+			return true;
+		}
+
 		// Check for invalid "4 4"
 		if (Trimmed.Contains(TEXT(" ")) && !Trimmed.EndsWith(TEXT(" ")))
 		{
+			UE_LOG(LogTemp, Log, TEXT("INVALID"));
 			return false;
 		}
 
@@ -85,8 +108,7 @@ namespace BlenderControls
 	bool FNumericParser::EvaluateEquation(const FString& RawString, float& OutResult)
 	{
 		// =================================================================
-		// !! CRITICAL !!
-		// You MUST implement a real C++ math expression parser here.
+		// implement a real C++ math expression parser here (maybe)
 		// This is a placeholder.
 		// Look into "Shunting-yard algorithm" or libraries like "ExprTk".
 		// =================================================================
