@@ -27,6 +27,22 @@ namespace BlenderControls
 		{
 			CurrentState.InitialContext = NewContext;
 		}
+
+		// if (NewContext != EBlenderNumericContext::Scale && CurrentState.bIsUniformScaleMode)
+		// {
+		// 	CurrentState.bIsUniformScaleMode = false;
+		//
+		// 	// if (OldState.bIsUniformScaleMode && NewContext != EBlenderNumericContext::Scale)
+		// 	// {
+		// 	// 	if (CurrentState.Slots.Num() > 1)
+		// 	// 	{
+		// 	// 		for (int32 i = 1; i < CurrentState.Slots.Num(); ++i)
+		// 	// 		{
+		// 	// 			CurrentState.Slots[i].Reset();
+		// 	// 		}
+		// 	// 	}
+		// 	// }
+		// }
 	}
 
 

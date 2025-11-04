@@ -11,7 +11,8 @@
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
 
-//TODO: make GetSnapOffset abstract
+//TODO: Mouse wrapping offsets the cursor slightly, due to the virtual cursor origin.
+//TODO: do something about the GetSnapOffset abstract function
 namespace BlenderControls
 {
 	FToolBase::FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,

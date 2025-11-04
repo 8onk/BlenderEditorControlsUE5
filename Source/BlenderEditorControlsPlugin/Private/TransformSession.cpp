@@ -153,6 +153,8 @@ namespace BlenderControls
 				CurrentTool->ApplyNumeric();
 			}
 
+			CurrentTool->UpdateHud();
+
 			if (!ScopedTransaction)
 			{
 				InitializeTransaction(CurrentTool->GetDisplayName());
