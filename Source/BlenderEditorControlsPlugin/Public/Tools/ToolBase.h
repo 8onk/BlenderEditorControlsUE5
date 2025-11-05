@@ -19,7 +19,7 @@ namespace BlenderControls
 	public:
 		FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
 		          const FString& InDisplayName);
-		virtual ~FToolBase();
+		virtual ~FToolBase() = default;
 
 		/** Per-frame update from input-processor */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;
@@ -54,8 +54,8 @@ namespace BlenderControls
 		void SetSnappingEnabled(bool bNewSnappingEnabled);
 		bool IsSnappingEnabled() const { return bSnappingEnabled; }
 
-		virtual void SetTrackballRotationMode(const bool bEnabled);
-		virtual bool GetTrackballRotationMode();
+		virtual void SetTrackballRotationMode(const bool bEnabled) {}
+		virtual bool GetTrackballRotationMode() {return false;}
 
 		virtual void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;

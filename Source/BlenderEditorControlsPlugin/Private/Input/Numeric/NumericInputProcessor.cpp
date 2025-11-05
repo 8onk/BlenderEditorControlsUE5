@@ -2,6 +2,7 @@
 #include "Input/Numeric/Helpers/NumericParser.h"
 #include "Input/Numeric/Helpers/UnitFormatter.h"
 
+
 namespace BlenderControls
 {
 	void FNumericInputProcessor::Initialize(int32 NumSlots, EBlenderNumericContext Context)
@@ -117,7 +118,7 @@ namespace BlenderControls
 		else if (ActiveSlot.bIsAdditive)
 		{
 			ActiveSlot.bIsAdditive = false;
-			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.ToolContext);
+			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.InitialContext);
 			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
 			ActiveSlot.BaseValue = 0.f;
 
@@ -249,7 +250,7 @@ namespace BlenderControls
 		if (ActiveSlot.bIsAdditive && ActiveSlot.RawString.IsEmpty())
 		{
 			ActiveSlot.bIsAdditive = false;
-			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.ToolContext);
+			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.InitialContext);
 			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
 			ActiveSlot.BaseValue = 0.f;
 		}
@@ -337,15 +338,6 @@ namespace BlenderControls
 			{
 				float BaseForDisplay = Slot.BaseValue;
 				EBlenderNumericContext ContextForFormatting = CurrentState.InitialContext;
-				if (CurrentState.ToolContext == EBlenderNumericContext::Scale)
-				{
-					if (CurrentState.InitialContext != EBlenderNumericContext::Scale)
-					{
-						BaseForDisplay = FUnitFormatter::ConvertOnToolSwitch(
-							BaseForDisplay, CurrentState.InitialContext, EBlenderNumericContext::Scale);
-					}
-				}
-
 				InnerDisplayString += FUnitFormatter::FormatValue(BaseForDisplay, ContextForFormatting);
 			}
 

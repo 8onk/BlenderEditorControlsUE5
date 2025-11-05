@@ -21,11 +21,6 @@ namespace BlenderControls
 	{
 	}
 
-	FToolBase::~FToolBase()
-	{
-		UE_LOG(LogTemp, Warning, TEXT("~FToolBaseToolBase"));
-	}
-
 	void FToolBase::UpdateAxisLock()
 	{
 		checkf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
@@ -680,16 +675,6 @@ namespace BlenderControls
 		}
 
 		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
-
-		// Reset pivot to start location
-
-		// Abort undo-tracking
-		// if (ParentTxn)
-		// {
-		// 	ParentTxn->Cancel();
-		// 	ParentTxn.Reset();
-		// }
-
 		OnEnd(/*bApply=*/false);
 	}
 

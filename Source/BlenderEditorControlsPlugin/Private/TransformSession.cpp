@@ -22,7 +22,7 @@ namespace BlenderControls
 			return;
 		}
 
-		InitializePivot();
+		bStartedWithDuplicate = bDuplicateSelection;
 
 		if (bDuplicateSelection)
 		{
@@ -32,10 +32,11 @@ namespace BlenderControls
 			if (World)
 			{
 				ULevel* Level = World->GetCurrentLevel();
-				constexpr bool bOffsetLocations = false; // Blender parity
+				constexpr bool bOffsetLocations = false;
 				GEditor->edactDuplicateSelected(Level, bOffsetLocations);
 			}
 		}
+		InitializePivot();
 
 		if (FViewport* Viewport = GEditor->GetActiveViewport())
 		{
@@ -46,9 +47,6 @@ namespace BlenderControls
 			VirtualMousePosition = StartMousePos;
 			WrappedMousePosition = StartMousePos;
 		}
-
-
-		UE_LOG(LogTemp, Warning, TEXT("Running"));
 
 		NumericInputProcessor = MakeUnique<FNumericInputProcessor>();
 	}
@@ -61,7 +59,6 @@ namespace BlenderControls
 		}
 
 		NumericInputProcessor.Reset();
-		UE_LOG(LogTemp, Warning, TEXT("~FTransformSession"));
 	}
 
 	void FTransformSession::InitializePivot()
@@ -187,12 +184,14 @@ namespace BlenderControls
 			else
 			{
 				CurrentTool->Cancel();
-				//Abort Transaction
-				ScopedTransaction->Cancel();
+
+				if (!bStartedWithDuplicate)
+				{
+					ScopedTransaction->Cancel();
+				}
 				ScopedTransaction.Reset();
 			}
 		}
-
 
 		bIsFinished = true;
 	}

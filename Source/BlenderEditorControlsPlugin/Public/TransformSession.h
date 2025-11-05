@@ -80,6 +80,7 @@ namespace BlenderControls
 
 		TUniquePtr<FNumericInputProcessor> NumericInputProcessor;
 		bool bIsFirstTool = true;
+		bool bStartedWithDuplicate = false;
 
 		/** The pivot point manager for the selected actors. */
 		TSharedPtr<FSharedPivot> VirtualPivot;

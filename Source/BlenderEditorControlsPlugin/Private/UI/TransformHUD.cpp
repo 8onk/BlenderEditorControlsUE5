@@ -7,8 +7,6 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
 
-//TODO the software cursor should be rendered on top of the overlay panel
-
 namespace BlenderControls
 {
 	void STransformHUD::Construct(const FArguments&)
