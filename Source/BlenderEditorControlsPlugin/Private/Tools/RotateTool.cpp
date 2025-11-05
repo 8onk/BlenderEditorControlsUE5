@@ -303,6 +303,9 @@ namespace BlenderControls
 					// Safety check: Ensure the processor has 2 slots
 					if (!Processor->CurrentState.Slots.IsValidIndex(1))
 					{
+						UE_LOG(LogTemp, Error,
+						       TEXT("Slot index 1 is NOT valid in BTrackballMode! Current number of slots: %d"),
+						       Processor->CurrentState.Slots.Num());
 						return FText::GetEmpty();
 					}
 
@@ -407,29 +410,38 @@ namespace BlenderControls
 	{
 		const bool bPreviousState = bTrackballModeEnabled;
 
-		if (bPreviousState != bEnabled)
+		if (bPreviousState == bEnabled)
 		{
-			if (bEnabled)
-			{
-				CursorBrush = FStyle::Get().GetBrush(
-					TEXT("BlenderEditorControls.Cursors.Trackball"));
-				HudWidget->SetCursorBrush(CursorBrush);
-				HudWidget->SetCursorOrientation(ECursorOrient::None);
-				ClearAxisGizmos();
-				ApplyNumeric();
-				UpdateHud();
-			}
-			else
-			{
-				CursorBrush = FStyle::Get().GetBrush(
-					TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
-				HudWidget->SetCursorBrush(CursorBrush);
-				HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
-				UpdateAxisLock();
-			}
-
-			bTrackballModeEnabled = bEnabled;
+			return;
 		}
+
+		bTrackballModeEnabled = bEnabled;
+		if (bEnabled)
+		{
+			CursorBrush = FStyle::Get().GetBrush(
+				TEXT("BlenderEditorControls.Cursors.Trackball"));
+			HudWidget->SetCursorBrush(CursorBrush);
+			HudWidget->SetCursorOrientation(ECursorOrient::None);
+			ClearAxisGizmos();
+			UpdateAxisLock();
+		}
+		else
+		{
+			CursorBrush = FStyle::Get().GetBrush(
+				TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
+			HudWidget->SetCursorBrush(CursorBrush);
+			HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
+			UpdateAxisLock();
+		}
+
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (Session.IsValid() && Session->IsNumericInputActive())
+		{
+			ApplyNumeric();
+		}
+
+		UpdateHud();
+		OnActive(CurrentViewportMousePos);
 	}
 
 	bool FRotateTool::GetTrackballRotationMode()

@@ -45,6 +45,7 @@ namespace BlenderControls
 		bool HandleNavigation(const FKey& Key);
 		void HandleScalePropagation();
 		void PropagateUniformScale(int32 SourceSlotIndex);
+		void UpdateConversionContext();
 
 		// --- State Management ---
 		void EnterNumericMode(const FKeyEvent& KeyEvent);

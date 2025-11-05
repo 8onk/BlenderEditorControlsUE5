@@ -26,30 +26,11 @@ namespace BlenderControls
 		checkf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (Session->GetNumericInputProcessor()->IsInNumericMode())
-		{
-			int32 NewSlotCount;
-			switch (Session->LockedAxis)
-			{
-			case EAxisLock::X:
-			case EAxisLock::Y:
-			case EAxisLock::Z:
-				NewSlotCount = 1;
-				break;
-			case EAxisLock::XY:
-			case EAxisLock::XZ:
-			case EAxisLock::YZ:
-				NewSlotCount = 2;
-				break;
-			case EAxisLock::All:
-			default:
-				NewSlotCount = 3;
-				break;
-			}
-			Session->GetNumericInputProcessor()->UpdateActiveNumSlots(NewSlotCount);
-		}
-
 		UpdateToolSettingsForAxisLock();
+
+		Session->GetNumericInputProcessor()->UpdateActiveNumSlots(NumNumericSlots);
+
+
 		SetGrabContextAxisLock(Session->LockedAxis);
 		RedrawAxisLines();
 
@@ -189,7 +170,7 @@ namespace BlenderControls
 		}
 		AxisGizmos.Empty();
 	}
-	
+
 	void FToolBase::OnExitNumericMode()
 	{
 		OnActive(CurrentViewportMousePos);

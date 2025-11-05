@@ -61,6 +61,13 @@ namespace BlenderControls
 	void FNumericInputProcessor::UpdateActiveNumSlots(int32 NewNumSlots)
 	{
 		CurrentState.NumActiveSlots = NewNumSlots;
+		CurrentState.Slots.SetNum(NewNumSlots);
+
+		CurrentState.ActiveSlotIndex = FMath::Min(CurrentState.ActiveSlotIndex, NewNumSlots - 1);
+		if (CurrentState.ActiveSlotIndex < 0)
+		{
+			CurrentState.ActiveSlotIndex = 0;
+		}
 	}
 
 	bool FNumericInputProcessor::HandleCharacter(const FKey& Key)
@@ -83,6 +90,7 @@ namespace BlenderControls
 				return false;
 			}
 
+			UpdateConversionContext();
 			FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
 			if (ActiveSlot.bIsEmpty)
@@ -106,6 +114,7 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::HandleBackspace()
 	{
+		UpdateConversionContext();
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
 		//ActiveSlot.DebugPrint();
@@ -126,9 +135,9 @@ namespace BlenderControls
 			ActiveSlot.RawString.RemoveAt(ActiveSlot.CursorIndex - 1);
 			ActiveSlot.CursorIndex--;
 		}
-		else if (!ActiveSlot.bIsEmpty)
+		else if (!ActiveSlot.bIsEmpty && ActiveSlot.CursorIndex < 1 && ActiveSlot.RawString.Len() < 1)
 		{
-			// Case 2: In [|] = 0 m state
+			// Case 2: In "[|] =" state
 			// Check if any *other* slot has a value
 			bool bOtherSlotsHaveValue = false;
 			for (int32 i = 0; i < CurrentState.Slots.Num(); ++i)
@@ -153,7 +162,7 @@ namespace BlenderControls
 				OnExitNumericMode.ExecuteIfBound();
 			}
 		}
-		else
+		else if (ActiveSlot.bIsEmpty)
 		{
 			// Case 3: In |NONE| state
 			// Always exit
@@ -225,6 +234,7 @@ namespace BlenderControls
 
 		// --- Simple Modifiers ---
 		if (CurrentState.bIsEquationMode) return false; // Handled by HandleCharacter
+		UpdateConversionContext();
 
 		if (Char == TEXT("Hyphen") || Char == TEXT("Num -"))
 		{
@@ -298,6 +308,16 @@ namespace BlenderControls
 		{
 			if (i == SourceSlotIndex) continue;
 			CurrentState.Slots[i] = SourceSlot;
+		}
+	}
+
+	void FNumericInputProcessor::UpdateConversionContext()
+	{
+		if (CurrentState.InitialContext != CurrentState.ToolContext && !CurrentState.Slots[CurrentState.ActiveSlotIndex]
+			.
+			bIsAdditive)
+		{
+			CurrentState.InitialContext = CurrentState.ToolContext;
 		}
 	}
 
@@ -396,6 +416,24 @@ namespace BlenderControls
 					FNumericInputSlot& MasterSlot = const_cast<FNumericInputSlot&>(CurrentState.Slots[0]);
 					return EvaluateSlot(MasterSlot, OutResult);
 				}
+			}
+		}
+
+		if (!Slot.RawString.IsEmpty())
+		{
+			const bool bContainsCm = Slot.RawString.Contains(TEXT("cm"));
+			const bool bContainsDeg = Slot.RawString.Contains(TEXT("°"));
+		
+			if (CurrentState.InitialContext == EBlenderNumericContext::Angle_Degrees && bContainsCm)
+			{
+				OutResult = Slot.LastValidValue;
+				return false;
+			}
+			if ((CurrentState.InitialContext == EBlenderNumericContext::Distance || CurrentState.InitialContext ==
+				EBlenderNumericContext::Scale) && bContainsDeg)
+			{
+				OutResult = Slot.LastValidValue;
+				return false;
 			}
 		}
 

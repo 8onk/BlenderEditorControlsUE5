@@ -52,32 +52,9 @@ namespace BlenderControls
 			return true;
 		}
 
-		FRegexPattern NumberPattern(TEXT("(-?\\d*\\.?\\d+)")); // Matches ints and floats
-		FRegexMatcher Matcher(NumberPattern, RawString);
-
-		float Sum = 0.f;
-		int32 NumberCount = 0;
-
-		while (Matcher.FindNext())
-		{
-			++NumberCount;
-
-			FString NumberStr = Matcher.GetCaptureGroup(0);
-			float Value = FCString::Atof(*NumberStr);
-
-			Sum += Value;
-		}
-
-		if ((NumberCount == 2 || NumberCount == 1) && RawString.Contains(" cm") || RawString.Contains("°"))
-		{
-			OutResult = Sum;
-			return true;
-		}
-
 		// Check for invalid "4 4"
-		if (Trimmed.Contains(TEXT(" ")) && !Trimmed.EndsWith(TEXT(" ")))
+		if (Trimmed.Contains(TEXT(" ")) && !(Trimmed.Contains(TEXT(" cm")) || Trimmed.Contains(TEXT("°"))))
 		{
-			UE_LOG(LogTemp, Log, TEXT("INVALID"));
 			return false;
 		}
 
@@ -87,7 +64,7 @@ namespace BlenderControls
 			return false;
 		}
 
-		if (FDefaultValueHelper::ParseFloat(Trimmed, OutResult))
+		if (EvaluateAdditiveWithUnit(Trimmed, OutResult))
 		{
 			return true;
 		}
@@ -102,17 +79,16 @@ namespace BlenderControls
 			}
 		}
 
+		if (FDefaultValueHelper::ParseFloat(Trimmed, OutResult))
+		{
+			return true;
+		}
+
 		return false; // Invalid format
 	}
 
 	bool FNumericParser::EvaluateEquation(const FString& RawString, float& OutResult)
 	{
-		// =================================================================
-		// implement a real C++ math expression parser here (maybe)
-		// This is a placeholder.
-		// Look into "Shunting-yard algorithm" or libraries like "ExprTk".
-		// =================================================================
-
 		// Placeholder logic:
 		if (RawString == TEXT("2**3"))
 		{
@@ -158,5 +134,69 @@ namespace BlenderControls
 		}
 
 		return DotCount;
+	}
+
+	bool FNumericParser::EvaluateAdditiveWithUnit(const FString& Trimmed, float& OutResult)
+	{
+		int32 UnitIndex = -1;
+		int32 UnitLength = 0;
+
+		UnitIndex = Trimmed.Find(TEXT("cm"), ESearchCase::IgnoreCase);
+		if (UnitIndex != -1)
+		{
+			UnitLength = 2; // length of "cm"
+		}
+		else
+		{
+			UnitIndex = Trimmed.Find(TEXT("°"));
+			if (UnitIndex != -1)
+			{
+				UnitLength = 1; // length of "°"
+			}
+		}
+
+		if (UnitIndex == -1)
+		{
+			if (FDefaultValueHelper::ParseFloat(Trimmed, OutResult))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			// Get everything BEFORE the unit
+			FString LeftPart = Trimmed.Left(UnitIndex);
+			// Get everything AFTER the unit
+			FString RightPart = Trimmed.RightChop(UnitIndex + UnitLength);
+
+			float LeftValue = 0.f;
+			float RightValue = 0.f;
+
+			// ParseFloat on LeftPart.TrimEnd() handles both "4" (from "4cm")
+			// and "4 " (from "4 cm"). It also handles "cm4" (LeftPart=""), which fails.
+			if (FDefaultValueHelper::ParseFloat(LeftPart.TrimEnd(), LeftValue))
+			{
+				// LeftPart is valid. Now parse RightPart.
+				if (RightPart.TrimEnd().IsEmpty())
+				{
+					RightValue = 0.f; // e.g., "4cm" or "4 cm"
+				}
+				else if (!FDefaultValueHelper::ParseFloat(RightPart.TrimEnd(), RightValue))
+				{
+					return false; // e.g., "4cmHello"
+				}
+
+				// Both parts are valid, return the sum.
+				OutResult = LeftValue + RightValue;
+				return true;
+			}
+			else
+			{
+				// LeftPart was not a valid float (e.g., "cm4")
+				return false;
+			}
+		}
+
+		return false;
 	}
 }
