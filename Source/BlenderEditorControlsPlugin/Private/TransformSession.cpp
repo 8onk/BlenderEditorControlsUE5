@@ -307,23 +307,22 @@ namespace BlenderControls
 
 		if (!NumericInputProcessor.IsValid()) return false;
 
-		if (KeyMatchesCommand(Cmd.CommandNumericCycleSlot))
-		{
-			if (NumericInputProcessor->IsInNumericMode())
-			{
-				NumericInputProcessor->HandleInput(KeyEvent);
+		// if (KeyMatchesCommand(Cmd.CommandNumericCycleSlot))
+		// {
+		// 	UE_LOG(LogTemp, Log, TEXT("COMMAND ACTIVATED"));
+		// 	NumericInputProcessor->HandleInput(KeyEvent);
+		// 	if (NumericInputProcessor->IsInNumericMode())
+		// 	{
+		// 		if (CurrentTool.IsValid())
+		// 		{
+		// 			CurrentTool->ApplyNumeric();
+		// 			CurrentTool->UpdateHud();
+		// 		}
+		// 		return true;
+		// 	}
+		// }
 
-				if (CurrentTool.IsValid())
-				{
-					CurrentTool->ApplyNumeric();
-					CurrentTool->UpdateHud();
-				}
-				return true;
-			}
-		}
-
-		const bool bWasHandled = NumericInputProcessor->HandleInput(KeyEvent);
-		if (bWasHandled)
+		if (NumericInputProcessor->HandleInput(KeyEvent))
 		{
 			if (NumericInputProcessor->IsInNumericMode())
 			{

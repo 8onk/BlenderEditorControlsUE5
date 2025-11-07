@@ -16,25 +16,23 @@ namespace BlenderControls
 		CurrentState = OldState;
 		CurrentState.ToolContext = NewContext;
 		CurrentState.NumActiveSlots = NewNumSlots;
-		CurrentState.ActiveSlotIndex = FMath::Min(CurrentState.ActiveSlotIndex, NewNumSlots);
 
 		if (CurrentState.Slots.Num() < NewNumSlots)
 		{
 			CurrentState.Slots.SetNum(NewNumSlots);
 		}
 
-		if (CurrentState.Slots[CurrentState.ActiveSlotIndex].RawString.IsEmpty() && !CurrentState.Slots[CurrentState.
-			ActiveSlotIndex].bIsAdditive)
-		{
-			CurrentState.InitialContext = NewContext;
-		}
+		// if (CurrentState.Slots[CurrentState.ActiveSlotIndex].RawString.IsEmpty() && !CurrentState.Slots[CurrentState.
+		// 	ActiveSlotIndex].bIsAdditive)
+		// {
+		// 	CurrentState.InitialContext = NewContext;
+		// }
 	}
 
 
 	bool FNumericInputProcessor::HandleInput(const FKeyEvent& KeyEvent)
 	{
 		FKey Key = KeyEvent.GetKey();
-		// 1. Check for entry into numeric mode
 		if (!CurrentState.bIsInNumericMode)
 		{
 			// Check for 0-9, ., -
@@ -44,12 +42,15 @@ namespace BlenderControls
 				EnterNumericMode(KeyEvent);
 				return true;
 			}
-			return false; // Not a numeric key, tool handles it
+		}
+		if (Key == EKeys::Tab) return HandleTab();
+
+		if (!CurrentState.Slots.IsValidIndex(CurrentState.ActiveSlotIndex))
+		{
+			return false;
 		}
 
-		// 2. We are in numeric mode, process input
 		if (Key == EKeys::BackSpace) return HandleBackspace();
-		if (Key == EKeys::Tab) return HandleTab();
 		if (Key == EKeys::Left || Key == EKeys::Right) return HandleNavigation(Key);
 
 		if (HandleModifiers(KeyEvent)) return true;
@@ -62,12 +63,7 @@ namespace BlenderControls
 	{
 		CurrentState.NumActiveSlots = NewNumSlots;
 		CurrentState.Slots.SetNum(NewNumSlots);
-
-		CurrentState.ActiveSlotIndex = FMath::Min(CurrentState.ActiveSlotIndex, NewNumSlots - 1);
-		if (CurrentState.ActiveSlotIndex < 0)
-		{
-			CurrentState.ActiveSlotIndex = 0;
-		}
+		//CurrentState.ActiveSlotIndex = FMath::Min(CurrentState.ActiveSlotIndex, NewNumSlots - 1);
 	}
 
 	bool FNumericInputProcessor::HandleCharacter(const FKey& Key)
@@ -90,9 +86,8 @@ namespace BlenderControls
 				return false;
 			}
 
-			UpdateConversionContext();
+			FlattenAdditiveSlotIfEmpty();
 			FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
-
 			if (ActiveSlot.bIsEmpty)
 			{
 				ActiveSlot.bIsEmpty = false;
@@ -114,7 +109,7 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::HandleBackspace()
 	{
-		UpdateConversionContext();
+		FlattenAdditiveSlotIfEmpty();
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
 		//ActiveSlot.DebugPrint();
@@ -180,13 +175,15 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::HandleTab()
 	{
-		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
-		const bool bWasSlotEmpty = ActiveSlot.bIsEmpty;
+		if (CurrentState.Slots.IsValidIndex(CurrentState.ActiveSlotIndex))
+		{
+			FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
+			const bool bWasSlotEmpty = ActiveSlot.bIsEmpty;
+			float FinalValue = 0.f;
+			EvaluateSlot(ActiveSlot, FinalValue);
 
-		float FinalValue = 0.f;
-		EvaluateSlot(ActiveSlot, FinalValue);
-
-		ActiveSlot.Finalize(FinalValue, bWasSlotEmpty);
+			ActiveSlot.Finalize(FinalValue, bWasSlotEmpty);
+		}
 
 		if (CurrentState.InitialContext != CurrentState.ToolContext)
 		{
@@ -234,7 +231,7 @@ namespace BlenderControls
 
 		// --- Simple Modifiers ---
 		if (CurrentState.bIsEquationMode) return false; // Handled by HandleCharacter
-		UpdateConversionContext();
+		FlattenAdditiveSlotIfEmpty();
 
 		if (Char == TEXT("Hyphen") || Char == TEXT("Num -"))
 		{
@@ -257,21 +254,7 @@ namespace BlenderControls
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 		if (ActiveSlot.bIsEmpty) return false;
 
-		if (ActiveSlot.bIsAdditive && ActiveSlot.RawString.IsEmpty())
-		{
-			ActiveSlot.bIsAdditive = false;
-			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.InitialContext);
-			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
-			ActiveSlot.BaseValue = 0.f;
-		}
-		else if (ActiveSlot.bIsAdditive && !ActiveSlot.RawString.IsEmpty())
-		{
-			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.InitialContext) +
-				ActiveSlot.RawString;
-			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
-			ActiveSlot.bIsAdditive = false;
-			ActiveSlot.BaseValue = 0.f;
-		}
+		FlattenAdditiveSlotIfEmpty(/*bUpdateContext=*/false);
 
 		if (Key == EKeys::Left)
 		{
@@ -294,8 +277,6 @@ namespace BlenderControls
 			Slot.Reset();
 		}
 
-		// Make the first slot active and handle the key
-		CurrentState.ActiveSlotIndex = 0;
 		HandleInput(KeyEvent); // Re-run HandleInput, now that we're in numeric mode
 	}
 
@@ -311,11 +292,23 @@ namespace BlenderControls
 		}
 	}
 
-	void FNumericInputProcessor::UpdateConversionContext()
+	void FNumericInputProcessor::FlattenAdditiveSlotIfEmpty(bool bUpdateContext)
 	{
-		if (CurrentState.InitialContext != CurrentState.ToolContext && !CurrentState.Slots[CurrentState.ActiveSlotIndex]
-			.
-			bIsAdditive)
+		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
+
+		if (ActiveSlot.bIsAdditive && ActiveSlot.RawString.IsEmpty())
+		{
+			ActiveSlot.bIsAdditive = false;
+			ActiveSlot.RawString = FUnitFormatter::FormatValue(ActiveSlot.BaseValue, CurrentState.InitialContext);
+			ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
+			ActiveSlot.BaseValue = 0.f;
+
+			if (bUpdateContext && CurrentState.InitialContext != CurrentState.ToolContext)
+			{
+				CurrentState.InitialContext = CurrentState.ToolContext;
+			}
+		}
+		else if (bUpdateContext && !ActiveSlot.bIsAdditive && CurrentState.InitialContext != CurrentState.ToolContext)
 		{
 			CurrentState.InitialContext = CurrentState.ToolContext;
 		}
@@ -421,19 +414,22 @@ namespace BlenderControls
 
 		if (!Slot.RawString.IsEmpty())
 		{
-			const bool bContainsCm = Slot.RawString.Contains(TEXT("cm"));
 			const bool bContainsDeg = Slot.RawString.Contains(TEXT("°"));
-		
-			if (CurrentState.InitialContext == EBlenderNumericContext::Angle_Degrees && bContainsCm)
+			const bool bContainsCm = Slot.RawString.Contains(TEXT("cm"));
+
+			if (CurrentState.InitialContext == CurrentState.ToolContext)
 			{
-				OutResult = Slot.LastValidValue;
-				return false;
-			}
-			if ((CurrentState.InitialContext == EBlenderNumericContext::Distance || CurrentState.InitialContext ==
-				EBlenderNumericContext::Scale) && bContainsDeg)
-			{
-				OutResult = Slot.LastValidValue;
-				return false;
+				if (CurrentState.ToolContext == EBlenderNumericContext::Angle_Degrees && bContainsCm)
+				{
+					OutResult = Slot.LastValidValue;
+					return false;
+				}
+				if ((CurrentState.ToolContext == EBlenderNumericContext::Distance || CurrentState.InitialContext ==
+					EBlenderNumericContext::Scale) && bContainsDeg)
+				{
+					OutResult = Slot.LastValidValue;
+					return false;
+				}
 			}
 		}
 
