@@ -34,7 +34,7 @@ namespace BlenderControls
 		{
 			FNumberFormattingOptions Opt;
 			Opt.MinimumFractionalDigits = 0; // don’t force decimals
-			Opt.MaximumFractionalDigits = 6; // up to this many, trimmed
+			Opt.MaximumFractionalDigits = 3; // up to this many, trimmed
 			return FText::AsNumber(V, &Opt).ToString();
 		};
 
