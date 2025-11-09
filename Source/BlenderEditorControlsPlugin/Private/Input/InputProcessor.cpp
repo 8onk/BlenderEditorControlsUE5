@@ -194,7 +194,6 @@ namespace BlenderControls
 			{
 				if (Path.ContainsWidget(SLVP.Get()))
 				{
-					UE_LOG(LogHAL, Log, TEXT("Mouse over viewport!"));
 					return true;
 				}
 			}
@@ -207,7 +206,6 @@ namespace BlenderControls
 				const FString Type = W->GetTypeAsString();
 				if (Type.Contains(TEXT("SLevelViewport")) || Type.Contains(TEXT("SEditorViewport")))
 				{
-					UE_LOG(LogHAL, Log, TEXT("Mouse over viewport FALLBACK!"));
 					return true;
 				}
 			}

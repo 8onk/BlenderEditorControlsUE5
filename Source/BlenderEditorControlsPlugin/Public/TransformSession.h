@@ -32,7 +32,7 @@ namespace BlenderControls
 		void End(bool bApply);
 
 		/** Returns true if the session has been ended and can be destroyed. */
-		bool IsFinished() const { return bIsFinished; }
+		bool IsSessionFinished() const { return bIsSessionFinished; }
 
 		/** Switches the active tool (e.g., from Move to Rotate). */
 		void SwitchTool(ETransformMode NewMode);
@@ -54,6 +54,8 @@ namespace BlenderControls
 			if (NumericInputProcessor.IsValid()) return NumericInputProcessor->IsInNumericMode();
 			else return false;
 		}
+
+		bool HasValidPivot() const { return VirtualPivot.IsValid(); }
 
 		const TArray<TWeakObjectPtr<AActor>>& GetSelectedActors() const { return SelectedActors; }
 		const FVector2D& GetVirtualMousePos() const { return VirtualMousePosition; }
@@ -100,7 +102,7 @@ namespace BlenderControls
 		TUniquePtr<FScopedTransaction> ScopedTransaction;
 
 		// --- Session Lifecycle ---
-		bool bIsFinished = false;
+		bool bIsSessionFinished = false;
 
 		// Friend class declaration so FToolBase can access and modify session state
 		friend class FToolBase;

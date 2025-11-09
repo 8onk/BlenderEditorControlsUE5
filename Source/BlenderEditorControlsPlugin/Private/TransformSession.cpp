@@ -18,7 +18,7 @@ namespace BlenderControls
 	{
 		if (!GEditor || GEditor->GetSelectedActorCount() == 0)
 		{
-			bIsFinished = true;
+			bIsSessionFinished = true;
 			return;
 		}
 
@@ -172,7 +172,7 @@ namespace BlenderControls
 
 	void FTransformSession::End(bool bApply)
 	{
-		if (bIsFinished) return;
+		if (bIsSessionFinished) return;
 
 		if (CurrentTool.IsValid())
 		{
@@ -193,7 +193,7 @@ namespace BlenderControls
 			}
 		}
 
-		bIsFinished = true;
+		bIsSessionFinished = true;
 	}
 
 	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp) const
