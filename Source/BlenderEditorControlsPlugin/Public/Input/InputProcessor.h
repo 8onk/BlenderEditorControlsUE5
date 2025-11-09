@@ -45,7 +45,7 @@ namespace BlenderControls
 	private:
 		/** Checks if it's appropriate to handle hotkeys (e.g., viewport is focused). */
 		bool ShouldHandleHotkeys(FSlateApplication& SlateApp) const;
-		bool IsMouseOverLevelViewport() const;
+		bool IsMouseOverAnyViewport() const;
 		
 		bool CanStartTool() const;
 

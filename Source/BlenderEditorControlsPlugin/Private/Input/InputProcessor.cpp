@@ -48,7 +48,7 @@ namespace BlenderControls
 	                           TSharedRef<ICursor> Cursor)
 	{
 		// If a session exists, check if it has finished its work.
-		if (ActiveSession.IsValid() && ActiveSession->IsFinished())
+		if (ActiveSession.IsValid() && ActiveSession->IsSessionFinished())
 		{
 			ActiveSession.Reset();
 		}
@@ -149,7 +149,7 @@ namespace BlenderControls
 
 	bool FInputProcessor::ShouldHandleHotkeys(FSlateApplication& SlateApp) const
 	{
-		if (!IsMouseOverLevelViewport() || SlateApp.AnyMenusVisible())
+		if (!IsMouseOverAnyViewport() || SlateApp.AnyMenusVisible())
 		{
 			return false;
 		}
@@ -170,7 +170,7 @@ namespace BlenderControls
 		return true;
 	}
 
-	bool FInputProcessor::IsMouseOverLevelViewport() const
+	bool FInputProcessor::IsMouseOverAnyViewport() const
 	{
 		auto& App = FSlateApplication::Get();
 		const FVector2D ScreenPos = App.GetCursorPos();
@@ -194,6 +194,7 @@ namespace BlenderControls
 			{
 				if (Path.ContainsWidget(SLVP.Get()))
 				{
+					UE_LOG(LogHAL, Log, TEXT("Mouse over viewport!"));
 					return true;
 				}
 			}
@@ -206,6 +207,7 @@ namespace BlenderControls
 				const FString Type = W->GetTypeAsString();
 				if (Type.Contains(TEXT("SLevelViewport")) || Type.Contains(TEXT("SEditorViewport")))
 				{
+					UE_LOG(LogHAL, Log, TEXT("Mouse over viewport FALLBACK!"));
 					return true;
 				}
 			}
