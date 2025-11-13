@@ -30,7 +30,6 @@ namespace BlenderControls
 
 		Session->GetNumericInputProcessor()->UpdateActiveNumSlots(NumNumericSlots);
 
-
 		SetGrabContextAxisLock(Session->LockedAxis);
 		RedrawAxisLines();
 

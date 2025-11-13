@@ -67,7 +67,10 @@ namespace BlenderControls
 	void FNumericInputProcessor::UpdateActiveNumSlots(int32 NewNumSlots)
 	{
 		CurrentState.NumActiveSlots = NewNumSlots;
-		CurrentState.Slots.SetNum(NewNumSlots);
+		if (CurrentState.Slots.Num() < NewNumSlots)
+		{
+			CurrentState.Slots.SetNum(NewNumSlots);
+		}
 	}
 
 	bool FNumericInputProcessor::HandleCharacter(const FKey& Key)
