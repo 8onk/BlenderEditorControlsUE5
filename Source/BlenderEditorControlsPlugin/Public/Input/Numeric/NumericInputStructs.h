@@ -9,32 +9,44 @@ namespace BlenderControls
 	{
 		Distance, // Base unit is meters
 		Angle_Degrees, // Base unit is degrees
-		Angle_Radians, // Base unit is radians (internal for conversion)
 		Scale // Base unit is unitless
 	};
 
 	// Represents the state of a SINGLE input slot (e.g., "Dx")
 	struct FNumericInputSlot
 	{
-		FString RawString;
+		FNumericInputSlot()
+			: Context(EBlenderNumericContext::Distance) // Provide a sensible default
+		{
+		}
+
+		FNumericInputSlot(EBlenderNumericContext InContext)
+			: Context(InContext)
+		{
+			Reset(InContext);
+		}
+
+		FString RawString = "";
 		int32 CursorIndex = 0;
 		float BaseValue = 0.f;
 		float LastValidValue = BaseValue;
 		bool bIsAdditive = false;
-		bool bIsEmpty = true; // This is for the |NONE| state
+		bool bIsEmpty = true;
 		bool bIsNegative = false;
 		bool bIsReciprocal = false;
+		EBlenderNumericContext Context;
 
-		void Reset()
+		void Reset(EBlenderNumericContext InContext)
 		{
 			RawString = "";
 			CursorIndex = 0;
 			BaseValue = 0.f;
+			LastValidValue = BaseValue;
 			bIsAdditive = false;
 			bIsEmpty = true;
 			bIsNegative = false;
 			bIsReciprocal = false;
-			LastValidValue = BaseValue;
+			Context = InContext;
 		}
 
 		// Resets modifiers and string, but keeps BaseValue
@@ -45,7 +57,7 @@ namespace BlenderControls
 			BaseValue = FinalValue;
 			bIsAdditive = !bWasEmpty;
 			LastValidValue = FinalValue;
-			bIsEmpty = bWasEmpty; 
+			bIsEmpty = bWasEmpty;
 			bIsNegative = false;
 			bIsReciprocal = false;
 		}
@@ -77,34 +89,32 @@ namespace BlenderControls
 		bool bIsInNumericMode = false;
 		bool bIsUniformScaleMode = false;
 		bool bIsEquationMode = false;
-		EBlenderNumericContext ToolContext = EBlenderNumericContext::Distance;
-		EBlenderNumericContext InitialContext = EBlenderNumericContext::Distance;
+		bool bSlotUpdatedSinceSwitch = false;
+		EBlenderNumericContext CurrentContext = EBlenderNumericContext::Distance;
 
 		void Initialize(int32 NumSlots, EBlenderNumericContext Context)
 		{
 			Slots.Empty(NumSlots);
 			for (int32 i = 0; i < NumSlots; ++i)
 			{
-				Slots.Add(FNumericInputSlot());
-				NumActiveSlots++;
+				Slots.Emplace(Context);
 			}
 			ActiveSlotIndex = 0;
 			bIsInNumericMode = false;
 			bIsUniformScaleMode = false; // Must be set true by ScaleTool
-			ToolContext = Context;
-			InitialContext = Context;
+			NumActiveSlots = NumSlots;
+			CurrentContext = Context;
 		}
 
 		void DebugPrint() const
 		{
 			UE_LOG(LogTemp, Warning, TEXT("=== BlenderNumericState ==="));
 			UE_LOG(LogTemp, Warning, TEXT("ActiveSlotIndex=%d, InNumericMode=%d, UniformScale=%d, EquationMode=%d"),
-				ActiveSlotIndex,
-				bIsInNumericMode,
-				bIsUniformScaleMode,
-				bIsEquationMode
+			       ActiveSlotIndex,
+			       bIsInNumericMode,
+			       bIsUniformScaleMode,
+			       bIsEquationMode
 			);
-			UE_LOG(LogTemp, Warning, TEXT("ToolContext=%d, InitialContext=%d"), (int32)ToolContext, (int32)InitialContext);
 
 			for (int32 i = 0; i < Slots.Num(); ++i)
 			{

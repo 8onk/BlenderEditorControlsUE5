@@ -13,7 +13,7 @@ namespace BlenderControls
 		// Call this from your tool's BeginTool()
 		void Initialize(int32 NumSlots, EBlenderNumericContext Context);
 
-		bool EvaluateSlot(FNumericInputSlot& Slot, float& OutResult) const;
+		bool EvaluateSlot(FNumericInputSlot& Slot, float& OutResult);
 
 		// Call this from your tool's OnToolSwitch()
 		void OnToolSwitch(int32 NewNumSlots, EBlenderNumericContext NewContext, const FBlenderNumericState& OldState);
@@ -39,14 +39,13 @@ namespace BlenderControls
 	private:
 		// --- Input Handlers ---
 		bool HandleCharacter(const FKey& Key);
+		void ConvertSlotValue(FNumericInputSlot& ActiveSlot) const;
 		bool HandleBackspace();
 		bool HandleTab();
 		bool HandleModifiers(const FKeyEvent& KeyEvent);
 		bool HandleNavigation(const FKey& Key);
-		void HandleScalePropagation();
 		void PropagateUniformScale(int32 SourceSlotIndex);
 		void FlattenAdditiveSlotIfEmpty(bool bUpdateContext = true);
-
 		// --- State Management ---
 		void EnterNumericMode(const FKeyEvent& KeyEvent);
 	};
