@@ -111,9 +111,15 @@ namespace BlenderControls
 			const FVector ViewToPivot = PivotPosition - ViewLocation;
 
 			const FVector RotationAxis = GrabContext.HelperAxisDir;
-			//if lock‐axis is “backwards” relative to the camera, flip the sign
+			//if locked axis is “backwards” relative to the camera, flip the sign
 			float SignedAccum = AccumulatedAngleRad;
-			if (FVector::DotProduct(ViewToPivot, RotationAxis) < 0)
+			bool bShouldCheckFlip = true;
+			if (ViewportClient && !ViewportClient->IsPerspective())
+			{
+				bShouldCheckFlip = false;
+			}
+
+			if (bShouldCheckFlip && FVector::DotProduct(ViewToPivot, RotationAxis) < 0)
 			{
 				SignedAccum = -AccumulatedAngleRad;
 			}

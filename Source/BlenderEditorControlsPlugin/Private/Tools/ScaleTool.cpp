@@ -196,7 +196,7 @@ namespace BlenderControls
 		FToolBase::OnEnd(bApply);
 		if (HudWidget.IsValid())
 		{
-			HudWidget->SetDashState(false, FVector2D::ZeroVector, FVector2D::ZeroVector);
+			HudWidget->SetDashState(/*bEnabled*/false, FVector2D::ZeroVector, FVector2D::ZeroVector);
 		}
 	}
 

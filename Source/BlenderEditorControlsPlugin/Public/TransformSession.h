@@ -42,6 +42,7 @@ namespace BlenderControls
 		bool HandleKeyDownEvent(const FKeyEvent& KeyEvent);
 		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) const;
 		bool HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent);
+		bool IsSwitchingTools() const { return bIsSwitchingTools; }
 
 		// --- Public State Accessors (for Tools) ---
 		TSharedPtr<FSharedPivot> GetPivot() const { return VirtualPivot; }
@@ -98,6 +99,7 @@ namespace BlenderControls
 		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
 		FVector2D WrappedMousePosition = FVector2D::ZeroVector;
 		FVector2D StartMousePos = FVector2D::ZeroVector;
+		bool bIsSwitchingTools = false;
 
 		TUniquePtr<FScopedTransaction> ScopedTransaction;
 

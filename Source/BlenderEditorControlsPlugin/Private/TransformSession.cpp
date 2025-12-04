@@ -100,7 +100,7 @@ namespace BlenderControls
 		FBlenderNumericState OldState;
 		if (CurrentTool.IsValid())
 		{
-			CurrentTool->OnEnd(false);
+			CurrentTool->OnSwitch();
 			if (NumericInputProcessor.IsValid())
 			{
 				OldState = NumericInputProcessor->CurrentState;
@@ -160,13 +160,9 @@ namespace BlenderControls
 
 		//Force an immediate visual update after tool creation/switch (otherwise, there is a brief flicker idk why)
 		//Behaves oddly when doing this in OnBegin inside CurrentTool
-		if (FViewport* Viewport = GEditor->GetActiveViewport())
+		if (CurrentTool.IsValid())
 		{
-			FIntPoint MousePosInt;
-			Viewport->GetMousePos(MousePosInt);
-			const FVector2D CurrentMousePos(MousePosInt);
-
-			CurrentTool->OnActive(CurrentMousePos);
+			CurrentTool->OnActive(WrappedMousePosition);
 		}
 	}
 
@@ -253,6 +249,7 @@ namespace BlenderControls
 		// --- Tool Switching ---
 		if (KeyMatchesCommand(Cmd.CommandTranslate))
 		{
+			UE_LOG(LogTemp, Log, TEXT("Tool switched!"));
 			SwitchTool(ETransformMode::Translate);
 			return true;
 		}
@@ -303,7 +300,6 @@ namespace BlenderControls
 			CurrentTool->HandleAxisLock(KeyEvent.IsShiftDown() ? EAxisLock::XY : EAxisLock::Z);
 			return true;
 		}
-
 
 		if (!NumericInputProcessor.IsValid()) return false;
 

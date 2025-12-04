@@ -295,25 +295,25 @@ namespace BlenderControls
 			switch (ViewportClient->ViewportType)
 			{
 			case LVT_OrthoXY:
-				ViewForward = FVector::UpVector; // +Z, looking down from top
+				ViewForward = FVector::DownVector; 
 				break;
 			case LVT_OrthoNegativeXY:
-				ViewForward = -FVector::UpVector; // -Z, looking up from bottom
+				ViewForward = FVector::UpVector; 
 				break;
 			case LVT_OrthoXZ:
-				ViewForward = FVector::RightVector; // +Y, looking from front
+				ViewForward = FVector::LeftVector; 
 				break;
 			case LVT_OrthoNegativeXZ:
-				ViewForward = -FVector::RightVector; // -Y, looking from back
+				ViewForward = FVector::RightVector; 
 				break;
 			case LVT_OrthoYZ:
-				ViewForward = FVector::ForwardVector; // +X, looking from side
+				ViewForward = FVector::ForwardVector; 
 				break;
 			case LVT_OrthoNegativeYZ:
-				ViewForward = -FVector::ForwardVector; // -X, looking from other side
+				ViewForward = -FVector::ForwardVector; 
 				break;
 			default:
-				ViewForward = FVector::ForwardVector; // Fallback
+				ViewForward = FVector::ForwardVector;
 				break;
 			}
 		}
@@ -494,6 +494,12 @@ namespace BlenderControls
 
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		HandleMouseMovement(CurrentViewportMousePosition);
+	}
+
+	void FToolBase::OnSwitch()
+	{
+		HudWidget->Detach();
+		ViewportClient->Invalidate();
 	}
 
 	void FToolBase::OnEnd(const bool bApply)

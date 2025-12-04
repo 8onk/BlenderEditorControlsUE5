@@ -46,6 +46,7 @@ namespace BlenderControls
 		void InitializeGrabContext();
 		void InitializeUI();
 		void RestorePreviousState();
+		void OnSwitch();
 		virtual void OnBegin();
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
 		virtual void OnEnd(bool bApply);
