@@ -19,6 +19,7 @@ namespace BlenderControls
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
+		virtual void Tick() override;
 
 	private:
 		FTransform StartPivotTransform;

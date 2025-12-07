@@ -49,6 +49,7 @@ namespace BlenderControls
 		void OnSwitch();
 		virtual void OnBegin();
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
+		virtual void Tick() = 0;
 		virtual void OnEnd(bool bApply);
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);

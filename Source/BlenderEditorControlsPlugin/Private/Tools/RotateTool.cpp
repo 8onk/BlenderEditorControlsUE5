@@ -59,17 +59,6 @@ namespace BlenderControls
 		}
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (HudWidget.IsValid() && !bTrackballModeEnabled)
-		{
-			HudWidget->SetDashState(/*bEnabled=*/true, /*InOriginPx=*/PivotViewportPosition,
-			                                     Session->GetVirtualMousePos());
-		}
-		else
-		{
-			HudWidget->SetDashState(/*bEnabled=*/false, /*InOriginPx=*/PivotViewportPosition,
-			                                     Session->GetVirtualMousePos());
-		}
-
 		if (!GEditor || Session->IsNumericInputActive())
 		{
 			return;
@@ -210,26 +199,26 @@ namespace BlenderControls
 		FToolBase::OnEnd(bApply);
 	}
 
-	void FRotateTool::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
-	{
-		FToolBase::HandleMouseMovement(CurrentViewportMousePosition);
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return;
-		}
-
-		if (HudWidget.IsValid() && !bTrackballModeEnabled)
-		{
-			HudWidget->SetDashState(/*bEnabled=*/true, /*InOriginPx=*/PivotViewportPosition,
-			                                     Session->GetVirtualMousePos());
-		}
-		else
-		{
-			HudWidget->SetDashState(/*bEnabled=*/false, /*InOriginPx=*/PivotViewportPosition,
-			                                     Session->GetVirtualMousePos());
-		}
-	}
+	// void FRotateTool::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
+	// {
+	// 	FToolBase::HandleMouseMovement(CurrentViewportMousePosition);
+	// 	const TSharedPtr<FTransformSession> Session = GetSession();
+	// 	if (!Session.IsValid())
+	// 	{
+	// 		return;
+	// 	}
+	//
+	// 	// if (HudWidget.IsValid() && !bTrackballModeEnabled)
+	// 	// {
+	// 	// 	HudWidget->SetDashState(/*bEnabled=*/true, /*InOriginPx=*/PivotViewportPosition,
+	// 	// 	                                     Session->GetVirtualMousePos());
+	// 	// }
+	// 	// else
+	// 	// {
+	// 	// 	HudWidget->SetDashState(/*bEnabled=*/false, /*InOriginPx=*/PivotViewportPosition,
+	// 	// 	                                     Session->GetVirtualMousePos());
+	// 	// }
+	// }
 
 	FText FRotateTool::GetNumericHudText() const
 	{
@@ -338,9 +327,36 @@ namespace BlenderControls
 				break;
 			}
 		}
-
-		// Join all the built arguments with your gap string
+		
 		return FText::Join(FText::FromString(Gap), HudArgs);
+	}
+
+	void FRotateTool::Tick()
+	{
+		if (!OwningSession.IsValid() || !HudWidget.IsValid())
+		{
+			return;
+		}
+
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		FSceneViewFamilyContext ViewFamily(
+			FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags));
+		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
+
+		if (!bTrackballModeEnabled)
+		{
+			HudWidget->SetDashState(/*bEnabled=*/true, /*InOriginPx=*/PivotViewportPosition,
+			                                     Session->GetVirtualMousePos());
+		}
+		else
+		{
+			HudWidget->SetDashState(/*bEnabled=*/false, /*InOriginPx=*/PivotViewportPosition,
+			                                     Session->GetVirtualMousePos());
+		}
 	}
 
 	void FRotateTool::HandleAxisLock(const EAxisLock AxisPressed)
@@ -348,10 +364,10 @@ namespace BlenderControls
 		if (bTrackballModeEnabled)
 		{
 			return;
-		}
+		}        
 
 		FToolBase::HandleAxisLock(AxisPressed);
-	}
+	}   
 
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{

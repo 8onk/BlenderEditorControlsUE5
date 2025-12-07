@@ -16,6 +16,7 @@ namespace BlenderControls
 
 		virtual void OnBegin() override;
 		virtual FText GetNumericHudText() const override;
+		virtual void Tick() override;
 
 	protected:
 		virtual FText GetLiveHudText() const override;

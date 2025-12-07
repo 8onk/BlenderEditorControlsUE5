@@ -145,6 +145,10 @@ namespace BlenderControls
 		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 
+	void FMoveTool::Tick()
+	{
+	}
+
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);

@@ -201,7 +201,7 @@ namespace BlenderControls
 			ActiveSlot.Finalize(FinalValue, bWasSlotEmpty);
 		}
 
-		CurrentState.DebugPrint();
+		// CurrentState.DebugPrint();
 
 		CurrentState.ActiveSlotIndex = (CurrentState.ActiveSlotIndex + 1) % CurrentState.NumActiveSlots;
 		if (CurrentState.Slots[CurrentState.ActiveSlotIndex].Context != CurrentState.CurrentContext)
@@ -434,16 +434,13 @@ namespace BlenderControls
 		float ParsedValue = 0.f;
 
 		// 1. Get value from parser
-		UE_LOG(LogTemp, Log, TEXT("RawString: %s"), *Slot.RawString);
 		if (!FNumericParser::Evaluate(Slot.RawString, CurrentState.bIsEquationMode, ParsedValue))
 		{
 			OutResult = Slot.LastValidValue;
-			UE_LOG(LogTemp, Log,
-			       TEXT("FNumericParser::Evaluate(Slot.RawString, CurrentState.bIsEquationMode, ParsedValue"));
 			return false; // INVALID
 		}
 
-		CurrentState.DebugPrint();
+		// CurrentState.DebugPrint();
 		// 2. Handle conversion from previous tool
 		float BaseValue = Slot.BaseValue;
 		if (Slot.Context != CurrentState.CurrentContext)

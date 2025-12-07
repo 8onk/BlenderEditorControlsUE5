@@ -4,11 +4,6 @@
 
 namespace BlenderControls
 {
-	/**
-	 * Rotation tool – spawned when the input-processor enters ETransformMode::Rotate.
-	 * Handles axis-locked rotation, track-ball rotation, numeric entry, and
-	 * angle-snap (e.g. Ctrl for 5° increments).
-	 */
 	class FRotateTool final : public FToolBase
 	{
 	public:
@@ -20,8 +15,9 @@ namespace BlenderControls
 		virtual void UpdateHud() override;
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
-		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
+		//virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
 		virtual FText GetNumericHudText() const override;
+		virtual void Tick() override;
 
 		virtual void HandleAxisLock(EAxisLock AxisPressed) override;
 

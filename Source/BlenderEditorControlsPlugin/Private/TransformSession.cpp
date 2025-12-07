@@ -225,6 +225,7 @@ namespace BlenderControls
 		}
 
 		CurrentTool->SetSnappingEnabled(bIsSnapEnabled);
+		CurrentTool->Tick();
 	}
 
 	bool FTransformSession::HandleKeyDownEvent(const FKeyEvent& KeyEvent)
@@ -249,7 +250,6 @@ namespace BlenderControls
 		// --- Tool Switching ---
 		if (KeyMatchesCommand(Cmd.CommandTranslate))
 		{
-			UE_LOG(LogTemp, Log, TEXT("Tool switched!"));
 			SwitchTool(ETransformMode::Translate);
 			return true;
 		}

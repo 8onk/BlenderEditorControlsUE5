@@ -119,7 +119,7 @@ namespace BlenderControls
 			SnappedScaleMultiplier.Y = FMath::GridSnap(FinalScaleMultiplier.Y, SnappingIncrement);
 			SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
 		}
-		
+
 		VirtualPivot->Scale(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
 		UpdateHud();
 	}
@@ -203,10 +203,22 @@ namespace BlenderControls
 	void FScaleTool::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
 	{
 		FToolBase::HandleMouseMovement(CurrentViewportMousePosition);
+	}
+
+	void FScaleTool::Tick()
+	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (HudWidget.IsValid() && Session.IsValid())
 		{
+			FSceneViewFamilyContext ViewFamily(
+				FSceneViewFamily::ConstructionValues(
+					ViewportClient->Viewport,
+					ViewportClient->GetScene(),
+					ViewportClient->EngineShowFlags));
+			const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+			SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
+
 			HudWidget->SetLineEndpoints(PivotViewportPosition, Session->GetVirtualMousePos());
 			HudWidget->SetDashState(true, PivotViewportPosition, Session->GetVirtualMousePos());
 			HudWidget->Invalidate(EInvalidateWidgetReason::Paint);
