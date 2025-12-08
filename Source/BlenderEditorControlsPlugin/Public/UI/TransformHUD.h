@@ -106,8 +106,8 @@ namespace BlenderControls
 
 		bool bShowCursor = true;
 		const FSlateBrush* CursorBrush = nullptr;
-		FVector2D CursorSize = FVector2D(24, 24);
-		FVector2D CursorHotspot = FVector2D(0, 0); // offset of "tip" inside the image
+		FVector2D CursorSize = FVector2D(32, 32);
+		FVector2D CursorHotspot = FVector2D(16, 16); // offset of "tip" inside the image
 		FVector2D VirtualCursorViewportPx = FVector2D::ZeroVector;
 		ECursorOrient CursorOrient = ECursorOrient::None;
 	};

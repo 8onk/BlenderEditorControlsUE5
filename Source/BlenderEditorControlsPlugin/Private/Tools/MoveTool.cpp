@@ -27,7 +27,7 @@ namespace BlenderControls
 
 		HudWidget->SetCursorBrush(CursorBrush);
 		HudWidget->SetCursorSize(FVector2D(24, 24));
-		HudWidget->SetCursorHotspot(FVector2D(4, 4));
+		HudWidget->SetCursorHotspot(FVector2D(12, 12));
 		HudWidget->SetCursorOrientation(ECursorOrient::None);
 	}
 

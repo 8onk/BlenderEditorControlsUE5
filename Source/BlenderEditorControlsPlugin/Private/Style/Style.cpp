@@ -1,5 +1,7 @@
 // Style.cpp
 #include "Style/Style.h"
+
+#include "ImageUtils.h"
 #include "Brushes/SlateImageBrush.h"
 #include "Interfaces/IPluginManager.h"
 #include "Misc/Paths.h"
@@ -8,83 +10,116 @@
 
 namespace BlenderControls
 {
-    TSharedPtr<FSlateStyleSet> FStyle::StyleInstance;
-    static FName BlenderControlsStyleName(TEXT("BlenderEditorControlsStyle"));
+	TSharedPtr<FSlateStyleSet> FStyle::StyleInstance;
+	static FName BlenderControlsStyleName(TEXT("BlenderEditorControlsStyle"));
 
-    // Return NON-const pointers
-    static FSlateVectorImageBrush* MakeSvgBrushPtr(
-        const TSharedRef<FSlateStyleSet>& Style, const TCHAR* RelPathNoExt, const FVector2D& Size)
-    {
-        return new FSlateVectorImageBrush(Style->RootToContentDir(RelPathNoExt, TEXT(".svg")), Size);
-    }
+	// Return NON-const pointers
+	static FSlateVectorImageBrush* MakeSvgBrushPtr(
+		const TSharedRef<FSlateStyleSet>& Style, const TCHAR* RelPathNoExt, const FVector2D& Size)
+	{
+		return new FSlateVectorImageBrush(Style->RootToContentDir(RelPathNoExt, TEXT(".svg")), Size);
+	}
 
-    static FSlateImageBrush* MakePngBrushPtr(
-        const TSharedRef<FSlateStyleSet>& Style, const TCHAR* RelPathNoExt, const FVector2D& Size)
-    {
-        return new FSlateImageBrush(Style->RootToContentDir(RelPathNoExt, TEXT(".png")), Size);
-    }
+	static FSlateImageBrush* MakePngBrushPtr(
+		const TSharedRef<FSlateStyleSet>& Style, const TCHAR* RelPathNoExt, const FVector2D& Size)
+	{
+		return new FSlateImageBrush(Style->RootToContentDir(RelPathNoExt, TEXT(".png")), Size);
+	}
+	//
+	// static FSlateImageBrush* MakePixelArtBrushPtr(
+	// 	const TSharedRef<FSlateStyleSet>& Style, const TCHAR* RelPathNoExt, const FVector2D& Size)
+	// {
+	// 	FString FullPath = Style->RootToContentDir(RelPathNoExt, TEXT(".png"));
+	//
+	// 	// Load the texture from disk manually
+	// 	UTexture2D* Texture = FImageUtils::ImportFileAsTexture2D(FullPath);
+	//
+	// 	if (Texture)
+	// 	{
+	// 		// FORCE NEAREST NEIGHBOR (CRISP PIXELS)
+	// 		Texture->Filter = TF_Nearest;
+	//
+	// 		// Standard UI settings
+	// 		Texture->CompressionSettings = TC_EditorIcon;
+	// 		Texture->LODGroup = TEXTUREGROUP_UI;
+	// 		Texture->SRGB = true;
+	//
+	// 		// Apply changes
+	// 		Texture->UpdateResource();
+	//
+	// 		// CRITICAL: Prevent Garbage Collection. 
+	// 		// Since this texture is created at runtime and not referenced by a UProperty,
+	// 		// the GC will delete it if we don't Root it.
+	// 		Texture->AddToRoot();
+	//
+	// 		return new FSlateImageBrush(Texture, Size);
+	// 	}
+	//
+	// 	// Fallback to standard load if something goes wrong
+	// 	return new FSlateImageBrush(FullPath, Size);
+	// }
 
-    TSharedRef<FSlateStyleSet> FStyle::Create()
-    {
-        TSharedRef<FSlateStyleSet> Style = MakeShareable(new FSlateStyleSet(GetStyleSetName()));
+	TSharedRef<FSlateStyleSet> FStyle::Create()
+	{
+		TSharedRef<FSlateStyleSet> Style = MakeShareable(new FSlateStyleSet(GetStyleSetName()));
 
-        const FString PluginName = TEXT("BlenderEditorControlsPlugin"); // .uplugin Name
-        const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(PluginName);
-        checkf(Plugin.IsValid(), TEXT("Plugin '%s' not found for style setup"), *PluginName);
+		const FString PluginName = TEXT("BlenderEditorControlsPlugin"); // .uplugin Name
+		const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(PluginName);
+		checkf(Plugin.IsValid(), TEXT("Plugin '%s' not found for style setup"), *PluginName);
 
-        Style->SetContentRoot(FPaths::Combine(Plugin->GetBaseDir(), TEXT("Resources")));
+		Style->SetContentRoot(FPaths::Combine(Plugin->GetBaseDir(), TEXT("Resources")));
 
-        const FVector2D CursorMoveSize(24, 24);
-        const FVector2D CursorDoubleArrowSize(28, 28);
-        const FVector2D CursorTrackballSize(24, 24);
-        const FVector2D Icon128Size(128, 128);
+		const FVector2D CursorMoveSize(24, 24);
+		const FVector2D CursorArrowsSize(32, 32);
+		const FVector2D CursorTrackballSize(32, 32);
+		const FVector2D Icon128Size(128, 128);
 
-        // IMPORTANT: pass NON-const brush pointers (no casts)
-        Style->Set(TEXT("BlenderEditorControls.Cursors.Move"),
-            MakeSvgBrushPtr(Style, TEXT("MoveTool"), CursorMoveSize));
+		// IMPORTANT: pass NON-const brush pointers (no casts)
+		Style->Set(TEXT("BlenderEditorControls.Cursors.Move"),
+		           MakeSvgBrushPtr(Style, TEXT("MoveTool_Cursor"), CursorMoveSize));
 
-        Style->Set(TEXT("BlenderEditorControls.Cursors.DoubleArrow"),
-            MakeSvgBrushPtr(Style, TEXT("DoubleArrow"), CursorDoubleArrowSize));
+		Style->Set(TEXT("BlenderEditorControls.Cursors.DoubleArrow"),
+		           MakeSvgBrushPtr(Style, TEXT("DoubleArrow_Cursor"), CursorArrowsSize));
 
-        Style->Set(TEXT("BlenderEditorControls.Cursors.Trackball"),
-            MakeSvgBrushPtr(Style, TEXT("Trackball"), CursorTrackballSize));
+		Style->Set(TEXT("BlenderEditorControls.Cursors.Trackball"),
+		           MakeSvgBrushPtr(Style, TEXT("Trackball_Cursor"), CursorTrackballSize));
 
-        Style->Set(TEXT("BlenderEditorControls.PluginIcon128"),
-            MakePngBrushPtr(Style, TEXT("Icon128"), Icon128Size));
+		Style->Set(TEXT("BlenderEditorControls.PluginIcon128"),
+		           MakePngBrushPtr(Style, TEXT("Icon128"), Icon128Size));
 
-        return Style;
-    }
+		return Style;
+	}
 
-    void FStyle::Initialize()
-    {
-        if (!StyleInstance.IsValid())
-        {
-            StyleInstance = Create();
-            FSlateStyleRegistry::RegisterSlateStyle(*StyleInstance.Get());
-        }
-    }
+	void FStyle::Initialize()
+	{
+		if (!StyleInstance.IsValid())
+		{
+			StyleInstance = Create();
+			FSlateStyleRegistry::RegisterSlateStyle(*StyleInstance.Get());
+		}
+	}
 
-    void FStyle::Shutdown()
-    {
-        if (StyleInstance.IsValid())
-        {
-            FSlateStyleRegistry::UnRegisterSlateStyle(*StyleInstance.Get());
-            ensure(StyleInstance.IsUnique());
-            StyleInstance.Reset();
-        }
-    }
+	void FStyle::Shutdown()
+	{
+		if (StyleInstance.IsValid())
+		{
+			FSlateStyleRegistry::UnRegisterSlateStyle(*StyleInstance.Get());
+			ensure(StyleInstance.IsUnique());
+			StyleInstance.Reset();
+		}
+	}
 
-    const ISlateStyle& FStyle::Get()
-    {
-        if (!StyleInstance.IsValid())
-        {
-            Initialize();
-        }
-        return *StyleInstance.Get();
-    }
+	const ISlateStyle& FStyle::Get()
+	{
+		if (!StyleInstance.IsValid())
+		{
+			Initialize();
+		}
+		return *StyleInstance.Get();
+	}
 
-    FName FStyle::GetStyleSetName()
-    {
-        return BlenderControlsStyleName;
-    }
+	FName FStyle::GetStyleSetName()
+	{
+		return BlenderControlsStyleName;
+	}
 }

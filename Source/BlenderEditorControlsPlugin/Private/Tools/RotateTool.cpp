@@ -44,8 +44,7 @@ namespace BlenderControls
 		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 		HudWidget->SetCursorBrush(CursorBrush);
-		HudWidget->SetCursorSize(FVector2D(24, 24));
-		HudWidget->SetCursorHotspot(FVector2D(12, 12));
+		HudWidget->SetCursorHotspot(FVector2D(16, 16));
 		HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
 	}
 
