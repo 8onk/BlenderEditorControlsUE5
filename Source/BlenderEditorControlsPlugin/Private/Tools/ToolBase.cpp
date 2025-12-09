@@ -498,8 +498,22 @@ namespace BlenderControls
 
 	void FToolBase::OnSwitch()
 	{
-		HudWidget->Detach();
-		ViewportClient->Invalidate();
+		ClearDrawnAxisLines();
+
+		if (HudWidget.IsValid())
+		{
+			HudWidget->Detach();
+		}
+
+		if (GEditor)
+		{
+			GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+		}
+
+		if (ViewportClient)
+		{
+			ViewportClient->Invalidate();
+		}
 	}
 
 	void FToolBase::OnEnd(const bool bApply)
