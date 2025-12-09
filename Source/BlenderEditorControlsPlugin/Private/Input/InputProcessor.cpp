@@ -135,7 +135,14 @@ namespace BlenderControls
 	{
 		if (ActiveSession.IsValid()) return;
 
-		ActiveSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
+		TSharedRef<FTransformSession> NewSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
+
+		if (NewSession->IsSessionFinished())
+		{
+			return;
+		}
+
+		ActiveSession = NewSession;
 		ActiveSession->SwitchTool(Mode);
 	}
 

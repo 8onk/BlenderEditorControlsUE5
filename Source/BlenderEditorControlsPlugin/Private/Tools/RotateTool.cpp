@@ -52,7 +52,7 @@ namespace BlenderControls
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!bIsToolActive)
+		if (!bIsToolActive || !VirtualPivot)
 		{
 			return;
 		}
