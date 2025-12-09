@@ -159,12 +159,6 @@ namespace BlenderControls
 
 			CurrentTool->OnActive(WrappedMousePosition);
 		}
-
-		//Force an immediate visual update after tool creation/switch (otherwise, there is a brief flicker idk why)
-		//Behaves oddly when doing this in OnBegin inside CurrentTool
-		// if (CurrentTool.IsValid())
-		// {
-		// }
 	}
 
 	void FTransformSession::End(bool bApply)

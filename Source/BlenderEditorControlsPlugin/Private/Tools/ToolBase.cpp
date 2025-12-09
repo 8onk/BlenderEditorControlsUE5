@@ -295,22 +295,22 @@ namespace BlenderControls
 			switch (ViewportClient->ViewportType)
 			{
 			case LVT_OrthoXY:
-				ViewForward = FVector::DownVector; 
+				ViewForward = FVector::DownVector;
 				break;
 			case LVT_OrthoNegativeXY:
-				ViewForward = FVector::UpVector; 
+				ViewForward = FVector::UpVector;
 				break;
 			case LVT_OrthoXZ:
-				ViewForward = FVector::LeftVector; 
+				ViewForward = FVector::LeftVector;
 				break;
 			case LVT_OrthoNegativeXZ:
-				ViewForward = FVector::RightVector; 
+				ViewForward = FVector::RightVector;
 				break;
 			case LVT_OrthoYZ:
-				ViewForward = FVector::ForwardVector; 
+				ViewForward = FVector::ForwardVector;
 				break;
 			case LVT_OrthoNegativeYZ:
-				ViewForward = -FVector::ForwardVector; 
+				ViewForward = -FVector::ForwardVector;
 				break;
 			default:
 				ViewForward = FVector::ForwardVector;
@@ -504,55 +504,74 @@ namespace BlenderControls
 
 	void FToolBase::OnEnd(const bool bApply)
 	{
-		if (!GetSession().IsValid())
-		{
-			return;
-		}
 		bIsToolActive = false;
-		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (!GEditor || !VirtualPivot || !ViewportClient)
+		// Clean up HUD
+		if (HudWidget.IsValid())
 		{
-			return;
+			HudWidget->Detach();
 		}
 
-		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+		// Clean up Axis Gizmos
+		ClearDrawnAxisLines();
+
+		// Reset Viewport settings
+		if (ViewportClient)
+		{
+			ViewportClient->SetWidgetMode(InitialWidgetMode);
+			ViewportClient->ShowWidget(true);
+			ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
+			ViewportClient->Invalidate();
+		}
+
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
+		}
+
+		// Unbind delegates
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (Session.IsValid() && Session->GetNumericInputProcessor())
+		{
+			Session->GetNumericInputProcessor()->OnExitNumericMode.Unbind();
+		}
+
+		// Reset internal state
 		bPrecisionModeActive = false;
 		CurrentPrecisionFactor = 1.0f;
 		MouseDelta = FVector2D::ZeroVector;
 		CurrentMousePosition = FVector2D::ZeroVector;
 
-		ViewportClient->SetWidgetMode(InitialWidgetMode);
-		constexpr bool bShowWidget = true;
-		ViewportClient->ShowWidget(bShowWidget);
-		HudWidget->Detach();
-		ViewportClient->Invalidate();
-
-		ClearDrawnAxisLines();
-		if (!Session->WrappedMousePosition.IsNearlyZero())
+		if (!Session.IsValid())
 		{
-			Viewport->SetMouse(static_cast<int32>(Session->WrappedMousePosition.X),
-			                   static_cast<int32>(Session->WrappedMousePosition.Y));
+			return;
 		}
-		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
-		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
 
-		if (!bApply)
-		{
-			VirtualPivot->RevertToStartState();
-		}
-		VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
-
-		//Force the editor to redraw gizmos so that they are up to date 
 		if (GEditor)
 		{
-			GEditor->NoteSelectionChange(/*bNotify=*/true);
-			GEditor->RedrawLevelEditingViewports(/*bInvalidateHitProxies:*/true);
+			GEditor->SetSelectionOutlineColor(CachedSelectionColor);
+
+			// Restore mouse position if wrapped
+			if (!Session->GetWrappedCursorPos().IsNearlyZero() && Viewport)
+			{
+				Viewport->SetMouse(static_cast<int32>(Session->GetWrappedCursorPos().X),
+				                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
+			}
+
+			// Logic Revert
+			if (!bApply && VirtualPivot.IsValid())
+			{
+				VirtualPivot->RevertToStartState();
+			}
+
+			// Force redraw
+			GEditor->NoteSelectionChange(true);
+			GEditor->RedrawLevelEditingViewports(true);
 		}
 
-		if (Session->NumericInputProcessor.IsValid())
+		if (VirtualPivot.IsValid())
 		{
-			Session->NumericInputProcessor->OnExitNumericMode.Unbind();
+			VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
 		}
 	}
 
