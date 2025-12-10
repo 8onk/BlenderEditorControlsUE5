@@ -77,6 +77,7 @@ namespace BlenderControls
 		/** Captures the initial selection and calculates the pivot. */
 		void InitializePivot();
 		void InitializeTransaction(const FString& InTransactionName);
+		void RestoreEditorColor();
 
 		/** The current active tool (Move, Rotate, or Scale). */
 		TSharedPtr<FToolBase> CurrentTool;

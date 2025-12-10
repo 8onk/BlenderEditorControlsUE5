@@ -60,14 +60,12 @@ namespace BlenderControls
 		// Check for invalid "4 4"
 		if (Trimmed.Contains(TEXT(" ")) && !(Trimmed.Contains(TEXT(" cm")) || Trimmed.Contains(TEXT("°"))))
 		{
-			UE_LOG(LogHAL, Log, TEXT("1"));
 			return false;
 		}
 
 		// Check for invalid "4..5"
 		if (CountOccurrences(Trimmed, TEXT('.')) > 1)
 		{
-			UE_LOG(LogHAL, Log, TEXT("2"));
 			return false;
 		}
 
@@ -90,10 +88,7 @@ namespace BlenderControls
 		{
 			return true;
 		}
-
-
-		UE_LOG(LogTemp, Log, TEXT("Invalid format"));
-		UE_LOG(LogTemp, Log, TEXT("RawString: %s"), *RawString);
+		
 		return false; // Invalid format
 	}
 

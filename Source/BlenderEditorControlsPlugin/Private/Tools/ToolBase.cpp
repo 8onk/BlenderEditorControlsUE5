@@ -6,6 +6,7 @@
 #include "BaseGizmos/TransformProxy.h"
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
+#include "Settings/EditorStyleSettings.h"
 #include "Utils/MathHelpers.h"
 #include "Tools/SharedPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
@@ -19,6 +20,129 @@ namespace BlenderControls
 	                     const FString& InDisplayName)
 		: OwningSession(InSession), Mode(InMode), DisplayName(InDisplayName), NumNumericSlots(3)
 	{
+	}
+
+	void FToolBase::OnBegin()
+	{
+		checkf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		// 1. Get Viewport, GEditor, cache settings
+		if (!InitializeEditorState())
+		{
+			return; // Bails if no ViewportClient or GEditor
+		}
+
+		// 3. Calculate SceneView and base view vectors
+		Viewport = ViewportClient->Viewport;
+		if (!Viewport)
+		{
+			return;
+		}
+		CacheViewVectors(); // Sets ViewUp, ViewRight, ViewForward
+
+		const FVector2D MousePos = Session->StartMousePos;
+
+		// 5. Set internal tool mouse state
+		CurrentMousePosition = MousePos;
+		CurrentViewportMousePos = MousePos;
+
+		InitializePivot();
+
+		// 6. Setup the GrabContext for transform calculations
+		InitializeGrabContext();
+
+		// 7. Setup HUD and Cursors
+		InitializeUI();
+
+		// 8. Restore state from session (axis locks, numeric input)
+		RestorePreviousState();
+
+		if (Session->NumericInputProcessor.IsValid())
+		{
+			Session->NumericInputProcessor->OnExitNumericMode.BindSP(AsShared(), &FToolBase::OnExitNumericMode);
+		}
+	}
+
+	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
+	{
+		if (!bIsToolActive) return;
+
+		if (!Viewport || !ViewportClient || !VirtualPivot) return;
+
+		CurrentViewportMousePos = CurrentViewportMousePosition;
+		HandleMouseMovement(CurrentViewportMousePosition);
+	}
+
+	void FToolBase::OnEnd(const bool bApply)
+	{
+		bIsToolActive = false;
+
+		// Clean up HUD
+		if (HudWidget.IsValid())
+		{
+			HudWidget->Detach();
+		}
+
+		// Clean up Axis Gizmos
+		ClearDrawnAxisLines();
+
+		// Reset Viewport settings
+		if (ViewportClient)
+		{
+			ViewportClient->SetWidgetMode(InitialWidgetMode);
+			ViewportClient->ShowWidget(true);
+			ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
+			ViewportClient->Invalidate();
+		}
+
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
+		}
+
+		// Unbind delegates
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (Session.IsValid() && Session->GetNumericInputProcessor())
+		{
+			Session->GetNumericInputProcessor()->OnExitNumericMode.Unbind();
+		}
+
+		// Reset internal state
+		bPrecisionModeActive = false;
+		CurrentPrecisionFactor = 1.0f;
+		MouseDelta = FVector2D::ZeroVector;
+		CurrentMousePosition = FVector2D::ZeroVector;
+
+		if (!Session.IsValid())
+		{
+			return;
+		}
+
+		if (GEditor)
+		{
+			// Restore mouse position if wrapped
+			if (!Session->GetWrappedCursorPos().IsNearlyZero() && Viewport)
+			{
+				Viewport->SetMouse(static_cast<int32>(Session->GetWrappedCursorPos().X),
+				                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
+			}
+
+			// Logic Revert
+			if (!bApply && VirtualPivot.IsValid())
+			{
+				VirtualPivot->RevertToStartState();
+			}
+
+			// Force redraw
+			GEditor->NoteSelectionChange(true);
+			GEditor->RedrawLevelEditingViewports(true);
+		}
+
+		if (VirtualPivot.IsValid())
+		{
+			VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
+		}
 	}
 
 	void FToolBase::UpdateAxisLock()
@@ -258,8 +382,6 @@ namespace BlenderControls
 		ViewportClient->ShowWidget(false);
 		ViewportClient->Invalidate();
 
-		// Cache initial editor state
-		CachedSelectionColor = GEditor->GetSelectionOutlineColor();
 		GEditor->SetSelectionOutlineColor(FLinearColor::White);
 		bLocalSpaceDefault = GLevelEditorModeTools().GetCoordSystem() == COORD_Local;
 
@@ -384,60 +506,11 @@ namespace BlenderControls
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		// Restore axis lock
 		SetGrabContextAxisLock(Session->GetLockedAxis());
 		if (Session->GetLockedAxis() != EAxisLock::All)
 		{
 			ClearDrawnAxisLines();
 			UpdateAxisLock();
-		}
-		//
-		// // Restore numeric mode
-		// if (Session->IsNumericInputActive())
-		// {
-		// 	ApplyNumeric();
-		// }
-	}
-
-	void FToolBase::OnBegin()
-	{
-		checkf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
-		// 1. Get Viewport, GEditor, cache settings
-		if (!InitializeEditorState())
-		{
-			return; // Bails if no ViewportClient or GEditor
-		}
-
-		// 3. Calculate SceneView and base view vectors
-		Viewport = ViewportClient->Viewport;
-		if (!Viewport)
-		{
-			return;
-		}
-		CacheViewVectors(); // Sets ViewUp, ViewRight, ViewForward
-
-		const FVector2D MousePos = Session->StartMousePos;
-
-		// 5. Set internal tool mouse state
-		CurrentMousePosition = MousePos;
-		CurrentViewportMousePos = MousePos;
-
-		InitializePivot();
-
-		// 6. Setup the GrabContext for transform calculations
-		InitializeGrabContext();
-
-		// 7. Setup HUD and Cursors
-		InitializeUI();
-
-		// 8. Restore state from session (axis locks, numeric input)
-		RestorePreviousState();
-
-		if (Session->NumericInputProcessor.IsValid())
-		{
-			Session->NumericInputProcessor->OnExitNumericMode.BindSP(AsShared(), &FToolBase::OnExitNumericMode);
 		}
 	}
 
@@ -486,16 +559,6 @@ namespace BlenderControls
 		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
 	}
 
-	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
-	{
-		if (!bIsToolActive) return;
-
-		if (!Viewport || !ViewportClient || !VirtualPivot) return;
-
-		CurrentViewportMousePos = CurrentViewportMousePosition;
-		HandleMouseMovement(CurrentViewportMousePosition);
-	}
-
 	void FToolBase::OnSwitch()
 	{
 		ClearDrawnAxisLines();
@@ -505,87 +568,9 @@ namespace BlenderControls
 			HudWidget->Detach();
 		}
 
-		if (GEditor)
-		{
-			GEditor->SetSelectionOutlineColor(CachedSelectionColor);
-		}
-
 		if (ViewportClient)
 		{
 			ViewportClient->Invalidate();
-		}
-	}
-
-	void FToolBase::OnEnd(const bool bApply)
-	{
-		bIsToolActive = false;
-
-		// Clean up HUD
-		if (HudWidget.IsValid())
-		{
-			HudWidget->Detach();
-		}
-
-		// Clean up Axis Gizmos
-		ClearDrawnAxisLines();
-
-		// Reset Viewport settings
-		if (ViewportClient)
-		{
-			ViewportClient->SetWidgetMode(InitialWidgetMode);
-			ViewportClient->ShowWidget(true);
-			ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
-			ViewportClient->Invalidate();
-		}
-
-		if (FSlateApplication::IsInitialized())
-		{
-			FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
-		}
-
-		// Unbind delegates
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (Session.IsValid() && Session->GetNumericInputProcessor())
-		{
-			Session->GetNumericInputProcessor()->OnExitNumericMode.Unbind();
-		}
-
-		// Reset internal state
-		bPrecisionModeActive = false;
-		CurrentPrecisionFactor = 1.0f;
-		MouseDelta = FVector2D::ZeroVector;
-		CurrentMousePosition = FVector2D::ZeroVector;
-
-		if (!Session.IsValid())
-		{
-			return;
-		}
-
-		if (GEditor)
-		{
-			GEditor->SetSelectionOutlineColor(CachedSelectionColor);
-
-			// Restore mouse position if wrapped
-			if (!Session->GetWrappedCursorPos().IsNearlyZero() && Viewport)
-			{
-				Viewport->SetMouse(static_cast<int32>(Session->GetWrappedCursorPos().X),
-				                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
-			}
-
-			// Logic Revert
-			if (!bApply && VirtualPivot.IsValid())
-			{
-				VirtualPivot->RevertToStartState();
-			}
-
-			// Force redraw
-			GEditor->NoteSelectionChange(true);
-			GEditor->RedrawLevelEditingViewports(true);
-		}
-
-		if (VirtualPivot.IsValid())
-		{
-			VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
 		}
 	}
 
@@ -693,7 +678,6 @@ namespace BlenderControls
 			return;
 		}
 
-		GEditor->SetSelectionOutlineColor(CachedSelectionColor);
 		OnEnd(/*bApply=*/false);
 	}
 

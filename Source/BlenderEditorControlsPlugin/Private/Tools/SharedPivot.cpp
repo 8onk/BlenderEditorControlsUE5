@@ -21,7 +21,7 @@ namespace BlenderControls
 			{
 				const FTransform ActorTransform = Actor->GetTransform();
 				const FQuat ActorRotation = ActorTransform.GetRotation();
-    
+
 				FChildInfo Child = {Actor, ActorTransform, ActorRotation};
 				Children.Add(Child);
 
@@ -54,9 +54,6 @@ namespace BlenderControls
 		case EPivotMode::BoundingBoxCenter:
 			ComputeBoundingBoxCenterPivot();
 			break;
-		// case EPivotMode::ThreeDCursor:
-		// 	Compute3DCursorPivot();
-		// 	break;
 		case EPivotMode::IndividualOrigins:
 			PivotTransform = FTransform::Identity;
 			break;
@@ -277,11 +274,14 @@ namespace BlenderControls
 		{
 			if (Child.Actor)
 			{
-				const FVector TargetStartLoc = Child.Transform.GetLocation();
+				Child.Actor->SetActorTransform(Child.Transform);
 			}
 		}
 
-		TransformProxy->SetTransform(StartPivotTransform);
+		if (IsValid(TransformProxy))
+		{
+			TransformProxy->SetTransform(StartPivotTransform);
+		}
 	}
 
 	TArray<AActor*> FSharedPivot::GetSelectedActors() const

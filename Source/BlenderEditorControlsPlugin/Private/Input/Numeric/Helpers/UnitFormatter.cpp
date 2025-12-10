@@ -6,7 +6,6 @@ namespace BlenderControls
 	float FUnitFormatter::ConvertOnToolSwitch(float Value, EBlenderNumericContext From,
 	                                          EBlenderNumericContext To)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CONVERT ON TOOL SWITCH CALLED!"));
 		if (From == To) return Value;
 
 		// Move/Scale (Meters) -> Rotate (Degrees)

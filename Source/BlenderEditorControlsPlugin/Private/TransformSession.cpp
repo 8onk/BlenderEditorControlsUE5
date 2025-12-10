@@ -5,6 +5,7 @@
 #include "Framework/Commands/UICommandInfo.h"
 #include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Input/Numeric/NumericInputProcessor.h"
+#include "Settings/EditorStyleSettings.h"
 #include "Tools/SharedPivot.h"
 #include "Tools/ToolBase.h"
 #include "Tools/MoveTool.h"
@@ -59,6 +60,16 @@ namespace BlenderControls
 		}
 
 		NumericInputProcessor.Reset();
+
+		if (GEditor)
+		{
+			const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
+			if (StyleSettings)
+			{
+				FLinearColor DefaultSelectionColor = StyleSettings->SelectionColor;
+				GEditor->SetSelectionOutlineColor(DefaultSelectionColor);
+			}
+		}
 	}
 
 	void FTransformSession::InitializePivot()
@@ -100,6 +111,11 @@ namespace BlenderControls
 		FBlenderNumericState OldState;
 		if (CurrentTool.IsValid())
 		{
+			if (VirtualPivot.IsValid())
+			{
+				VirtualPivot->RevertToStartState();
+			}
+
 			CurrentTool->OnSwitch();
 			if (NumericInputProcessor.IsValid())
 			{
