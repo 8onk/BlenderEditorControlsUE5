@@ -28,7 +28,7 @@ namespace BlenderControls
 		UI_COMMAND(CommandCancel, "Cancel", "Cancel the current transformation (Esc)", EUserInterfaceActionType::Button,
 		           FInputChord(EKeys::Escape));
 
-		// Transform mode commands
+		// Transform mode commands  
 		UI_COMMAND(CommandTranslate, "Move", "Switch to translation mode (G)",
 		           EUserInterfaceActionType::RadioButton, FInputChord(EKeys::G));
 		UI_COMMAND(CommandRotate, "Rotate", "Switch to rotation mode (R)", EUserInterfaceActionType::RadioButton,

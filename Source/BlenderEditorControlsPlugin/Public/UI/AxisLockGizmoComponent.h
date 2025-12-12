@@ -9,25 +9,15 @@ class UAxisLockGizmoComponent : public UPrimitiveComponent
 
 public:
 	// editable gizmo inputs:
-	UPROPERTY(EditAnywhere, Category="Gizmo")
 	FVector Origin = FVector::ZeroVector;
-	UPROPERTY(EditAnywhere, Category="Gizmo")
 	FVector AxisDir = FVector::ForwardVector;
-	UPROPERTY(EditAnywhere, Category="Gizmo")
 	float LineLength = 1000.0f;
-	UPROPERTY(EditAnywhere, Category="Gizmo")
 	FLinearColor Color = FLinearColor::Red;
-	UPROPERTY(EditAnywhere, Category="Gizmo")
 	float ThicknessPx = 2.0f;
-	UPROPERTY(EditAnywhere, Category="Gizmo")
 	bool bDashed = false;
-	UPROPERTY()
 	UMaterialInterface* AxisMaterial = nullptr;
-	UPROPERTY(Transient)
 	UMaterialInstanceDynamic* AxisMID = nullptr;
-	UPROPERTY(EditAnywhere, Category="Gizmo")
 	FLinearColor AxisColor = FLinearColor::Red; // default
-	UFUNCTION()
 	void SetAxisColor(const FLinearColor& InColor);
 
 	virtual void OnRegister() override;

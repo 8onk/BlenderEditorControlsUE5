@@ -121,7 +121,7 @@ private:
 				                              : (View.ViewMatrices.GetInvProjectionMatrix().TransformFVector4(
 						                              FVector4(1, 0, 1, 1)).X
 					                              - View.ViewMatrices.GetInvProjectionMatrix().TransformFVector4(
-						                              FVector4(-1, 0, 1, 1)).X) * 0.5f;
+						                              FVector4(-1, 0, 1, 1)).X);
 
 			const float viewWidthPx = float(View.UnscaledViewRect.Width());
 			return orthoWidthWorld / viewWidthPx;
@@ -146,13 +146,12 @@ private:
 		const FVector Dir = (B - A) / float(N);
 
 		FDynamicMeshBuilder MeshBuilder(View.GetFeatureLevel());
-
+		const FVector ViewForward = View.GetViewDirection();
+		
 		for (int32 i = 0; i < N; ++i)
 		{
 			const FVector P0 = A + Dir * float(i);
 			const FVector P1 = A + Dir * float(i + 1);
-
-			const FVector CamPos = View.ViewMatrices.GetViewOrigin();
 
 			// Per-vertex world-per-pixel
 			const float wpp0 = WorldPerPixelAt(View, P0);
@@ -163,9 +162,19 @@ private:
 			// Segment direction (world)
 			const FVector SegDir = (P1 - P0).GetSafeNormal();
 
-			// Per-end view rays and “billboard right” vectors
-			const FVector V0 = (P0 - CamPos).GetSafeNormal();
-			const FVector V1 = (P1 - CamPos).GetSafeNormal();
+			FVector V0, V1;
+
+			if (View.IsPerspectiveProjection())
+			{
+				const FVector CamPos = View.ViewMatrices.GetViewOrigin();
+				V0 = (P0 - CamPos).GetSafeNormal();
+				V1 = (P1 - CamPos).GetSafeNormal();
+			}
+			else
+			{
+				V0 = ViewForward;
+				V1 = ViewForward;
+			}
 
 			FVector Right0 = FVector::CrossProduct(V0, SegDir).GetSafeNormal();
 			FVector Right1 = FVector::CrossProduct(V1, SegDir).GetSafeNormal();
