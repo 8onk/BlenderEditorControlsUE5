@@ -1,5 +1,4 @@
-﻿// AxisLockGizmoComponent.cpp
-#include "UI/AxisLockGizmoComponent.h"
+﻿#include "UI/AxisLockGizmoComponent.h"
 #include "PrimitiveSceneProxy.h"
 #include "DynamicMeshBuilder.h"
 #include "Materials/MaterialRenderProxy.h"

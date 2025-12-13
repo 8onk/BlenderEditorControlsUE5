@@ -18,7 +18,6 @@ namespace BlenderControls
 	{
 		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
 
-		// The FCanExecuteAction ensures they only fire when no session is active (as defined by CanStartTool()).
 		CommandList->MapAction(
 			Cmd.CommandTranslate,
 			FExecuteAction::CreateLambda([this]() { OnTransformStart(ETransformMode::Translate); }),
@@ -47,13 +46,11 @@ namespace BlenderControls
 	void FInputProcessor::Tick(const float DeltaTime, FSlateApplication& SlateApp,
 	                           TSharedRef<ICursor> Cursor)
 	{
-		// If a session exists, check if it has finished its work.
 		if (ActiveSession.IsValid() && ActiveSession->IsSessionFinished())
 		{
 			ActiveSession.Reset();
 		}
 
-		// If a session is active, forward the tick to it.
 		if (ActiveSession.IsValid())
 		{
 			ActiveSession->Tick(DeltaTime, SlateApp);
@@ -73,10 +70,8 @@ namespace BlenderControls
 		}
 		PressedKeys.Add(KeyEvent.GetKey());
 
-		// If no session is active, check if we should start one.
 		if (ShouldHandleHotkeys(SlateApp))
 		{
-			// Process bindings like G, R, S, which will create a new ActiveSession.
 			return CommandList->ProcessCommandBindings(KeyEvent);
 		}
 
@@ -92,7 +87,6 @@ namespace BlenderControls
 	bool FInputProcessor::HandleMouseMoveEvent(FSlateApplication& SlateApp,
 	                                           const FPointerEvent& MouseEvent)
 	{
-		// Forward mouse movement to the active session.
 		if (ActiveSession.IsValid())
 		{
 			return ActiveSession->HandleMouseMoveEvent(SlateApp, MouseEvent);
@@ -124,7 +118,7 @@ namespace BlenderControls
 	}
 
 
-	// --- Command Handler Implementations ---
+	// Command Handler Implementations
 
 	bool FInputProcessor::CanStartTool() const
 	{

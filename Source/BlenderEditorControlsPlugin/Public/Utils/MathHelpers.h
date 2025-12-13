@@ -24,7 +24,6 @@ namespace BlenderControls::MathHelper
 	bool IsRayParallelToNormal(const float Denom);
 
 	float GetSignedAngle2D(const FVector2D& From, const FVector2D& To);
-	float GetSignedAngle3D(const FVector& StartVec, const FVector& EndVec);
 
 	FVector ProjectVectorOntoPlane(const FVector& Vector, const FVector& PlaneNormal);
 	FVector ProjectVectorOntoAxis(const FVector& Vector, const FVector& AxisDirection);

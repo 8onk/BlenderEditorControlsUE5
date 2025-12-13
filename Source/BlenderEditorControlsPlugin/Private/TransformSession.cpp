@@ -257,8 +257,7 @@ namespace BlenderControls
 			return (PrimaryChord.IsValidChord() && PrimaryChord.Key == PressedKey) || (SecondaryChord.IsValidChord() &&
 				SecondaryChord.Key == PressedKey);
 		};
-
-		// --- Tool Switching ---
+		
 		if (KeyMatchesCommand(Cmd.CommandTranslate))
 		{
 			SwitchTool(ETransformMode::Translate);
@@ -294,8 +293,7 @@ namespace BlenderControls
 			End(/*bApply=*/false);
 			return true;
 		}
-
-		// --- Axis Locking ---
+		
 		if (KeyMatchesCommand(Cmd.CommandAxisX))
 		{
 			CurrentTool->HandleAxisLock(KeyEvent.IsShiftDown() ? EAxisLock::YZ : EAxisLock::X);
@@ -313,21 +311,6 @@ namespace BlenderControls
 		}
 
 		if (!NumericInputProcessor.IsValid()) return false;
-
-		// if (KeyMatchesCommand(Cmd.CommandNumericCycleSlot))
-		// {
-		// 	UE_LOG(LogTemp, Log, TEXT("COMMAND ACTIVATED"));
-		// 	NumericInputProcessor->HandleInput(KeyEvent);
-		// 	if (NumericInputProcessor->IsInNumericMode())
-		// 	{
-		// 		if (CurrentTool.IsValid())
-		// 		{
-		// 			CurrentTool->ApplyNumeric();
-		// 			CurrentTool->UpdateHud();
-		// 		}
-		// 		return true;
-		// 	}
-		// }
 
 		if (NumericInputProcessor->HandleInput(KeyEvent))
 		{

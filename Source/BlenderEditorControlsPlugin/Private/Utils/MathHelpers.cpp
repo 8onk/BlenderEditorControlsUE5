@@ -56,25 +56,6 @@ namespace BlenderControls::MathHelper
 		return IntersectionPoint;
 	}
 
-	FVector IntersectHelper(const FVector& PlaneOrigin, const FVector& RayOrigin, const FVector& RayDir,
-	                        const FVector& PlaneNormal)
-	{
-		const float Denom = FVector::DotProduct(PlaneNormal.GetSafeNormal(), RayDir.GetSafeNormal());
-		if (FMath::Abs(Denom) < KINDA_SMALL_NUMBER) // Check if ray is parallel to the plane surface
-		{
-			return FVector::ZeroVector;
-		}
-
-		const float DistanceAlongRayToHit = FVector::DotProduct(PlaneOrigin - RayOrigin, PlaneNormal) / Denom;
-		const FVector HitPoint = RayOrigin + RayDir * DistanceAlongRayToHit;
-		return HitPoint;
-	}
-
-	bool IsRayParallelToNormal(const float Denom)
-	{
-		return FMath::Abs(Denom) < KINDA_SMALL_NUMBER;
-	}
-
 	FVector SelectMostParallelPlaneNormal(const FVector& A, const FVector& B,
 	                                      const FVector& ViewForward)
 	{
@@ -107,28 +88,5 @@ namespace BlenderControls::MathHelper
 			Angle = -Angle;
 		}
 		return Angle;
-	}
-
-	float GetSignedAngle3D(const FVector& StartVec, const FVector& EndVec)
-	{
-		const FVector StartVecNorm = StartVec.GetSafeNormal();
-		const FVector EndVecNorm = EndVec.GetSafeNormal();
-		const float Dot = FVector::DotProduct(StartVecNorm, EndVecNorm);
-		return FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f));
-	}
-
-
-	FVector ProjectVectorOntoPlane(const FVector& Vector, const FVector& PlaneNormal)
-	{
-		const FVector Normal = PlaneNormal.GetSafeNormal();
-		const FVector Projected = Vector - FVector::DotProduct(Vector, Normal) * Normal;
-
-		return Projected;
-	}
-
-	FVector ProjectVectorOntoAxis(const FVector& Vector, const FVector& AxisDirection)
-	{
-		const FVector Axis = AxisDirection.GetSafeNormal();
-		return FVector::DotProduct(Vector, Axis) * Axis;
 	}
 }

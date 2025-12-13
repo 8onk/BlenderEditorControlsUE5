@@ -37,14 +37,14 @@ namespace BlenderControls
 		/** Switches the active tool (e.g., from Move to Rotate). */
 		void SwitchTool(ETransformMode NewMode);
 
-		// --- Input Forwarding ---
+		// Input Forwarding
 		void Tick(const float DeltaTime, FSlateApplication& SlateApp) const;
 		bool HandleKeyDownEvent(const FKeyEvent& KeyEvent);
 		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) const;
 		bool HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent);
 		bool IsSwitchingTools() const { return bIsSwitchingTools; }
 
-		// --- Public State Accessors (for Tools) ---
+		// Public State Accessors (for Tools)
 		TSharedPtr<FSharedPivot> GetPivot() const { return VirtualPivot; }
 		EAxisLock GetLockedAxis() const { return LockedAxis; }
 		bool IsUsingLocalSpace() const { return bUsingLocalSpace; }
@@ -63,7 +63,7 @@ namespace BlenderControls
 		const FVector2D& GetWrappedCursorPos() const { return WrappedMousePosition; }
 		const FVector2D& GetStartMousePos() const { return StartMousePos; }
 
-		// --- State Setters (for Tools) ---
+		// State Setters (for Tools)
 		void SetAxisLockActive(bool bActive) { bIsAxisLockActive = bActive; }
 		void SetUsingLocalSpace(bool bUsing) { bUsingLocalSpace = bUsing; }
 		void SetLockedAxis(EAxisLock InAxis) { LockedAxis = InAxis; }
@@ -77,7 +77,6 @@ namespace BlenderControls
 		/** Captures the initial selection and calculates the pivot. */
 		void InitializePivot();
 		void InitializeTransaction(const FString& InTransactionName);
-		void RestoreEditorColor();
 
 		/** The current active tool (Move, Rotate, or Scale). */
 		TSharedPtr<FToolBase> CurrentTool;
@@ -85,11 +84,13 @@ namespace BlenderControls
 		TUniquePtr<FNumericInputProcessor> NumericInputProcessor;
 		bool bIsFirstTool = true;
 		bool bStartedWithDuplicate = false;
+		bool bIsPrecisionModeHeld = false;
+		bool bIsSnapInvertHeld = false;
 
 		/** The pivot point manager for the selected actors. */
 		TSharedPtr<FSharedPivot> VirtualPivot;
 
-		// --- Shared State ---
+		// Shared State 
 		ETransformMode ActiveMode = ETransformMode::None;
 		EAxisLock LockedAxis = EAxisLock::All;
 		bool bUsingLocalSpace = false;
@@ -104,7 +105,7 @@ namespace BlenderControls
 
 		TUniquePtr<FScopedTransaction> ScopedTransaction;
 
-		// --- Session Lifecycle ---
+		// Session Lifecycle 
 		bool bIsSessionFinished = false;
 
 		// Friend class declaration so FToolBase can access and modify session state

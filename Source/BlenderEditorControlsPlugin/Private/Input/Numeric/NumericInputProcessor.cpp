@@ -1,10 +1,26 @@
 ﻿#include "Input/Numeric/NumericInputProcessor.h"
+#include "Commands/BlenderEditorControlsPluginCommands.h"
 #include "Input/Numeric/Helpers/NumericParser.h"
 #include "Input/Numeric/Helpers/UnitFormatter.h"
 
-
 namespace BlenderControls
 {
+	//Keep helper function local to this file
+	static bool MatchesCommand(const FKeyEvent& KeyEvent, const TSharedPtr<FUICommandInfo>& Command)
+	{
+		if (!Command.IsValid()) return false;
+
+		const FInputChord KeyChord(
+			KeyEvent.GetKey(),
+			KeyEvent.IsShiftDown(),
+			KeyEvent.IsControlDown(),
+			KeyEvent.IsAltDown(),
+			KeyEvent.IsCommandDown()
+		);
+		
+		return Command->HasActiveChord(KeyChord);
+	}
+
 	void FNumericInputProcessor::Initialize(int32 NumSlots, EBlenderNumericContext Context)
 	{
 		CurrentState.Initialize(NumSlots, Context);
@@ -28,10 +44,10 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::HandleInput(const FKeyEvent& KeyEvent)
 	{
+		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
 		FKey Key = KeyEvent.GetKey();
 		if (!CurrentState.bIsInNumericMode)
 		{
-			// Check for 0-9, ., -
 			FString KeyStr = Key.GetDisplayName().ToString();
 			if (KeyStr.IsNumeric() || KeyStr == TEXT(".") || KeyStr == TEXT("-"))
 			{
@@ -39,14 +55,14 @@ namespace BlenderControls
 				return true;
 			}
 		}
-		if (Key == EKeys::Tab) return HandleTab();
+		if (MatchesCommand(KeyEvent, Cmd.CommandNumericCycleSlot)) return HandleTab();
 
 		if (!CurrentState.Slots.IsValidIndex(CurrentState.ActiveSlotIndex))
 		{
 			return false;
 		}
 
-		if (Key == EKeys::BackSpace) return HandleBackspace();
+		if (MatchesCommand(KeyEvent, Cmd.CommandNumericBackspace)) return HandleBackspace();
 		if (Key == EKeys::Left || Key == EKeys::Right) return HandleNavigation(Key);
 
 		if (HandleModifiers(KeyEvent))
@@ -61,7 +77,7 @@ namespace BlenderControls
 			return true;
 		}
 
-		return false; // Key not handled by numeric system
+		return false;
 	}
 
 	void FNumericInputProcessor::UpdateActiveNumSlots(int32 NewNumSlots)
@@ -214,6 +230,7 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::HandleModifiers(const FKeyEvent& KeyEvent)
 	{
+		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
 		FString Char = KeyEvent.GetKey().GetDisplayName().ToString();
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
@@ -246,17 +263,16 @@ namespace BlenderControls
 		// 	return true;
 		// }
 
-		// --- Simple Modifiers ---
 		if (CurrentState.bIsEquationMode) return false; // Handled by HandleCharacter
 		FlattenAdditiveSlotIfEmpty();
 
-		if (Char == TEXT("Hyphen") || Char == TEXT("Num -"))
+		if (MatchesCommand(KeyEvent, Cmd.CommandNumericToggleNegation))
 		{
 			if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false; // Activate slot
 			ActiveSlot.bIsNegative = !ActiveSlot.bIsNegative;
 			return true;
 		}
-		if (Char == TEXT("Num /"))
+		if (MatchesCommand(KeyEvent, Cmd.CommandNumericToggleReciprocal))
 		{
 			if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false; // Activate slot
 			ActiveSlot.bIsReciprocal = !ActiveSlot.bIsReciprocal;

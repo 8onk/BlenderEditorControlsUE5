@@ -315,7 +315,7 @@ namespace BlenderControls
 
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		checkf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!VirtualPivot)
@@ -386,7 +386,7 @@ namespace BlenderControls
 
 	FVector FMoveTool::GetSnapOffset(const FVector OffsetFromStart)
 	{
-		checkf(OwningSession.IsValid(), TEXT("GetSnapOffset: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("GetSnapOffset: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!GEditor)

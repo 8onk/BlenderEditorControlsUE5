@@ -7,7 +7,7 @@ namespace BlenderControls
 	FBlenderEditorControlsPluginCommands::FBlenderEditorControlsPluginCommands()
 		: TCommands<FBlenderEditorControlsPluginCommands>(
 			TEXT("BlenderEditorControlsPlugin"), // Plugin context name
-			NSLOCTEXT("Contexts", "BlenderEditorControlsPlugin", "Blender Editor Controls Plugin"),
+			NSLOCTEXT("Contexts", "BlenderEditorControlsPlugin", "Blender Editor Controls"),
 			// Display name in keybindings UI
 			FName("LevelEditor"), // No Parent context name
 			FName(TEXT("DefaultStyle")) // Icon Style Set
@@ -54,23 +54,9 @@ namespace BlenderControls
 		UI_COMMAND(CommandNumericCycleSlot, "Numeric: Cycle Slot", "Cycle X/Y/Z slot",
 		           EUserInterfaceActionType::Button, FInputChord(EKeys::Tab));
 
-		UI_COMMAND(CommandToggleTrackball, "Toggle Trackball", "Toggle trackball rotation from rotation tool",
-		           EUserInterfaceActionType::ToggleButton, FInputChord(EKeys::R));
-
 		UI_COMMAND(CommandDuplicateAndMove, "Duplicate and Move",
 		           "Duplicates the selection and immediately begins a move operation.",
 		           EUserInterfaceActionType::Button, FInputChord(EKeys::D, EModifierKey::Shift));
-
-		// Modifier-style commands
-		UI_COMMAND(CommandSnapInvert, "Snap Invert",
-		           "Temporarily invert snapping (hold Ctrl by default)",
-		           EUserInterfaceActionType::ToggleButton,
-		           FInputChord(EKeys::LeftControl));
-
-		UI_COMMAND(CommandPrecisionMode, "Precision Mode",
-		           "Enable precision mode (hold Shift by default)",
-		           EUserInterfaceActionType::ToggleButton,
-		           FInputChord(EKeys::LeftShift));
 	}
 } // namespace BlenderControls
 
