@@ -24,7 +24,7 @@ namespace BlenderControls
 
 	void FToolBase::OnBegin()
 	{
-		checkf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		// 1. Get Viewport, GEditor, cache settings
@@ -147,7 +147,7 @@ namespace BlenderControls
 
 	void FToolBase::UpdateAxisLock()
 	{
-		checkf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		UpdateToolSettingsForAxisLock();
@@ -180,7 +180,7 @@ namespace BlenderControls
 
 	void FToolBase::RedrawAxisLines()
 	{
-		checkf(OwningSession.IsValid(), TEXT("RedrawAxisLines: Session was invalid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("RedrawAxisLines: Session was invalid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		ClearAxisGizmos();
@@ -318,7 +318,7 @@ namespace BlenderControls
 	                                                   const FLinearColor& Color, float ThicknessPx,
 	                                                   float LineLength) const
 	{
-		checkf(OwningSession.IsValid(), TEXT("SpawnAxisGizmo: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("SpawnAxisGizmo: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
@@ -345,7 +345,7 @@ namespace BlenderControls
 
 	FVector FToolBase::GetAxisVector(const EAxisLock InAxis) const
 	{
-		checkf(OwningSession.IsValid(), TEXT("GetAxisVector: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("GetAxisVector: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		FVector AxisVector =
@@ -595,7 +595,7 @@ namespace BlenderControls
 
 	void FToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
 	{
-		checkf(OwningSession.IsValid(), TEXT("SetSnappingEnabled: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("SetSnappingEnabled: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (bSnappingEnabled == bNewSnappingEnabled)
@@ -613,7 +613,7 @@ namespace BlenderControls
 
 	void FToolBase::StartNewLock(const EAxisLock NewAxis) const
 	{
-		checkf(OwningSession.IsValid(), TEXT("StartNewLock: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("StartNewLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		Session->bIsAxisLockActive = true;
@@ -623,7 +623,7 @@ namespace BlenderControls
 
 	void FToolBase::HandleAxisLock(const EAxisLock AxisPressed)
 	{
-		checkf(OwningSession.IsValid(), TEXT("HandleAxisLock: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("HandleAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!Session->IsAxisLockActive() || Session->LockedAxis != AxisPressed)
@@ -651,7 +651,7 @@ namespace BlenderControls
 
 	bool FToolBase::IsSingleAxisLocked() const
 	{
-		checkf(OwningSession.IsValid(), TEXT("IsSingleAxisLocked: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("IsSingleAxisLocked: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (Session->bIsAxisLockActive && GrabContext.HelperAxisDir != FVector::ZeroVector)

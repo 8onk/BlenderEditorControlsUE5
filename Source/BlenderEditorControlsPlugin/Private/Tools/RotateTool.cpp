@@ -101,13 +101,13 @@ namespace BlenderControls
 			const FVector RotationAxis = GrabContext.HelperAxisDir;
 			//if locked axis is “backwards” relative to the camera, flip the sign
 			float SignedAccum = AccumulatedAngleRad;
-			bool bShouldCheckFlip = true;
+			bool bShouldensureMsgflip = true;
 			if (ViewportClient && !ViewportClient->IsPerspective())
 			{
-				bShouldCheckFlip = false;
+				bShouldensureMsgflip = false;
 			}
 
-			if (bShouldCheckFlip && FVector::DotProduct(ViewToPivot, RotationAxis) < 0)
+			if (bShouldensureMsgflip && FVector::DotProduct(ViewToPivot, RotationAxis) < 0)
 			{
 				SignedAccum = -AccumulatedAngleRad;
 			}
@@ -370,7 +370,7 @@ namespace BlenderControls
 
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		checkf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();

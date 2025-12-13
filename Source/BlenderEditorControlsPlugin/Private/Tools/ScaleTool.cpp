@@ -334,7 +334,7 @@ namespace BlenderControls
 
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		checkf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
+		ensureMsgf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
@@ -372,7 +372,7 @@ namespace BlenderControls
 
 	void FScaleTool::UpdateToolSettingsForAxisLock()
 	{
-		checkf(OwningSession.IsValid(), TEXT("UpdateToolSettingsForAxisLock: Session must be valid for %s"),
+		ensureMsgf(OwningSession.IsValid(), TEXT("UpdateToolSettingsForAxisLock: Session must be valid for %s"),
 		       *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
