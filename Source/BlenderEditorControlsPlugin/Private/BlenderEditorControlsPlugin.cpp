@@ -15,11 +15,8 @@ namespace BlenderControls
 	void FBlenderEditorControlsPluginModule::StartupModule()
 	{
 		UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: StartupModule"));
-
-		RegisterStyles(); // icons, brushes
+		
 		RegisterCommands(); // UI_COMMANDs
-		RegisterSettings(); // Preferences panel
-		RegisterMenus(); // Toolbar toggle button
 		RegisterInputProcessor(); // Input processor
 	}
 
@@ -28,18 +25,7 @@ namespace BlenderControls
 		UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: ShutdownModule"));
 
 		UnregisterInputProcessor();
-		UnregisterMenus();
-		UnregisterSettings();
 		UnregisterCommands();
-		UnregisterStyles();
-	}
-
-	void FBlenderEditorControlsPluginModule::RegisterStyles()
-	{
-	}
-
-	void FBlenderEditorControlsPluginModule::UnregisterStyles()
-	{
 	}
 
 	void FBlenderEditorControlsPluginModule::RegisterCommands()
@@ -52,22 +38,6 @@ namespace BlenderControls
 	{
 		CommandList.Reset();
 		FBlenderEditorControlsPluginCommands::Unregister();
-	}
-
-	void FBlenderEditorControlsPluginModule::RegisterSettings()
-	{
-	}
-
-	void FBlenderEditorControlsPluginModule::UnregisterSettings()
-	{
-	}
-
-	void FBlenderEditorControlsPluginModule::RegisterMenus()
-	{
-	}
-
-	void FBlenderEditorControlsPluginModule::UnregisterMenus()
-	{
 	}
 
 	void FBlenderEditorControlsPluginModule::RegisterInputProcessor()

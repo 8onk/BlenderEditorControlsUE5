@@ -6,6 +6,7 @@
 #include "BaseGizmos/TransformProxy.h"
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
+#include "Settings/BlenderControlsSettings.h"
 #include "Settings/EditorStyleSettings.h"
 #include "Utils/MathHelpers.h"
 #include "Tools/SharedPivot.h"
@@ -214,6 +215,7 @@ namespace BlenderControls
 				const bool bIsActive =
 					(ChildInfo && ChildInfo->Actor && ChildInfo->Actor == Active.Actor);
 
+				//highlight the gizmo for "last selected object" just like in blender
 				if (bIsActive || !Session->IsUsingLocalSpace())
 				{
 					Color = BaseColor * 2.0f;
@@ -226,10 +228,11 @@ namespace BlenderControls
 				}
 			}
 
-			constexpr float ThicknessPx = 2.5f;
 			constexpr float Length = WORLD_MAX;
 
-			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(Origin, AxisDir, Color, ThicknessPx, Length))
+			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(Origin, AxisDir, Color,
+			                                                   GetDefault<UBlenderControlsSettings>()->
+			                                                   AxisLineThickness, Length))
 			{
 				AxisGizmos.Add(Comp);
 			}
@@ -301,14 +304,16 @@ namespace BlenderControls
 
 	FLinearColor FToolBase::GetAxisColor(EAxisLock InAxis)
 	{
+		const UBlenderControlsSettings* Settings = GetDefault<UBlenderControlsSettings>();
+
 		switch (InAxis)
 		{
 		case EAxisLock::X:
-			return FLinearColor::Red;
+			return Settings->AxisColorX;
 		case EAxisLock::Y:
-			return FLinearColor::Green;
+			return Settings->AxisColorY;
 		case EAxisLock::Z:
-			return FLinearColor::Blue;
+			return Settings->AxisColorZ;
 		default:
 			return FLinearColor::White;
 		}
@@ -585,7 +590,7 @@ namespace BlenderControls
 		bPrecisionModeActive = bNewPrecisionModeActive;
 		if (bPrecisionModeActive)
 		{
-			CurrentPrecisionFactor = PrecisionFactor;
+			CurrentPrecisionFactor = GetDefault<UBlenderControlsSettings>()->PrecisionScalar;
 		}
 		else
 		{
@@ -663,11 +668,6 @@ namespace BlenderControls
 
 	void FToolBase::Accept()
 	{
-		// if (ParentTxn)
-		// {
-		// 	ParentTxn.Reset();
-		// }
-
 		OnEnd(/*bApply=*/true);
 	}
 

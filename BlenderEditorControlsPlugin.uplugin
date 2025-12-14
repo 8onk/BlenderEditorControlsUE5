@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
-	"FriendlyName": "BlenderEditorControlsPlugin",
+	"FriendlyName": "Blender3D Editor Controls",
 	"Description": "Blender controls brought to Unreal Engine",
 	"Category": "Other",
 	"CreatedBy": "jeffDev887",

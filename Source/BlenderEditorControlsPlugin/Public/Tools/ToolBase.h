@@ -117,7 +117,6 @@ namespace BlenderControls
 		FString DisplayName;
 		FViewport* Viewport = nullptr;
 		TSharedPtr<FSharedPivot> VirtualPivot;
-		float PrecisionFactor = 0.1f;
 		float CurrentPrecisionFactor = 1.0f;
 		bool bPrecisionModeActive = false;
 		bool bWasPrecisionModeActive = false;

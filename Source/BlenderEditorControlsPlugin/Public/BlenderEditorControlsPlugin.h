@@ -16,33 +16,20 @@ namespace BlenderControls
 		virtual void StartupModule() override;
 		virtual void ShutdownModule() override;
 
-		/** Lightweight accessor so other plugins can query whether BC is active */
-		static bool IsEnabled();
-
 	private:
-		/* ----- internal registration helpers ----- */
-		void RegisterStyles();
-		void UnregisterStyles();
-
 		void RegisterCommands();
 		void UnregisterCommands();
-
-		void RegisterSettings();
-		void UnregisterSettings();
-
-		void RegisterMenus();
-		void UnregisterMenus();
 
 		void RegisterInputProcessor();
 		void UnregisterInputProcessor();
 
-		/* Toolbar delegate */
-		void OnTogglePlugin();
+		// /* Toolbar delegate */
+		// void OnTogglePlugin();
 
 		/* Persistent state */
-		static inline bool                           bPluginActive = false;
-		TSharedPtr<class FUICommandList>             CommandList;
+		static inline bool bPluginActive = false;
+		TSharedPtr<FUICommandList> CommandList;
 		TSharedPtr<class FInputProcessor> InputProcessor;
-		FDelegateHandle                              ToolMenuOwnerHandle;
+		FDelegateHandle ToolMenuOwnerHandle;
 	};
 } // namespace BlenderControls

@@ -4,6 +4,7 @@
 #include "BaseGizmos/TransformProxy.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Input/Numeric/NumericInputStructs.h"
+#include "Settings/BlenderControlsSettings.h"
 #include "Style/Style.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
@@ -65,7 +66,7 @@ namespace BlenderControls
 
 		if (bTrackballModeEnabled)
 		{
-			constexpr float MouseDeltaSensitivity = 0.01f;
+			constexpr float MouseDeltaSensitivity = GetDefault<UBlenderControlsSettings>()->TrackballSensitivity;
 			TrackballMouseDelta = FVector2D(MouseDelta.X, MouseDelta.Y) * MouseDeltaSensitivity;
 
 			if (bSnappingEnabled)
@@ -326,7 +327,7 @@ namespace BlenderControls
 				break;
 			}
 		}
-		
+
 		return FText::Join(FText::FromString(Gap), HudArgs);
 	}
 
@@ -363,10 +364,10 @@ namespace BlenderControls
 		if (bTrackballModeEnabled)
 		{
 			return;
-		}        
+		}
 
 		FToolBase::HandleAxisLock(AxisPressed);
-	}   
+	}
 
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{

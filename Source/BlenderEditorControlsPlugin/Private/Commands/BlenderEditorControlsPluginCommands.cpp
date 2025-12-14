@@ -17,8 +17,8 @@ namespace BlenderControls
 
 	void FBlenderEditorControlsPluginCommands::RegisterCommands()
 	{
-		UI_COMMAND(CommandTogglePlugin, "Toggle Blender Controls", "Toggles the Blender-style controls on/off",
-		           EUserInterfaceActionType::ToggleButton, FInputChord());
+		// UI_COMMAND(CommandTogglePlugin, "Toggle Blender Controls", "Toggles the Blender-style controls on/off",
+		//            EUserInterfaceActionType::ToggleButton, FInputChord());
 
 		// Confirmation commands
 		UI_COMMAND(CommandAcceptAlt, "Accept (Space)", "Accept with Space",
