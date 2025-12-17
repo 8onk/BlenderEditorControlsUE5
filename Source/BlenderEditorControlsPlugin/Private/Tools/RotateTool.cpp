@@ -66,7 +66,7 @@ namespace BlenderControls
 
 		if (bTrackballModeEnabled)
 		{
-			constexpr float MouseDeltaSensitivity = GetDefault<UBlenderControlsSettings>()->TrackballSensitivity;
+			const float MouseDeltaSensitivity = GetDefault<UBlenderControlsSettings>()->TrackballSensitivity;
 			TrackballMouseDelta = FVector2D(MouseDelta.X, MouseDelta.Y) * MouseDeltaSensitivity;
 
 			if (bSnappingEnabled)
@@ -198,27 +198,6 @@ namespace BlenderControls
 	{
 		FToolBase::OnEnd(bApply);
 	}
-
-	// void FRotateTool::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
-	// {
-	// 	FToolBase::HandleMouseMovement(CurrentViewportMousePosition);
-	// 	const TSharedPtr<FTransformSession> Session = GetSession();
-	// 	if (!Session.IsValid())
-	// 	{
-	// 		return;
-	// 	}
-	//
-	// 	// if (HudWidget.IsValid() && !bTrackballModeEnabled)
-	// 	// {
-	// 	// 	HudWidget->SetDashState(/*bEnabled=*/true, /*InOriginPx=*/PivotViewportPosition,
-	// 	// 	                                     Session->GetVirtualMousePos());
-	// 	// }
-	// 	// else
-	// 	// {
-	// 	// 	HudWidget->SetDashState(/*bEnabled=*/false, /*InOriginPx=*/PivotViewportPosition,
-	// 	// 	                                     Session->GetVirtualMousePos());
-	// 	// }
-	// }
 
 	FText FRotateTool::GetNumericHudText() const
 	{
@@ -445,7 +424,10 @@ namespace BlenderControls
 			HudWidget->SetCursorBrush(CursorBrush);
 			HudWidget->SetCursorOrientation(ECursorOrient::None);
 			ClearAxisGizmos();
-			UpdateAxisLock();
+			NumNumericSlots = 2;
+			GetSession()->GetNumericInputProcessor()->UpdateActiveNumSlots(NumNumericSlots);
+			CachedAxisLockPreTrackball = GetSession()->GetLockedAxis();
+			GetSession()->SetLockedAxis(EAxisLock::All);
 		}
 		else
 		{
@@ -453,6 +435,8 @@ namespace BlenderControls
 				TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 			HudWidget->SetCursorBrush(CursorBrush);
 			HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
+			GetSession()->SetLockedAxis(CachedAxisLockPreTrackball);
+			CachedAxisLockPreTrackball = EAxisLock::All;
 			UpdateAxisLock();
 		}
 
@@ -463,7 +447,6 @@ namespace BlenderControls
 		}
 
 		UpdateHud();
-		OnActive(CurrentViewportMousePos);
 	}
 
 	bool FRotateTool::GetTrackballRotationMode()
@@ -471,7 +454,7 @@ namespace BlenderControls
 		return bTrackballModeEnabled;
 	}
 
-	void FRotateTool::UpdateToolSettingsForAxisLock()
+	void FRotateTool::UpdateNumActiveSlots()
 	{
 		if (bTrackballModeEnabled)
 		{

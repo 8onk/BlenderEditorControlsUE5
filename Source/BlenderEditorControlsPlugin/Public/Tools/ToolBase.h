@@ -92,9 +92,7 @@ namespace BlenderControls
 
 		void UpdateAxisLock();
 
-		virtual void UpdateToolSettingsForAxisLock()
-		{
-		};
+		virtual void UpdateNumActiveSlots();
 
 		TSharedPtr<FTransformSession> GetSession() const { return OwningSession.Pin(); }
 

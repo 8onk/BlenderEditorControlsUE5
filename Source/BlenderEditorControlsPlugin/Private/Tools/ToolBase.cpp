@@ -151,7 +151,7 @@ namespace BlenderControls
 		ensureMsgf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		UpdateToolSettingsForAxisLock();
+		UpdateNumActiveSlots();
 
 		Session->GetNumericInputProcessor()->UpdateActiveNumSlots(NumNumericSlots);
 
@@ -168,6 +168,33 @@ namespace BlenderControls
 			OnActive(CurrentViewportMousePos);
 		}
 		UpdateHud();
+	}
+
+	void FToolBase::UpdateNumActiveSlots()
+	{
+		ensureMsgf(OwningSession.IsValid(), TEXT("UpdateNumActiveSlots: Session must be valid for %s"),
+		           *DisplayName);
+		const TSharedPtr<FTransformSession> Session = GetSession();
+
+		switch (Session->GetLockedAxis())
+		{
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+			NumNumericSlots = 1;
+			break;
+
+		case EAxisLock::XY:
+		case EAxisLock::XZ:
+		case EAxisLock::YZ:
+			NumNumericSlots = 2;
+			break;
+
+		case EAxisLock::All:
+		default:
+			NumNumericSlots = 3;
+			break;
+		}
 	}
 
 	void FToolBase::ClearDrawnAxisLines()
@@ -497,7 +524,7 @@ namespace BlenderControls
 		HudWidget = SNew(STransformHUD);
 		HudWidget->Attach();
 		UpdateHud();
-		UpdateToolSettingsForAxisLock();
+		UpdateNumActiveSlots();
 
 		// Setup Cursor
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);

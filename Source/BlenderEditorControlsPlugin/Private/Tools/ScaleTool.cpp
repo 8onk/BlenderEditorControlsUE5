@@ -370,33 +370,6 @@ namespace BlenderControls
 		}
 	}
 
-	void FScaleTool::UpdateToolSettingsForAxisLock()
-	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("UpdateToolSettingsForAxisLock: Session must be valid for %s"),
-		       *DisplayName);
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
-		switch (Session->GetLockedAxis())
-		{
-		case EAxisLock::X:
-		case EAxisLock::Y:
-		case EAxisLock::Z:
-			NumNumericSlots = 1;
-			break;
-
-		case EAxisLock::XY:
-		case EAxisLock::XZ:
-		case EAxisLock::YZ:
-			NumNumericSlots = 2;
-			break;
-
-		case EAxisLock::All:
-		default:
-			NumNumericSlots = 3;
-			break;
-		}
-	}
-
 	FText FScaleTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();

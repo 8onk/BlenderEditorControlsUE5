@@ -33,13 +33,14 @@ namespace BlenderControls
 		float AccumulatedAngleRad;
 		FVector2D TrackballMouseDelta;
 		float AngleToApplyRad;
+		EAxisLock CachedAxisLockPreTrackball = EAxisLock::All;
 
 		FText BuildTrackballHudText(double LiveAngleX, double LiveAngleY, const FNumberFormattingOptions& NumFmt) const;
 
 		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetTrackballRotationMode(const bool bEnabled) override;
 		virtual bool GetTrackballRotationMode() override;
-		virtual void UpdateToolSettingsForAxisLock() override;
+		virtual void UpdateNumActiveSlots() override;
 
 		virtual FText GetLiveHudText() const override;
 		FText BuildFreeformHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const;

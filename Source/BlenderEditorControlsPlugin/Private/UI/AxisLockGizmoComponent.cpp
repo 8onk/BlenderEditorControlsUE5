@@ -2,6 +2,7 @@
 #include "PrimitiveSceneProxy.h"
 #include "DynamicMeshBuilder.h"
 #include "Materials/MaterialRenderProxy.h"
+#include "MaterialDomain.h"
 
 class FAxisLockSceneProxy : public FPrimitiveSceneProxy
 {
@@ -62,7 +63,7 @@ public:
 						   ? FallbackMatPersp
 						   : FallbackMatOrtho);
 
-			if (!ActiveMat) { ActiveMat = UMaterial::GetDefaultMaterial(MD_Surface); }
+			if (!ActiveMat) { ActiveMat = UMaterial::GetDefaultMaterial(EMaterialDomain::MD_Surface); }
 
 			const FMaterialRenderProxy* BaseProxy = ActiveMat->GetRenderProxy();
 			auto* OneFrameColored = new FColoredMaterialRenderProxy(BaseProxy, Color, FName("LineColor"));
@@ -103,27 +104,33 @@ private:
 
 	static float WorldPerPixelAt(const FSceneView& View, const FVector& WorldPos)
 	{
+		const float ViewWidthPx = float(View.UnscaledViewRect.Width());
+		const FMatrix& ProjMatrix = View.ViewMatrices.GetProjectionMatrix();
+
 		if (View.IsPerspectiveProjection())
 		{
+			// Calculate depth in View Space
 			const FVector ViewPos = View.ViewMatrices.GetViewMatrix().TransformPosition(WorldPos);
-			const float depth = FMath::Abs(ViewPos.Z);
-			const float HFovDeg = View.FOV;
-			const float HFovRad = FMath::DegreesToRadians(HFovDeg);
-			const float viewWidthPx = float(View.UnscaledViewRect.Width());
-			const float screenWidthWorld = 2.f * depth * FMath::Tan(HFovRad * 0.5f);
-			return screenWidthWorld / viewWidthPx;
-		}
-		else
-		{
-			const float orthoWidthWorld = View.ViewMatrices.GetProjectionMatrix().M[0][0] == 0
-				                              ? 1.f
-				                              : (View.ViewMatrices.GetInvProjectionMatrix().TransformFVector4(
-						                              FVector4(1, 0, 1, 1)).X
-					                              - View.ViewMatrices.GetInvProjectionMatrix().TransformFVector4(
-						                              FVector4(-1, 0, 1, 1)).X);
+			const float Depth = FMath::Abs(ViewPos.Z);
 
-			const float viewWidthPx = float(View.UnscaledViewRect.Width());
-			return orthoWidthWorld / viewWidthPx;
+			// M[0][0] is the scaling factor for the X-axis in the Projection Matrix.
+			// Relationship: 1.0 (NDC Edge) = (ViewX * M00) / Depth
+			// Therefore, ViewX (Half Width at Depth) = Depth / M00
+			// Total World Width at Depth = (2 * Depth) / M00
+			const float M00 = ProjMatrix.M[0][0];
+
+			// Protect against division by zero just in case
+			const float ScreenWidthWorld = (M00 > 0.0f) ? (2.f * Depth) / M00 : 1.0f;
+
+			return ScreenWidthWorld / ViewWidthPx;
+		}
+		else // Orthographic
+		{
+			const float OrthoWidthWorld = (ProjMatrix.M[0][0] == 0)
+				                              ? 1.f
+				                              : 2.f / FMath::Abs(ProjMatrix.M[0][0]); // 2.0 / ScaleX gives world width
+
+			return OrthoWidthWorld / ViewWidthPx;
 		}
 	}
 
@@ -146,7 +153,7 @@ private:
 
 		FDynamicMeshBuilder MeshBuilder(View.GetFeatureLevel());
 		const FVector ViewForward = View.GetViewDirection();
-		
+
 		for (int32 i = 0; i < N; ++i)
 		{
 			const FVector P0 = A + Dir * float(i);

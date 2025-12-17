@@ -5,7 +5,6 @@
 
 namespace BlenderControls
 {
-	//Keep helper function local to this file
 	static bool MatchesCommand(const FKeyEvent& KeyEvent, const TSharedPtr<FUICommandInfo>& Command)
 	{
 		if (!Command.IsValid()) return false;
@@ -17,7 +16,7 @@ namespace BlenderControls
 			KeyEvent.IsAltDown(),
 			KeyEvent.IsCommandDown()
 		);
-		
+
 		return Command->HasActiveChord(KeyChord);
 	}
 
@@ -83,6 +82,7 @@ namespace BlenderControls
 	void FNumericInputProcessor::UpdateActiveNumSlots(int32 NewNumSlots)
 	{
 		CurrentState.NumActiveSlots = NewNumSlots;
+		
 		if (CurrentState.Slots.Num() < NewNumSlots)
 		{
 			CurrentState.Slots.SetNum(NewNumSlots);
@@ -216,8 +216,6 @@ namespace BlenderControls
 
 			ActiveSlot.Finalize(FinalValue, bWasSlotEmpty);
 		}
-
-		// CurrentState.DebugPrint();
 
 		CurrentState.ActiveSlotIndex = (CurrentState.ActiveSlotIndex + 1) % CurrentState.NumActiveSlots;
 		if (CurrentState.Slots[CurrentState.ActiveSlotIndex].Context != CurrentState.CurrentContext)
