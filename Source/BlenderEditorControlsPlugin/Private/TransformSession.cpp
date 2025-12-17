@@ -267,8 +267,11 @@ namespace BlenderControls
 		{
 			if (ActiveMode == ETransformMode::Rotate)
 			{
-				const bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
-				CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
+				if (!KeyEvent.IsRepeat())
+				{
+					const bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
+					CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
+				}
 			}
 			else
 			{
