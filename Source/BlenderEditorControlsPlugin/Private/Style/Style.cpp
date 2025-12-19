@@ -25,39 +25,6 @@ namespace BlenderControls
 	{
 		return new FSlateImageBrush(Style->RootToContentDir(RelPathNoExt, TEXT(".png")), Size);
 	}
-	//
-	// static FSlateImageBrush* MakePixelArtBrushPtr(
-	// 	const TSharedRef<FSlateStyleSet>& Style, const TCHAR* RelPathNoExt, const FVector2D& Size)
-	// {
-	// 	FString FullPath = Style->RootToContentDir(RelPathNoExt, TEXT(".png"));
-	//
-	// 	// Load the texture from disk manually
-	// 	UTexture2D* Texture = FImageUtils::ImportFileAsTexture2D(FullPath);
-	//
-	// 	if (Texture)
-	// 	{
-	// 		// FORCE NEAREST NEIGHBOR (CRISP PIXELS)
-	// 		Texture->Filter = TF_Nearest;
-	//
-	// 		// Standard UI settings
-	// 		Texture->CompressionSettings = TC_EditorIcon;
-	// 		Texture->LODGroup = TEXTUREGROUP_UI;
-	// 		Texture->SRGB = true;
-	//
-	// 		// Apply changes
-	// 		Texture->UpdateResource();
-	//
-	// 		// CRITICAL: Prevent Garbage Collection. 
-	// 		// Since this texture is created at runtime and not referenced by a UProperty,
-	// 		// the GC will delete it if we don't Root it.
-	// 		Texture->AddToRoot();
-	//
-	// 		return new FSlateImageBrush(Texture, Size);
-	// 	}
-	//
-	// 	// Fallback to standard load if something goes wrong
-	// 	return new FSlateImageBrush(FullPath, Size);
-	// }
 
 	TSharedRef<FSlateStyleSet> FStyle::Create()
 	{

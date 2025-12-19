@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
@@ -9,10 +8,14 @@ DECLARE_LOG_CATEGORY_EXTERN(LogBlenderEditorControls, Log, All);
 
 namespace BlenderControls
 {
+	/**
+	 * This module acts as the entry point for the plugin, responsible for 
+	 * initializing the command system and registering (and unregistering) the Slate input processor
+	 * that captures hotkeys on engine start and shutdown
+	 */
 	class FBlenderEditorControlsPluginModule : public IModuleInterface
 	{
 	public:
-		/** IModuleInterface implementation */
 		virtual void StartupModule() override;
 		virtual void ShutdownModule() override;
 
@@ -23,13 +26,8 @@ namespace BlenderControls
 		void RegisterInputProcessor();
 		void UnregisterInputProcessor();
 
-		// /* Toolbar delegate */
-		// void OnTogglePlugin();
-
-		/* Persistent state */
-		static inline bool bPluginActive = false;
+		//Bindable keybindings implemented by the plugin
 		TSharedPtr<FUICommandList> CommandList;
 		TSharedPtr<class FInputProcessor> InputProcessor;
-		FDelegateHandle ToolMenuOwnerHandle;
 	};
 } // namespace BlenderControls

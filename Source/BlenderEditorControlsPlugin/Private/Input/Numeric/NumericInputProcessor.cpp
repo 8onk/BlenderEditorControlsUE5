@@ -1,5 +1,5 @@
 ﻿#include "Input/Numeric/NumericInputProcessor.h"
-#include "Commands/BlenderEditorControlsPluginCommands.h"
+#include "BlenderControlsCommands.h"
 #include "Input/Numeric/Helpers/NumericParser.h"
 #include "Input/Numeric/Helpers/UnitFormatter.h"
 
@@ -43,7 +43,7 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::HandleInput(const FKeyEvent& KeyEvent)
 	{
-		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Cmd = FBlenderControlsCommands::Get();
 		FKey Key = KeyEvent.GetKey();
 		if (!CurrentState.bIsInNumericMode)
 		{
@@ -228,7 +228,7 @@ namespace BlenderControls
 
 	bool FNumericInputProcessor::HandleModifiers(const FKeyEvent& KeyEvent)
 	{
-		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Cmd = FBlenderControlsCommands::Get();
 		FString Char = KeyEvent.GetKey().GetDisplayName().ToString();
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 

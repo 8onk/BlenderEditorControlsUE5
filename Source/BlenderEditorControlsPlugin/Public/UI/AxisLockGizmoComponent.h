@@ -8,7 +8,6 @@ class UAxisLockGizmoComponent : public UPrimitiveComponent
 	GENERATED_BODY()
 
 public:
-	// editable gizmo inputs:
 	FVector Origin = FVector::ZeroVector;
 	FVector AxisDir = FVector::ForwardVector;
 	float LineLength = 1000.0f;
@@ -25,6 +24,7 @@ public:
 	// UPrimitiveComponent
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 
+	//Called by Unreal Engine's Renderer. 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override
 	{
 		const FVector SafeDir = AxisDir.IsNearlyZero() ? FVector::ForwardVector : AxisDir.GetSafeNormal();

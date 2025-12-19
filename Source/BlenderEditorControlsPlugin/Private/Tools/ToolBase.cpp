@@ -6,7 +6,7 @@
 #include "BaseGizmos/TransformProxy.h"
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
-#include "Settings/BlenderControlsSettings.h"
+#include "BlenderControlsSettings.h"
 #include "Settings/EditorStyleSettings.h"
 #include "Utils/MathHelpers.h"
 #include "Tools/SharedPivot.h"

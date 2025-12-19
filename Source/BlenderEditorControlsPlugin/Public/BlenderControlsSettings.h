@@ -10,7 +10,6 @@ class BLENDEREDITORCONTROLSPLUGIN_API UBlenderControlsSettings : public UDevelop
 	GENERATED_BODY()
 
 public:
-	//--- SETUP ---
 	// Move to "Editor Preferences" window (instead of Project Settings)
 	virtual FName GetContainerName() const override { return FName("Editor"); }
 
@@ -25,9 +24,9 @@ public:
 		return FText::FromString("Configure controls and shortcuts.");
 	}
 
-	//--- SETTINGS ---
-	UPROPERTY(EditAnywhere, config, Category = "Visuals")
-	FVector2D CursorSize = FVector2D(32, 32);
+	// //--- SETTINGS ---
+	// UPROPERTY(EditAnywhere, config, Category = "Visuals")
+	// FVector2D CursorSize = FVector2D(32, 32);
 
 	// --- VISUALS (Cursors & HUD) ---
 	UPROPERTY(EditAnywhere, config, Category = "Visuals | Colors")

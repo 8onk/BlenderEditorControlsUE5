@@ -1,6 +1,6 @@
 #include "Input/InputProcessor.h"
 #include "TransformSession.h"
-#include "Commands/BlenderEditorControlsPluginCommands.h"
+#include "BlenderControlsCommands.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Editor.h"
 #include "LevelEditor.h"
@@ -16,7 +16,7 @@ namespace BlenderControls
 
 	void FInputProcessor::BindCommands()
 	{
-		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Cmd = FBlenderControlsCommands::Get();
 
 		CommandList->MapAction(
 			Cmd.CommandTranslate,

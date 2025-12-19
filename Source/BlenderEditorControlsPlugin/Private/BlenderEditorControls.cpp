@@ -1,23 +1,21 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "BlenderEditorControlsPlugin.h"
+#include "BlenderEditorControls.h"
 #include "Modules/ModuleManager.h"
 #include "Logging/LogMacros.h"
-#include "Commands/BlenderEditorControlsPluginCommands.h"
+#include "BlenderControlsCommands.h"
 #include "Input/InputProcessor.h"
 
 DEFINE_LOG_CATEGORY(LogBlenderEditorControls);
-
-#define LOCTEXT_NAMESPACE "FBlenderEditorControlsPluginModule"
 
 namespace BlenderControls
 {
 	void FBlenderEditorControlsPluginModule::StartupModule()
 	{
 		UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: StartupModule"));
-		
-		RegisterCommands(); // UI_COMMANDs
-		RegisterInputProcessor(); // Input processor
+
+		RegisterCommands();
+		RegisterInputProcessor();
 	}
 
 	void FBlenderEditorControlsPluginModule::ShutdownModule()
@@ -30,20 +28,21 @@ namespace BlenderControls
 
 	void FBlenderEditorControlsPluginModule::RegisterCommands()
 	{
-		FBlenderEditorControlsPluginCommands::Register();
+		FBlenderControlsCommands::Register();
 		CommandList = MakeShared<FUICommandList>();
 	}
 
 	void FBlenderEditorControlsPluginModule::UnregisterCommands()
 	{
 		CommandList.Reset();
-		FBlenderEditorControlsPluginCommands::Unregister();
+		FBlenderControlsCommands::Unregister();
 	}
 
 	void FBlenderEditorControlsPluginModule::RegisterInputProcessor()
 	{
 		InputProcessor = MakeShared<FInputProcessor>(CommandList);
 		InputProcessor->BindCommands();
+		//Ensure that this input-processor receives input first (amongst all input-processors). 
 		constexpr int32 Priority = 100;
 		FSlateApplication::Get().RegisterInputPreProcessor(InputProcessor, Priority);
 	}
@@ -57,7 +56,5 @@ namespace BlenderControls
 		InputProcessor.Reset();
 	}
 } // namespace BlenderControls
-
-#undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(BlenderControls::FBlenderEditorControlsPluginModule, BlenderEditorControlsPlugin)

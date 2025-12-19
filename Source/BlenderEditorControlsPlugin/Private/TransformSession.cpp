@@ -3,7 +3,7 @@
 #include "Selection.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Commands/UICommandInfo.h"
-#include "Commands/BlenderEditorControlsPluginCommands.h"
+#include "BlenderControlsCommands.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Settings/EditorStyleSettings.h"
 #include "Tools/SharedPivot.h"
@@ -17,37 +17,24 @@ namespace BlenderControls
 {
 	FTransformSession::FTransformSession(ETransformMode InStartMode, bool bDuplicateSelection)
 	{
-		if (!GEditor || GEditor->GetSelectedActorCount() == 0)
+		if (!ValidateEditorState())
 		{
 			bIsSessionFinished = true;
 			return;
 		}
 
+		// Tracks duplication state to prevent calling Cancel() on ScopedTransaction.
+		// Since edactDuplicateSelected commits its own transaction, calling Cancel() 
+		// here would revert the transform but leave the duplicated actors orphaned in the scene.
 		bStartedWithDuplicate = bDuplicateSelection;
 
 		if (bDuplicateSelection)
 		{
-			InitializeTransaction(TEXT("Duplicate Selection"));
-
-			UWorld* World = GEditor->GetEditorWorldContext().World();
-			if (World)
-			{
-				ULevel* Level = World->GetCurrentLevel();
-				constexpr bool bOffsetLocations = false;
-				GEditor->edactDuplicateSelected(Level, bOffsetLocations);
-			}
+			PerformDuplicateSelected();
 		}
+
 		InitializePivot();
-
-		if (FViewport* Viewport = GEditor->GetActiveViewport())
-		{
-			FIntPoint MousePosInt;
-			Viewport->GetMousePos(MousePosInt);
-			StartMousePos = FVector2D(MousePosInt);
-			CursorAnchorPoint = StartMousePos;
-			VirtualMousePosition = StartMousePos;
-			WrappedMousePosition = StartMousePos;
-		}
+		InitializeMouseState();
 
 		NumericInputProcessor = MakeUnique<FNumericInputProcessor>();
 	}
@@ -69,6 +56,39 @@ namespace BlenderControls
 				FLinearColor DefaultSelectionColor = StyleSettings->SelectionColor;
 				GEditor->SetSelectionOutlineColor(DefaultSelectionColor);
 			}
+		}
+	}
+
+	bool FTransformSession::ValidateEditorState() const
+	{
+		return GEditor && GEditor->GetSelectedActorCount() > 0;
+	}
+
+	void FTransformSession::PerformDuplicateSelected()
+	{
+		// Start a transaction immediately for duplication to ensure the 'Spawn' 
+		// and 'Move' are part of the same Undo step.
+		InitializeTransaction(TEXT("Duplicate Selection"));
+
+		if (UWorld* World = GEditor->GetEditorWorldContext().World())
+		{
+			ULevel* Level = World->GetCurrentLevel();
+			const bool bOffsetLocations = false;
+			GEditor->edactDuplicateSelected(Level, bOffsetLocations);
+		}
+	}
+
+	void FTransformSession::InitializeMouseState()
+	{
+		if (FViewport* Viewport = GEditor->GetActiveViewport())
+		{
+			FIntPoint MousePosInt;
+			Viewport->GetMousePos(MousePosInt);
+
+			StartMousePos = FVector2D(MousePosInt);
+			CursorAnchorPoint = StartMousePos;
+			VirtualMousePosition = StartMousePos;
+			WrappedMousePosition = StartMousePos;
 		}
 	}
 
@@ -179,27 +199,25 @@ namespace BlenderControls
 
 	void FTransformSession::End(bool bApply)
 	{
-		if (bIsSessionFinished) return;
+		if (bIsSessionFinished || !CurrentTool.IsValid()) return;
 
-		if (CurrentTool.IsValid())
+		if (bApply)
 		{
-			if (bApply)
-			{
-				CurrentTool->Accept();
-				ScopedTransaction.Reset();
-			}
-			else
-			{
-				CurrentTool->Cancel();
+			CurrentTool->Accept();
+		}
+		else
+		{
+			CurrentTool->Cancel();
 
-				if (!bStartedWithDuplicate)
-				{
-					ScopedTransaction->Cancel();
-				}
-				ScopedTransaction.Reset();
+			// If we didn't duplicate, we must explicitly cancel the transaction 
+			// to revert moved actors to their start positions.
+			if (!bStartedWithDuplicate && ScopedTransaction.IsValid())
+			{
+				ScopedTransaction->Cancel();
 			}
 		}
 
+		ScopedTransaction.Reset();
 		bIsSessionFinished = true;
 	}
 
@@ -243,7 +261,7 @@ namespace BlenderControls
 	{
 		if (!CurrentTool.IsValid()) return false;
 
-		const auto& Cmd = FBlenderEditorControlsPluginCommands::Get();
+		const auto& Cmd = FBlenderControlsCommands::Get();
 		const FKey PressedKey = KeyEvent.GetKey();
 
 		// Helper lambda to check if the pressed key matches either the primary or secondary binding of a command.
@@ -257,7 +275,7 @@ namespace BlenderControls
 			return (PrimaryChord.IsValidChord() && PrimaryChord.Key == PressedKey) || (SecondaryChord.IsValidChord() &&
 				SecondaryChord.Key == PressedKey);
 		};
-		
+
 		if (KeyMatchesCommand(Cmd.CommandTranslate))
 		{
 			SwitchTool(ETransformMode::Translate);
@@ -269,8 +287,8 @@ namespace BlenderControls
 			{
 				if (!KeyEvent.IsRepeat())
 				{
-					const bool bTrackballRotationModeStat = CurrentTool->GetTrackballRotationMode();
-					CurrentTool->SetTrackballRotationMode(!bTrackballRotationModeStat);
+					const bool bTrackballRotationState = CurrentTool->GetTrackballRotationMode();
+					CurrentTool->SetTrackballRotationMode(!bTrackballRotationState);
 				}
 			}
 			else
@@ -285,7 +303,6 @@ namespace BlenderControls
 			return true;
 		}
 
-		// --- Confirmation / Cancellation ---
 		if (KeyMatchesCommand(Cmd.CommandAccept) || KeyMatchesCommand(Cmd.CommandAcceptAlt))
 		{
 			End(/*bApply=*/true);
@@ -296,7 +313,7 @@ namespace BlenderControls
 			End(/*bApply=*/false);
 			return true;
 		}
-		
+
 		if (KeyMatchesCommand(Cmd.CommandAxisX))
 		{
 			CurrentTool->HandleAxisLock(KeyEvent.IsShiftDown() ? EAxisLock::YZ : EAxisLock::X);

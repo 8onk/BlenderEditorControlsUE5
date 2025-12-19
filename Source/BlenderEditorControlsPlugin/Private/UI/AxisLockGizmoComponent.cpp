@@ -4,6 +4,7 @@
 #include "Materials/MaterialRenderProxy.h"
 #include "MaterialDomain.h"
 
+//FAxisLockSceneProxy doesn't need to be visible to other classes.
 class FAxisLockSceneProxy : public FPrimitiveSceneProxy
 {
 public:

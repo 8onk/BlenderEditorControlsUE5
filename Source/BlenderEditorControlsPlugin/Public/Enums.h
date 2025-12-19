@@ -4,7 +4,6 @@
 
 namespace BlenderControls
 {
-	/** High-level mode enumeration */
 	enum class ETransformMode : uint8
 	{
 		None,

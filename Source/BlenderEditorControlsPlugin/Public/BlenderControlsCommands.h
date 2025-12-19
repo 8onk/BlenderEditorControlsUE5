@@ -4,41 +4,43 @@
 
 namespace BlenderControls
 {
-	class FBlenderEditorControlsPluginCommands : public TCommands<FBlenderEditorControlsPluginCommands>
+	/**
+	 * Defines the UI commands and default keybindings for the Blender Editor Controls plugin.
+	 * These commands are registered with the Unreal Engine Input system and can be rebound
+	 * by users in the Editor Preferences under "Blender Editor Controls". 
+	 */
+	class FBlenderControlsCommands : public TCommands<FBlenderControlsCommands>
 	{
 	public:
-		FBlenderEditorControlsPluginCommands();
-
-		/** TCommands interface */
+		FBlenderControlsCommands();
+		
 		virtual void RegisterCommands() override;
 
-		TSharedPtr<FUICommandInfo> CommandTogglePlugin;
-
-		// Accept / Cancel
+		// --- Session Lifecycle Commands ---
 		TSharedPtr<FUICommandInfo> CommandAccept;
 		TSharedPtr<FUICommandInfo> CommandAcceptAlt;
 		TSharedPtr<FUICommandInfo> CommandCancel;
 
-		//Tools
+		// --- Transformation Tool Commands ---
 		TSharedPtr<FUICommandInfo> CommandTranslate;
 		TSharedPtr<FUICommandInfo> CommandRotate;
 		TSharedPtr<FUICommandInfo> CommandToggleTrackball;
 		TSharedPtr<FUICommandInfo> CommandScale;
 
-		// Numeric helpers
+		// --- Numeric Input Helper Commands ---
 		TSharedPtr<FUICommandInfo> CommandNumericBackspace;
 		TSharedPtr<FUICommandInfo> CommandNumericToggleNegation;
 		TSharedPtr<FUICommandInfo> CommandNumericToggleReciprocal;
 		TSharedPtr<FUICommandInfo> CommandNumericCycleSlot;
 
-		// Axis locks
+		// --- Axis Constraint Commands ---
 		TSharedPtr<FUICommandInfo> CommandAxisX;
 		TSharedPtr<FUICommandInfo> CommandAxisY;
 		TSharedPtr<FUICommandInfo> CommandAxisZ;
 
 		TSharedPtr<FUICommandInfo> CommandDuplicateAndMove;
 
-		//Modifiers
+		// --- Modifier Commands ---
 		TSharedPtr<FUICommandInfo> CommandSnapInvert;
 		TSharedPtr<FUICommandInfo> CommandPrecisionMode;
 	};

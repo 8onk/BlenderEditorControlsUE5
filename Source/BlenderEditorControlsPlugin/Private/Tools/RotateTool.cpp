@@ -4,7 +4,7 @@
 #include "BaseGizmos/TransformProxy.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Input/Numeric/NumericInputStructs.h"
-#include "Settings/BlenderControlsSettings.h"
+#include "BlenderControlsSettings.h"
 #include "Style/Style.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
