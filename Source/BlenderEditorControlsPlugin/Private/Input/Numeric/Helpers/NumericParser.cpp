@@ -85,41 +85,6 @@ namespace BlenderControls
 		return false; // Invalid format
 	}
 
-	bool FNumericParser::EvaluateEquation(const FString& RawString, float& OutResult)
-	{
-		// Placeholder logic:
-		if (RawString == TEXT("2**3"))
-		{
-			OutResult = 8.f;
-			return true;
-		}
-		if (RawString == TEXT("4*4"))
-		{
-			OutResult = 16.f;
-			return true;
-		}
-
-		// For now, fail on complex equations
-		if (RawString.Contains(TEXT("*")) || RawString.Contains(TEXT("/")))
-		{
-			// Try to evaluate the last number if it's "4*
-			// This is a hack, replace with real parser
-			FString Left, Right;
-			RawString.Split(TEXT("*"), &Left, &Right);
-			if (!Right.IsEmpty())
-			{
-				return EvaluateSimple(Right, OutResult);
-			}
-			RawString.Split(TEXT("/"), &Left, &Right);
-			if (!Right.IsEmpty())
-			{
-				return EvaluateSimple(Right, OutResult);
-			}
-		}
-
-		return EvaluateSimple(RawString, OutResult);
-	}
-
 	bool FNumericParser::HasInvalidUnitsForContext(const FString& RawInput, EBlenderNumericContext Context)
 	{
 		const bool bContainsDeg = RawInput.Contains(TEXT("°"));
