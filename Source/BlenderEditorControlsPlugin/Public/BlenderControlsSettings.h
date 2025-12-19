@@ -24,10 +24,6 @@ public:
 		return FText::FromString("Configure controls and shortcuts.");
 	}
 
-	// //--- SETTINGS ---
-	// UPROPERTY(EditAnywhere, config, Category = "Visuals")
-	// FVector2D CursorSize = FVector2D(32, 32);
-
 	// --- VISUALS (Cursors & HUD) ---
 	UPROPERTY(EditAnywhere, config, Category = "Visuals | Colors")
 	FLinearColor AxisColorX = FLinearColor::Red;

@@ -82,7 +82,7 @@ namespace BlenderControls
 	void FNumericInputProcessor::UpdateActiveNumSlots(int32 NewNumSlots)
 	{
 		CurrentState.NumActiveSlots = NewNumSlots;
-		
+
 		if (CurrentState.Slots.Num() < NewNumSlots)
 		{
 			CurrentState.Slots.SetNum(NewNumSlots);
@@ -94,13 +94,6 @@ namespace BlenderControls
 		if (TOptional<TCHAR> MaybeChar = FNumericParser::KeyToNumericChar(Key))
 		{
 			const TCHAR ParsedChar = MaybeChar.GetValue();
-
-			//FOR EQUATION MODE
-			// const bool bIsValidChar =
-			// 	FChar::IsDigit(ParsedChar) || ParsedChar == TEXT('.') ||
-			// 	(CurrentState.bIsEquationMode && (ParsedChar == TEXT('*') || ParsedChar == TEXT('+') || ParsedChar ==
-			// 		TEXT('-') || ParsedChar ==
-			// 		TEXT('/')));
 
 			const bool bIsValidChar = FChar::IsDigit(ParsedChar) || ParsedChar == TEXT('.');
 
@@ -232,36 +225,6 @@ namespace BlenderControls
 		FString Char = KeyEvent.GetKey().GetDisplayName().ToString();
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
-		// --- Equation Mode Toggle (disabled for now) ---
-		// if (Char == TEXT("Num *") && !CurrentState.bIsEquationMode)
-		// {
-		// 	float CurrentValue = 0.f;
-		// 	EvaluateSlot(ActiveSlot, CurrentValue);
-		//
-		// 	CurrentState.bIsEquationMode = true;
-		// 	ActiveSlot.bIsAdditive = false;
-		// 	ActiveSlot.bIsNegative = false;
-		// 	ActiveSlot.bIsReciprocal = false;
-		// 	ActiveSlot.RawString = FString::SanitizeFloat(CurrentValue) + TEXT("*");
-		// 	ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
-		// 	if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false;
-		// 	return true;
-		// }
-		//
-		// if (KeyEvent.GetKey() == EKeys::Equals && KeyEvent.IsControlDown())
-		// {
-		// 	float CurrentValue = 0.f;
-		// 	EvaluateSlot(ActiveSlot, CurrentValue);
-		//
-		// 	CurrentState.bIsEquationMode = false;
-		// 	ActiveSlot.bIsNegative = false;
-		// 	ActiveSlot.bIsReciprocal = false;
-		// 	ActiveSlot.RawString = FString::SanitizeFloat(CurrentValue);
-		// 	ActiveSlot.CursorIndex = ActiveSlot.RawString.Len();
-		// 	return true;
-		// }
-
-		if (CurrentState.bIsEquationMode) return false; // Handled by HandleCharacter
 		FlattenAdditiveSlotIfEmpty();
 
 		if (MatchesCommand(KeyEvent, Cmd.CommandNumericToggleNegation))
@@ -448,7 +411,7 @@ namespace BlenderControls
 		float ParsedValue = 0.f;
 
 		// 1. Get value from parser
-		if (!FNumericParser::Evaluate(Slot.RawString, CurrentState.bIsEquationMode, ParsedValue))
+		if (!FNumericParser::Evaluate(Slot.RawString, ParsedValue))
 		{
 			OutResult = Slot.LastValidValue;
 			return false; // INVALID

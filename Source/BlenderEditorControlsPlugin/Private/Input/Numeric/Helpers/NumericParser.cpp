@@ -5,17 +5,10 @@
 
 namespace BlenderControls
 {
-	bool FNumericParser::Evaluate(const FString& RawString, bool bIsEquationMode,
+	bool FNumericParser::Evaluate(const FString& RawString,
 	                              float& OutResult)
 	{
-		if (bIsEquationMode)
-		{
-			return EvaluateEquation(RawString, OutResult);
-		}
-		else
-		{
-			return EvaluateSimple(RawString, OutResult);
-		}
+		return EvaluateSimple(RawString, OutResult);
 	}
 
 	TOptional<TCHAR> FNumericParser::KeyToNumericChar(const FKey& Key)
@@ -88,7 +81,7 @@ namespace BlenderControls
 		{
 			return true;
 		}
-		
+
 		return false; // Invalid format
 	}
 
@@ -126,7 +119,7 @@ namespace BlenderControls
 
 		return EvaluateSimple(RawString, OutResult);
 	}
-	
+
 	bool FNumericParser::HasInvalidUnitsForContext(const FString& RawInput, EBlenderNumericContext Context)
 	{
 		const bool bContainsDeg = RawInput.Contains(TEXT("°"));

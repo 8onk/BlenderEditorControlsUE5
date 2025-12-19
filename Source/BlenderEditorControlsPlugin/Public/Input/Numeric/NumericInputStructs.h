@@ -88,7 +88,6 @@ namespace BlenderControls
 		int32 NumActiveSlots = 0;
 		bool bIsInNumericMode = false;
 		bool bIsUniformScaleMode = false;
-		bool bIsEquationMode = false;
 		bool bSlotUpdatedSinceSwitch = false;
 		EBlenderNumericContext CurrentContext = EBlenderNumericContext::Distance;
 
@@ -109,11 +108,10 @@ namespace BlenderControls
 		void DebugPrint() const
 		{
 			UE_LOG(LogTemp, Warning, TEXT("=== BlenderNumericState ==="));
-			UE_LOG(LogTemp, Warning, TEXT("ActiveSlotIndex=%d, InNumericMode=%d, UniformScale=%d, EquationMode=%d"),
+			UE_LOG(LogTemp, Warning, TEXT("ActiveSlotIndex=%d, InNumericMode=%d, UniformScale=%d"),
 			       ActiveSlotIndex,
 			       bIsInNumericMode,
-			       bIsUniformScaleMode,
-			       bIsEquationMode
+			       bIsUniformScaleMode
 			);
 
 			for (int32 i = 0; i < Slots.Num(); ++i)
