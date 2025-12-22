@@ -11,10 +11,8 @@ namespace BlenderControls
 	enum class ECursorOrient : uint8
 	{
 		None, // no rotation (Move/Trackball)
-		AlongLineToMouse, // along A->B  (origin -> mouse)
-		AlongLineToOrigin, // along B->A  (mouse  -> origin)
+		AlongLineToOrigin, // along B->A  (mouse -> origin)
 		PerpendicularCW, // +90° from along-line
-		PerpendicularCCW // -90° from along-line
 	};
 
 	class STransformHUD : public SCompoundWidget
@@ -82,8 +80,6 @@ namespace BlenderControls
 		                      const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	private:
-		void UpdateDashPhaseForLengthChange();
-
 		TSharedPtr<STextBlock> ReadoutText;
 		TSharedPtr<STextBlock> NumericText;
 
@@ -96,13 +92,9 @@ namespace BlenderControls
 		FVector2D OriginViewportPx = FVector2D::ZeroVector;
 		FVector2D MouseViewportPx = FVector2D::ZeroVector;
 
-		float DashPhase = 0.f; // passed as DashScreenOffset
-		float DashLengthPx = 4.0f; // ON length; gap = ON; period  = 2*DashLengthPx
-		float DashThickness = 1.5f;
-
-		float PrevLen = 0.f; // for dL
-		bool bHavePrevLen = false;
-		float LenEpsilon = 0.75f; // px dead-zone (tune or inline)
+		float DashThickness = 2.5f;
+		float ClampedLeft;
+		float ClampedTop;
 
 		bool bShowCursor = true;
 		const FSlateBrush* CursorBrush = nullptr;

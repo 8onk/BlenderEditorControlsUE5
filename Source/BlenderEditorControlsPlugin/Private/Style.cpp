@@ -1,7 +1,5 @@
 // Style.cpp
-#include "Style/Style.h"
-
-#include "ImageUtils.h"
+#include "Style.h"
 #include "Brushes/SlateImageBrush.h"
 #include "Interfaces/IPluginManager.h"
 #include "Misc/Paths.h"
@@ -12,8 +10,7 @@ namespace BlenderControls
 {
 	TSharedPtr<FSlateStyleSet> FStyle::StyleInstance;
 	static FName BlenderControlsStyleName(TEXT("BlenderEditorControlsStyle"));
-
-	// Return NON-const pointers
+	
 	static FSlateVectorImageBrush* MakeSvgBrushPtr(
 		const TSharedRef<FSlateStyleSet>& Style, const TCHAR* RelPathNoExt, const FVector2D& Size)
 	{

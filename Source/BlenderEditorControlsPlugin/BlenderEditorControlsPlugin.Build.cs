@@ -8,6 +8,18 @@ public class BlenderEditorControlsPlugin : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		//Necessary to hide overlay position setting for versions older than 5.6
+		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 6)
+		{
+			PublicDefinitions.Add("UE_BEFORE_5_6=1");
+		}
+		else
+		{
+			PublicDefinitions.Add("UE_BEFORE_5_6=0");
+		}
+
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicIncludePaths.AddRange(
 			new string[]
 			{
@@ -45,6 +57,8 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"ApplicationCore",
 				"AppFramework",
 				"Projects",
+				"EditorStyle",
+				"RenderCore",
 				"InteractiveToolsFramework",
 				"EditorInteractiveToolsFramework",
 				"ComponentVisualizers"

@@ -5,7 +5,11 @@
 #include "Framework/Commands/UICommandInfo.h"
 #include "BlenderControlsCommands.h"
 #include "Input/Numeric/NumericInputProcessor.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
 #include "Settings/EditorStyleSettings.h"
+#else
+#include "Classes/EditorStyleSettings.h"
+#endif
 #include "Tools/SharedPivot.h"
 #include "Tools/ToolBase.h"
 #include "Tools/MoveTool.h"

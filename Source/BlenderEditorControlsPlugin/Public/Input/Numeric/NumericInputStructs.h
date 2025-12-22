@@ -80,7 +80,9 @@ namespace BlenderControls
 		}
 	};
 
-	// Represents the ENTIRE state of the numeric input system
+	/**
+	 * Represents the ENTIRE state of the numeric input system
+	 */
 	struct FBlenderNumericState
 	{
 		TArray<FNumericInputSlot> Slots;

@@ -14,6 +14,10 @@ namespace BlenderControls
 	struct FChildInfo;
 	class FSharedPivot;
 
+	/**
+	 * Abstract base class for transform operations (Translate, Rotate, Scale).
+	 * Implements shared logic for all transform tools.
+	 */
 	class FToolBase : public TSharedFromThis<FToolBase>
 	{
 	public:
@@ -21,23 +25,35 @@ namespace BlenderControls
 		          const FString& InDisplayName);
 		virtual ~FToolBase() = default;
 
-		/** Per-frame update from input-processor */
+		/** Primary update loop for mouse-driven transformation. */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;
-
 		virtual void Accept();
 		virtual void Cancel();
+		virtual void OnBegin();
+		/** Fallback for mouse movement when in numeric mode. */
+		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
+		/** Per-frame update called by the TransformSession. */
+		virtual void Tick()
+		{
+		}
 
-		/** Numeric entry apply */
+		virtual void OnEnd(bool bApply);
+
+		virtual void SetTrackballRotationMode(const bool bEnabled)
+		{
+		}
+
+		virtual bool GetTrackballRotationMode() { return false; }
+		virtual void HandleAxisLock(EAxisLock AxisPressed);
+
 		virtual void ApplyNumeric(double Value = 0.0f)
 		{
 			checkf(OwningSession.IsValid(), TEXT("ApplyNumeric: Session must be valid for %s"), *DisplayName);
 		}
 
-		/** Set HUD string - must be implemented by inheriting classes */
 		virtual void UpdateHud();
 		virtual FText GetNumericHudText() const = 0;
 
-		// Getter for DisplayName
 		const FString& GetDisplayName() const { return DisplayName; }
 
 		bool InitializeEditorState();
@@ -47,19 +63,11 @@ namespace BlenderControls
 		void InitializeUI();
 		void RestorePreviousState();
 		void OnSwitch();
-		virtual void OnBegin();
-		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
-		virtual void Tick() = 0;
-		virtual void OnEnd(bool bApply);
 
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled);
 		bool IsSnappingEnabled() const { return bSnappingEnabled; }
 
-		virtual void SetTrackballRotationMode(const bool bEnabled) {}
-		virtual bool GetTrackballRotationMode() {return false;}
-
-		virtual void HandleAxisLock(EAxisLock AxisPressed);
 		bool IsSingleAxisLocked() const;
 		void ClearDrawnAxisLines();
 
@@ -82,7 +90,8 @@ namespace BlenderControls
 
 	protected:
 		FVector GetAxisVector(EAxisLock InAxis) const;
-		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
+
+		/** Returns the display string for the HUD during mouse-driven movement (e.g., "D: 12.45cm along Global X"). */
 		virtual FText GetLiveHudText() const = 0;
 		void ClearAxisGizmos();
 
@@ -101,14 +110,8 @@ namespace BlenderControls
 		FVector2D CurrentMousePosition;
 		TSharedPtr<STransformHUD> HudWidget;
 
-		float CurrentNonTrackballRotationAngle = 0.0f;
-		float CachedNonTrackballRotationAngle = 0.0f;
-
 		bool bIsToolActive = true;
-
 		FString HudString;
-
-		//TUniquePtr<FScopedTransaction> ParentTxn;
 
 		TWeakPtr<FTransformSession> OwningSession;
 		ETransformMode Mode;

@@ -7,8 +7,8 @@ namespace BlenderControls
 	{
 		FVector2D StartMousePos;
 		FVector   StartLocation;
-		FVector   HelperAxisDir;
-		FVector   HelperPlaneN;
+		FVector   SingleLockAxis;
+		FVector   PlaneNormal;
 		FVector   PlaneAxisU;
 		FVector   PlaneAxisV;
 		FVector   ViewForward;
@@ -19,6 +19,6 @@ namespace BlenderControls
 			ViewPlane,
 			AxisLine,
 			AxisPlane
-		} HelperType;
+		} ConstraintMode;
 	};
 }

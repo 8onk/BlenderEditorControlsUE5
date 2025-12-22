@@ -4,15 +4,13 @@
 namespace BlenderControls
 {
 	/**
-	 * Scaling tool – supports uniform and axis-constrained scaling,
-	 * precision mode (Shift), numeric entry, and min-scale clamping.
+	 * Implementation of the Blender-style 'Scale' operation.
 	 */
 	class FScaleTool final : public FToolBase
 	{
 	public:
 		explicit FScaleTool(const TSharedRef<FTransformSession>& InSession);
 
-		/* ---------- FToolBase overrides ---------- */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
 		virtual void UpdateHud() override;
@@ -22,15 +20,11 @@ namespace BlenderControls
 		virtual void Tick() override;
 
 	private:
-		FTransform StartPivotTransform;
 		FVector PivotStartPosition;
 		FVector2D PivotViewportPosition;
-		FVector StartHit;
 		FVector StartScale;
 		FVector2D InitialMousePosition;
-		FVector AxisLockProjectionVector;
 		float InitialMouseToPivotDistance;
-		float LastMouseToPivotDistance;
 		float CurrentMouseToPivotDistance;
 		float ScaleFactor = 1.0f;
 
@@ -42,11 +36,5 @@ namespace BlenderControls
 		FText BuildFreeformHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
 		FText BuildSingleAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
 		FText BuildDualAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
-
-		/* ——— state ——— */
-		FVector PivotWS = FVector::ZeroVector; // average loc
-		float StartCursorDistance = 1.f; // pixels
-		float CurrentScalar = 1.f;
-		float MinAllowedScale = 0.001f; // safety clamp
 	};
 } // namespace BlenderControls

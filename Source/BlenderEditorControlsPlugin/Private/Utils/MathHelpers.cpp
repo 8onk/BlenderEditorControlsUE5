@@ -11,8 +11,7 @@ namespace BlenderControls::MathHelper
 	void GetMousePosToViewportPos(const FVector2D& ScreenSpacePos, FVector2D& OutViewportPos)
 	{
 		const FViewport* Viewport = GEditor->GetActiveViewport();
-		if (!Viewport)
-			return;
+		if (!Viewport) return;
 
 		const FIntPoint DesktopInt(static_cast<int32>(ScreenSpacePos.X),
 		                           static_cast<int32>(ScreenSpacePos.Y));
@@ -33,7 +32,7 @@ namespace BlenderControls::MathHelper
 	{
 		if (!UE::Geometry::VectorUtil::IsFinite(RayOrigin) ||
 			!UE::Geometry::VectorUtil::IsFinite(RayDir) || RayDir.IsNearlyZero() ||
-			!UE::Geometry::VectorUtil::IsFinite(GC.HelperPlaneN) || GC.HelperPlaneN.IsNearlyZero())
+			!UE::Geometry::VectorUtil::IsFinite(GC.PlaneNormal) || GC.PlaneNormal.IsNearlyZero())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("IntersectHelper: invalid input; returning StartLocation."));
 			return GC.StartLocation;
@@ -44,12 +43,12 @@ namespace BlenderControls::MathHelper
 		const FVector MouseRayEnd = RayOrigin + (RayDir * WORLD_MAX);
 
 		FVector IntersectionPoint = FMath::LinePlaneIntersection(MouseRayStart, MouseRayEnd, PlaneOrigin,
-		                                                         GC.HelperPlaneN);
+		                                                         GC.PlaneNormal);
 
-		if (GC.HelperType == FGrabContext::EHelperType::AxisLine)
+		if (GC.ConstraintMode == FGrabContext::EHelperType::AxisLine)
 		{
-			const FVector AxisLineStart = GC.StartLocation - (GC.HelperAxisDir * WORLD_MAX);
-			const FVector AxisLineEnd = GC.StartLocation + (GC.HelperAxisDir * WORLD_MAX);
+			const FVector AxisLineStart = GC.StartLocation - (GC.SingleLockAxis * WORLD_MAX);
+			const FVector AxisLineEnd = GC.StartLocation + (GC.SingleLockAxis * WORLD_MAX);
 			IntersectionPoint = FMath::ClosestPointOnInfiniteLine(AxisLineStart, AxisLineEnd, IntersectionPoint);
 		}
 

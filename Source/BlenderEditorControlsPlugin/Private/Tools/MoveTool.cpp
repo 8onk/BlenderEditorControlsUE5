@@ -3,7 +3,7 @@
 #include "TransformSession.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Input/Numeric/NumericInputStructs.h"
-#include "Style/Style.h"
+#include "Style.h"
 #include "Tools/SharedPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/MathHelpers.h"
@@ -31,124 +31,6 @@ namespace BlenderControls
 		HudWidget->SetCursorOrientation(ECursorOrient::None);
 	}
 
-	FText FMoveTool::GetNumericHudText() const
-	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return FText::GetEmpty();
-		}
-
-		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
-
-		if (!Processor)
-		{
-			return FText::GetEmpty();
-		}
-
-		constexpr int32 Spacing = 3;
-		const FString Gap = FString::ChrN(Spacing, ' ');
-
-		FNumberFormattingOptions NumFmt;
-		NumFmt.MaximumFractionalDigits = 3;
-		NumFmt.MinimumFractionalDigits = 3;
-		NumFmt.UseGrouping = false;
-
-		FFormatOrderedArguments HudArgs;
-
-		// Get total magnitude from the processor
-		const float Magnitude = Processor->GetTotalMagnitude();
-		const FText MagText = FText::Format(
-			NSLOCTEXT("MoveHUD", "MagFmt", "({0} cm)"),
-			FText::AsNumber(Magnitude, &NumFmt));
-
-		// Get the coordinate space (global/local)
-		const FText Context = Session->IsUsingLocalSpace()
-			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
-			                      : NSLOCTEXT("MoveHUD", "Global", "global");
-
-		switch (Session->GetLockedAxis())
-		{
-		case EAxisLock::X:
-		case EAxisLock::Y:
-		case EAxisLock::Z:
-			{
-				FString SlotString = Processor->BuildSlotDisplayString(0);
-				const FText D = FText::FromString(TEXT("D: ") + SlotString);
-
-				FText AxisName;
-				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
-				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
-				else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
-
-				const FText Along = FText::Format(
-					NSLOCTEXT("MoveHUD", "AlongFmt", "along {0} {1}"),
-					Context, AxisName);
-
-				HudArgs.Add(D);
-				HudArgs.Add(MagText);
-				HudArgs.Add(Along);
-				break;
-			}
-
-		case EAxisLock::XY: // Shift+Z
-		case EAxisLock::XZ: // Shift+Y
-		case EAxisLock::YZ: // Shift+X
-			{
-				// Get the formatted strings for the two active slots
-				FString Slot0 = Processor->BuildSlotDisplayString(0);
-				FString Slot1 = Processor->BuildSlotDisplayString(1);
-
-				const FText D1 = FText::FromString(TEXT("D: ") + Slot0);
-				const FText D2 = FText::FromString(TEXT("D: ") + Slot1);
-
-				FText LockingAxisName;
-				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
-				else if (Session->GetLockedAxis() == EAxisLock::XZ)
-					LockingAxisName =
-						NSLOCTEXT("MoveHUD", "AxisY", "Y");
-				else LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
-
-				const FText Locking = FText::Format(
-					NSLOCTEXT("MoveHUD", "LockingFmt", "locking {0} {1}"),
-					Context, LockingAxisName);
-
-				HudArgs.Add(D1);
-				HudArgs.Add(D2);
-				HudArgs.Add(MagText);
-				HudArgs.Add(Locking);
-				break;
-			}
-
-		case EAxisLock::All:
-		default:
-			{
-				// Get the formatted strings for all three slots
-				FString Dx_Str = Processor->BuildSlotDisplayString(0);
-				FString Dy_Str = Processor->BuildSlotDisplayString(1);
-				FString Dz_Str = Processor->BuildSlotDisplayString(2);
-
-				// Format with labels and padding
-				const FText Dx = FText::FromString(FString::Printf(TEXT("Dx: %s"), *Dx_Str));
-				const FText Dy = FText::FromString(FString::Printf(TEXT("Dy: %s"), *Dy_Str));
-				const FText Dz = FText::FromString(FString::Printf(TEXT("Dz: %s"), *Dz_Str));
-
-				HudArgs.Add(Dx);
-				HudArgs.Add(Dy);
-				HudArgs.Add(Dz);
-				HudArgs.Add(MagText);
-				break;
-			}
-		}
-
-		// Join all the built arguments with your gap string
-		return FText::Join(FText::FromString(Gap), HudArgs);
-	}
-
-	void FMoveTool::Tick()
-	{
-	}
-
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
@@ -164,24 +46,29 @@ namespace BlenderControls
 			return;
 		}
 
+		// ParallelCos represents an ~8-degree threshold (arccos(0.990) = 8.1).
+		// If the view angle is more parallel to the axis than this, 3D projection 
+		// becomes mathematically unstable (floating point explode).
 		constexpr float ParallelCos = 0.990f;
 		float CosAngle = SMALL_NUMBER;
+
 		//If HelperAxisDir is not 0 then we are in single axis lock. 
-		if (!GrabContext.HelperAxisDir.IsNearlyZero())
+		if (!GrabContext.SingleLockAxis.IsNearlyZero())
 		{
+			// Calculate the alignment between the View Forward and the constrained Axis.
 			CosAngle = FMath::Abs(FVector::DotProduct(ViewForward.GetSafeNormal(),
-			                                          GrabContext.HelperAxisDir.GetSafeNormal()));
+			                                          GrabContext.SingleLockAxis.GetSafeNormal()));
 		}
 
 		FVector FinalTotalDelta;
-		if (CosAngle <= ParallelCos)
+		if (CosAngle <= ParallelCos) //Standard Projection (View is sufficiently angled relative to the axis/plane)
 		{
 			const FVector UnconstrainedMouseDelta3d = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
 				(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
 
 			const FVector ActiveObjectLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
 
-			//Intersect ghost pos to get the blender "feel", NOT the current mouse pos. 
+			//Intersect ghost pos to get the blender mouse drag "feel", NOT the current mouse pos. 
 			const FVector GhostPos = ActiveObjectLocation + UnconstrainedMouseDelta3d;
 
 			FVector RayOrigin, RayDir;
@@ -197,11 +84,10 @@ namespace BlenderControls
 				RayOrigin = GhostPos;
 				RayDir = ViewForward.GetSafeNormal();
 
-				if (GrabContext.HelperType == FGrabContext::EHelperType::AxisPlane)
+				if (GrabContext.ConstraintMode == FGrabContext::EHelperType::AxisPlane)
 				{
-					const float PlaneViewDot = FVector::DotProduct(RayDir, GrabContext.HelperPlaneN);
+					const float PlaneViewDot = FVector::DotProduct(RayDir, GrabContext.PlaneNormal);
 
-					//If view forward and plane normal vectors are parallel
 					if (FMath::IsNearlyZero(PlaneViewDot, KINDA_SMALL_NUMBER))
 					{
 						const FVector VisibleAxis = MathHelper::SelectMostPerpendicularAxis(
@@ -229,7 +115,7 @@ namespace BlenderControls
 			const float ScreenSpaceFactor = FVector2D::DotProduct(MouseDelta, ScreenUpVector);
 			const float ScaledFactor = FMath::Sign(ScreenSpaceFactor) * FMath::Square(ScreenSpaceFactor) * 0.1f;
 
-			FinalTotalDelta = GrabContext.HelperAxisDir * ScaledFactor;
+			FinalTotalDelta = GrabContext.SingleLockAxis * ScaledFactor;
 		}
 
 		FVector LiveDelta = FinalTotalDelta;
@@ -315,7 +201,6 @@ namespace BlenderControls
 
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("SetGrabContextAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!VirtualPivot)
@@ -336,57 +221,56 @@ namespace BlenderControls
 		switch (AxisLock)
 		{
 		case EAxisLock::All:
-			GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
-			GrabContext.HelperPlaneN = -GrabContext.ViewForward;
+			GrabContext.ConstraintMode = FGrabContext::EHelperType::ViewPlane;
+			GrabContext.PlaneNormal = -GrabContext.ViewForward;
 			break;
 
 		case EAxisLock::X:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
-			GrabContext.HelperAxisDir = X;
-			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(Y, Z, GrabContext.ViewForward);
+			GrabContext.ConstraintMode = FGrabContext::EHelperType::AxisLine;
+			GrabContext.SingleLockAxis = X;
+			GrabContext.PlaneNormal = MathHelper::SelectMostParallelPlaneNormal(Y, Z, GrabContext.ViewForward);
 			break;
 
 		case EAxisLock::Y:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
-			GrabContext.HelperAxisDir = Y;
-			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(X, Z, GrabContext.ViewForward);
+			GrabContext.ConstraintMode = FGrabContext::EHelperType::AxisLine;
+			GrabContext.SingleLockAxis = Y;
+			GrabContext.PlaneNormal = MathHelper::SelectMostParallelPlaneNormal(X, Z, GrabContext.ViewForward);
 			break;
 
 		case EAxisLock::Z:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisLine;
-			GrabContext.HelperAxisDir = Z;
-			GrabContext.HelperPlaneN = MathHelper::SelectMostParallelPlaneNormal(X, Y, GrabContext.ViewForward);
+			GrabContext.ConstraintMode = FGrabContext::EHelperType::AxisLine;
+			GrabContext.SingleLockAxis = Z;
+			GrabContext.PlaneNormal = MathHelper::SelectMostParallelPlaneNormal(X, Y, GrabContext.ViewForward);
 			break;
 
 		case EAxisLock::XY:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GrabContext.HelperAxisDir = FVector::ZeroVector;
-			GrabContext.HelperPlaneN = Z;
+			GrabContext.ConstraintMode = FGrabContext::EHelperType::AxisPlane;
+			GrabContext.SingleLockAxis = FVector::ZeroVector;
+			GrabContext.PlaneNormal = Z;
 			GrabContext.PlaneAxisU = X;
 			GrabContext.PlaneAxisV = Y;
 			break;
 
 		case EAxisLock::XZ:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GrabContext.HelperAxisDir = FVector::ZeroVector;
-			GrabContext.HelperPlaneN = Y;
+			GrabContext.ConstraintMode = FGrabContext::EHelperType::AxisPlane;
+			GrabContext.SingleLockAxis = FVector::ZeroVector;
+			GrabContext.PlaneNormal = Y;
 			GrabContext.PlaneAxisU = X;
 			GrabContext.PlaneAxisV = Z;
 			break;
 
 		case EAxisLock::YZ:
-			GrabContext.HelperType = FGrabContext::EHelperType::AxisPlane;
-			GrabContext.HelperAxisDir = FVector::ZeroVector;
-			GrabContext.HelperPlaneN = X;
+			GrabContext.ConstraintMode = FGrabContext::EHelperType::AxisPlane;
+			GrabContext.SingleLockAxis = FVector::ZeroVector;
+			GrabContext.PlaneNormal = X;
 			GrabContext.PlaneAxisU = Y;
 			GrabContext.PlaneAxisV = Z;
 			break;
 		}
 	}
 
-	FVector FMoveTool::GetSnapOffset(const FVector OffsetFromStart)
+	FVector FMoveTool::GetSnapOffset(const FVector LiveDelta) const
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("GetSnapOffset: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!GEditor)
@@ -399,16 +283,16 @@ namespace BlenderControls
 		if (Session->GetLockedAxis() == EAxisLock::X || Session->GetLockedAxis() == EAxisLock::Y || Session->
 			GetLockedAxis() == EAxisLock::Z)
 		{
-			const FVector SnapAxis = GrabContext.HelperAxisDir;
-			const float DistanceAlongAxis = FVector::DotProduct(OffsetFromStart, SnapAxis);
+			const FVector SnapAxis = GrabContext.SingleLockAxis;
+			const float DistanceAlongAxis = FVector::DotProduct(LiveDelta, SnapAxis);
 			const float SnappedDistance = FMath::GridSnap(DistanceAlongAxis, GridSize);
 			SnapOffset = SnapAxis * SnappedDistance;
 		}
 		else if (Session->GetLockedAxis() == EAxisLock::XY || Session->GetLockedAxis() == EAxisLock::XZ || Session->
 			GetLockedAxis() == EAxisLock::YZ)
 		{
-			const float DistanceAlongU = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisU);
-			const float DistanceAlongV = FVector::DotProduct(OffsetFromStart, GrabContext.PlaneAxisV);
+			const float DistanceAlongU = FVector::DotProduct(LiveDelta, GrabContext.PlaneAxisU);
+			const float DistanceAlongV = FVector::DotProduct(LiveDelta, GrabContext.PlaneAxisV);
 
 			const float SnappedDistanceU = FMath::GridSnap(DistanceAlongU, GridSize);
 			const float SnappedDistanceV = FMath::GridSnap(DistanceAlongV, GridSize);
@@ -417,13 +301,122 @@ namespace BlenderControls
 		}
 		else
 		{
-			SnapOffset = OffsetFromStart / GridSize;
+			SnapOffset = LiveDelta / GridSize;
 			SnapOffset = MathHelper::RoundVectorToInt(SnapOffset);
 			SnapOffset *= GridSize;
 		}
 
 		return SnapOffset;
 	}
+
+	FText FMoveTool::GetNumericHudText() const
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return FText::GetEmpty();
+		}
+
+		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
+
+		if (!Processor)
+		{
+			return FText::GetEmpty();
+		}
+
+		constexpr int32 Spacing = 3;
+		const FString Gap = FString::ChrN(Spacing, ' ');
+
+		FNumberFormattingOptions NumFmt;
+		NumFmt.MaximumFractionalDigits = 3;
+		NumFmt.MinimumFractionalDigits = 3;
+		NumFmt.UseGrouping = false;
+
+		FFormatOrderedArguments HudArgs;
+
+		const float Magnitude = Processor->GetTotalMagnitude();
+		const FText MagText = FText::Format(
+			NSLOCTEXT("MoveHUD", "MagFmt", "({0} cm)"),
+			FText::AsNumber(Magnitude, &NumFmt));
+
+		const FText Context = Session->IsUsingLocalSpace()
+			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
+			                      : NSLOCTEXT("MoveHUD", "Global", "global");
+
+		switch (Session->GetLockedAxis())
+		{
+		case EAxisLock::X:
+		case EAxisLock::Y:
+		case EAxisLock::Z:
+			{
+				FString SlotString = Processor->BuildSlotDisplayString(0);
+				const FText D = FText::FromString(TEXT("D: ") + SlotString);
+
+				FText AxisName;
+				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
+				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
+				else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
+
+				const FText Along = FText::Format(
+					NSLOCTEXT("MoveHUD", "AlongFmt", "along {0} {1}"),
+					Context, AxisName);
+
+				HudArgs.Add(D);
+				HudArgs.Add(MagText);
+				HudArgs.Add(Along);
+				break;
+			}
+
+		case EAxisLock::XY: // Shift+Z
+		case EAxisLock::XZ: // Shift+Y
+		case EAxisLock::YZ: // Shift+X
+			{
+				FString Slot0 = Processor->BuildSlotDisplayString(0);
+				FString Slot1 = Processor->BuildSlotDisplayString(1);
+
+				const FText D1 = FText::FromString(TEXT("D: ") + Slot0);
+				const FText D2 = FText::FromString(TEXT("D: ") + Slot1);
+
+				FText LockingAxisName;
+				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
+				else if (Session->GetLockedAxis() == EAxisLock::XZ)
+					LockingAxisName =
+						NSLOCTEXT("MoveHUD", "AxisY", "Y");
+				else LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
+
+				const FText Locking = FText::Format(
+					NSLOCTEXT("MoveHUD", "LockingFmt", "locking {0} {1}"),
+					Context, LockingAxisName);
+
+				HudArgs.Add(D1);
+				HudArgs.Add(D2);
+				HudArgs.Add(MagText);
+				HudArgs.Add(Locking);
+				break;
+			}
+
+		case EAxisLock::All:
+		default:
+			{
+				FString Dx_Str = Processor->BuildSlotDisplayString(0);
+				FString Dy_Str = Processor->BuildSlotDisplayString(1);
+				FString Dz_Str = Processor->BuildSlotDisplayString(2);
+
+				const FText Dx = FText::FromString(FString::Printf(TEXT("Dx: %s"), *Dx_Str));
+				const FText Dy = FText::FromString(FString::Printf(TEXT("Dy: %s"), *Dy_Str));
+				const FText Dz = FText::FromString(FString::Printf(TEXT("Dz: %s"), *Dz_Str));
+
+				HudArgs.Add(Dx);
+				HudArgs.Add(Dy);
+				HudArgs.Add(Dz);
+				HudArgs.Add(MagText);
+				break;
+			}
+		}
+
+		return FText::Join(FText::FromString(Gap), HudArgs);
+	}
+
 
 	FText FMoveTool::GetLiveHudText() const
 	{
@@ -508,21 +501,21 @@ namespace BlenderControls
 		const float SignedDelta = FVector::DotProduct(LiveDelta, AxisVector);
 
 		const FText D = FText::Format(
-			NSLOCTEXT("MoveHUD", "DFmt", "D: {0} cm"),
+			FText::FromString(TEXT("D: {0} cm")),
 			FText::AsNumber(SignedDelta, &NumFmt));
 
 		FText AxisName;
-		if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
-		else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
-		else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
+		if (Session->GetLockedAxis() == EAxisLock::X) AxisName = FText::FromString("X");
+		else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = FText::FromString("Y");
+		else AxisName = FText::FromString("Z");
 
-		const FText Context = Session->IsUsingLocalSpace()
-			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
-			                      : NSLOCTEXT("MoveHUD", "Global", "global");
+		const FText Space = Session->IsUsingLocalSpace()
+			                    ? FText::FromString("local")
+			                    : FText::FromString("global");
 
-		const FText Along = FText::Format(
-			NSLOCTEXT("MoveHUD", "AlongFmt", "along {0} {1}"),
-			Context, AxisName);
+		const FText Along = FText::Format(FText::FromString(TEXT("along {0} {1}")),
+		                                  Space,
+		                                  AxisName);
 
 		FFormatOrderedArguments HudArgs;
 		HudArgs.Add(D);
@@ -542,42 +535,42 @@ namespace BlenderControls
 		FVector Axis1, Axis2;
 		FText LockingAxisName;
 
-		if (Session->GetLockedAxis() == EAxisLock::XY) // Shift+Z
+		if (Session->GetLockedAxis() == EAxisLock::XY)
 		{
 			Axis1 = GetAxisVector(EAxisLock::X);
 			Axis2 = GetAxisVector(EAxisLock::Y);
-			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
+			LockingAxisName = FText::FromString("Z");
 		}
-		else if (Session->GetLockedAxis() == EAxisLock::XZ) // Shift+Y
+		else if (Session->GetLockedAxis() == EAxisLock::XZ)
 		{
 			Axis1 = GetAxisVector(EAxisLock::X);
 			Axis2 = GetAxisVector(EAxisLock::Z);
-			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
+			LockingAxisName = FText::FromString("Y");
 		}
-		else // EAxisLock::YZ (Shift+X)
+		else
 		{
 			Axis1 = GetAxisVector(EAxisLock::Y);
 			Axis2 = GetAxisVector(EAxisLock::Z);
-			LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
+			LockingAxisName = FText::FromString("X");
 		}
 
 		const float Delta1 = FVector::DotProduct(LiveDelta, Axis1);
 		const float Delta2 = FVector::DotProduct(LiveDelta, Axis2);
 
 		const FText D1 = FText::Format(
-			NSLOCTEXT("MoveHUD", "DFmt", "D: {0} cm"),
+			FText::FromString("D: {0} cm"),
 			FText::AsNumber(Delta1, &NumFmt));
 
 		const FText D2 = FText::Format(
-			NSLOCTEXT("MoveHUD", "DFmt", "D: {0} cm"),
+			FText::FromString("D: {0} cm"),
 			FText::AsNumber(Delta2, &NumFmt));
 
 		const FText Context = Session->IsUsingLocalSpace()
-			                      ? NSLOCTEXT("MoveHUD", "Local", "local")
-			                      : NSLOCTEXT("MoveHUD", "Global", "global");
+			                      ? FText::FromString("local")
+			                      : FText::FromString("global");
 
 		const FText Locking = FText::Format(
-			NSLOCTEXT("MoveHUD", "LockingFmt", "locking {0} {1}"),
+			FText::FromString("locking {0} {1}"),
 			Context, LockingAxisName);
 
 		FFormatOrderedArguments HudArgs;

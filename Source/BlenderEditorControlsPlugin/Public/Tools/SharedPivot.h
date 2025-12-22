@@ -18,6 +18,11 @@ namespace BlenderControls
 		FQuat Rotation;
 	};
 
+	/**
+	 * Manages a group of selected actors as a single logical unit.
+	 * Responsible for calculating pivot points (Median, Active, etc. which dont exist yet) and
+	 * applying bulk transformations (Translate/Rotate/Scale) to children.
+	*/
 	class FSharedPivot
 	{
 	public:
@@ -31,10 +36,8 @@ namespace BlenderControls
 		const FChildInfo& GetActiveElement() const { return ActiveChild; }
 		TArray<AActor*> GetSelectedActors() const;
 		const TArray<FChildInfo>& GetChildren() const { return Children; }
-		
+
 		void SetPosition(const FVector& NewPosition);
-		void RotateBy(const FQuat& Delta);
-		void ScaleBy(const FVector& Scale, bool bUniform);
 		void Translate(const FVector& Delta, const bool bInUsingLocalSpace);
 		void Translate(bool bUsingLocalSpace, EAxisLock LockedAxis, const FVector& Delta);
 		void Rotate(FGrabContext GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis);
@@ -52,7 +55,6 @@ namespace BlenderControls
 		FTransform StartPivotTransform = FTransform::Identity;
 		TArray<FChildInfo> Children;
 		FChildInfo ActiveChild;
-		UTransformGizmo* Gizmo = nullptr;
 		UTransformProxy* TransformProxy = nullptr;
 	};
 } // namespace BlenderControls

@@ -19,12 +19,19 @@ namespace BlenderControls
 		 * @return True if the string was successfully parsed into a valid number.
 		 */
 		static bool Evaluate(const FString& RawString, float& OutResult);
+
 		static TOptional<TCHAR> KeyToNumericChar(const FKey& Key);
+
+		/** Validates that the units in the string match the tool's context (e.g., preventing 'cm' in a Rotation tool). */
 		static bool HasInvalidUnitsForContext(const FString& RawInput, EBlenderNumericContext Context);
 
 	private:
 		static bool EvaluateSimple(const FString& RawString, float& OutResult);
 		static float CountOccurrences(const FString& RawString, TCHAR CharToCount);
-		static bool EvaluateAdditiveWithUnit(const FString& Trimmed, float& OutResult);
+
+		/** * Parses strings containing units (cm, m, deg) and 
+		 * converts them to the internal float representation. 
+		 */
+		static bool EvaluateValueWithUnit(const FString& Trimmed, float& OutResult);
 	};
 }

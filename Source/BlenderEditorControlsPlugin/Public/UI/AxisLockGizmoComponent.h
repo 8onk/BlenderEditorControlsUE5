@@ -25,13 +25,5 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 
 	//Called by Unreal Engine's Renderer. 
-	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override
-	{
-		const FVector SafeDir = AxisDir.IsNearlyZero() ? FVector::ForwardVector : AxisDir.GetSafeNormal();
-		const float SafeLen = FMath::Clamp(LineLength, 1.f, 1e7f); // cap to avoid overflow
-		const FVector A = Origin - SafeDir * SafeLen;
-		const FVector B = Origin + SafeDir * SafeLen;
-		const FBox Box(A, B);
-		return FBoxSphereBounds(Box).TransformBy(LocalToWorld);
-	}
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 };

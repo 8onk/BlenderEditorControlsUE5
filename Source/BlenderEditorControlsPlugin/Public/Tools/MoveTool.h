@@ -4,19 +4,21 @@
 
 namespace BlenderControls
 {
+	/**
+	 * Implementation of the Blender-style 'Grab' (Translate) operation.
+	 * Handles freeform screen-space movement, single-axis locking, and plane-locking.
+	 */
 	class FMoveTool final : public FToolBase
 	{
 	public:
 		FMoveTool(const TSharedRef<FTransformSession>& InSession);
 
-		/* FToolBase */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
 		virtual void UpdateHud() override;
 
 		virtual void OnBegin() override;
 		virtual FText GetNumericHudText() const override;
-		virtual void Tick() override;
 
 	protected:
 		virtual FText GetLiveHudText() const override;
@@ -29,7 +31,7 @@ namespace BlenderControls
 
 	private:
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
-		virtual FVector GetSnapOffset(const FVector OffsetFromStart) override;
+		FVector GetSnapOffset(const FVector LiveDelta) const;
 
 		FVector StartActiveLocation;
 		FVector StartVirtualPivotLocation;

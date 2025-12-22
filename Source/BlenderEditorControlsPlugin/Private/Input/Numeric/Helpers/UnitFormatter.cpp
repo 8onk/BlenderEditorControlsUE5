@@ -8,16 +8,12 @@ namespace BlenderControls
 	{
 		if (From == To) return Value;
 
-		// Move/Scale (Meters) -> Rotate (Degrees)
-		// We interpret Meters as Radians
 		if ((From == EBlenderNumericContext::Distance || From == EBlenderNumericContext::Scale) && To ==
 			EBlenderNumericContext::Angle_Degrees)
 		{
 			return FMath::RadiansToDegrees(Value);
 		}
 
-		// Rotate (Degrees) -> Move/Scale (Meters)
-		// We interpret Degrees as Degrees
 		if (From == EBlenderNumericContext::Angle_Degrees && (To == EBlenderNumericContext::Distance || To ==
 			EBlenderNumericContext::Scale))
 		{
@@ -29,12 +25,11 @@ namespace BlenderControls
 
 	FString FUnitFormatter::FormatValue(float Value, EBlenderNumericContext Context)
 	{
-		//Will gives some precision error, but blender displays it like 4 m 43 cm etc.
 		auto FormatSmart = [](float V) -> FString
 		{
 			FNumberFormattingOptions Opt;
-			Opt.MinimumFractionalDigits = 0; // don’t force decimals
-			Opt.MaximumFractionalDigits = 3; // up to this many, trimmed
+			Opt.MinimumFractionalDigits = 0;
+			Opt.MaximumFractionalDigits = 3;
 			Opt.UseGrouping = false;
 			return FText::AsNumber(V, &Opt).ToString();
 		};

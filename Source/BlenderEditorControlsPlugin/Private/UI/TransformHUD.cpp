@@ -1,4 +1,5 @@
 ﻿#include "UI/TransformHUD.h"
+#include "BlenderControlsSettings.h"
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
 #include "Styling/AppStyle.h"
@@ -11,6 +12,8 @@ namespace BlenderControls
 {
 	void STransformHUD::Construct(const FArguments&)
 	{
+		//UE5.6 introduced a new UI layout for level viewport
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 		ChildSlot
 		[
 			SNew(SBorder)
@@ -27,6 +30,31 @@ namespace BlenderControls
 				]
 			]
 		];
+#else
+		static FSlateRoundedBoxBrush PillBrush(
+			FLinearColor(0.02f, 0.02f, 0.02f, 0.75f), // Background Color
+			5.0f, // Radius (Half of height = Pill)
+			FLinearColor(0.1f, 0.1f, 0.1f, 1.0f), // Outline Color
+			1.0f // Outline Width
+		);
+
+		ChildSlot
+		[
+			SNew(SBorder)
+			// Point to the static brush created above
+			.BorderImage(&PillBrush)
+			// Remove the manual background color override since the brush handles it
+			//.BorderBackgroundColor(...) 
+			.Padding(FMargin(12.f, 5.5f)) // Increased side padding for pill look
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SAssignNew(ReadoutText, STextBlock)
+				.Font(FAppStyle::Get().GetFontStyle("NormalFont"))
+				.ColorAndOpacity(FLinearColor::White)
+			]
+		];
+#endif
 	}
 
 	void STransformHUD::SetReadout(const FText& In) const
@@ -79,12 +107,35 @@ namespace BlenderControls
 
 		Detach();
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+		FIntPoint ViewportSize(1920, 1080); // Default fallback
+
+		if (FViewport* Viewport = GEditor->GetActiveViewport())
+		{
+			ViewportSize = Viewport->GetSizeXY();
+		}
+
+		const UBlenderControlsSettings* Settings = GetDefault<UBlenderControlsSettings>();
+
+		//NOTE Only runs at start first time
+		ClampedLeft = FMath::Clamp(Settings->MarginLeft, 0.f, ViewportSize.X);
+		ClampedTop = FMath::Clamp(Settings->MarginTop, 0.f, ViewportSize.Y);
+#endif
 		OverlayWrapper =
 			SNew(SOverlay)
 			+ SOverlay::Slot()
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION != 0
 			.ZOrder(0)
+#endif
 			.VAlign(VAlign_Top)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 			.HAlign(HAlign_Fill)
+#else
+			.HAlign(HAlign_Left)
+				.Padding(Settings->MarginLeft
+				         , Settings->MarginTop
+				         , 0.f, 0.f)
+#endif
 			[
 				SNew(SBox)
 				.Visibility(EVisibility::HitTestInvisible) // pass clicks through to the viewport
@@ -121,7 +172,6 @@ namespace BlenderControls
 			}
 			else
 			{
-				// Hide the numeric echo when empty (keeps layout clean)
 				NumericText->SetText(FText::GetEmpty());
 				NumericText->SetVisibility(EVisibility::Collapsed);
 			}
@@ -148,16 +198,6 @@ namespace BlenderControls
 		OriginViewportPx = InOriginPx;
 		MouseViewportPx = InMousePx;
 
-		if (!bShowDash)
-		{
-			bHavePrevLen = false;
-			DashPhase = 0.f;
-		}
-		else
-		{
-			UpdateDashPhaseForLengthChange();
-		}
-
 		Invalidate(EInvalidateWidgetReason::Paint);
 	}
 
@@ -169,67 +209,80 @@ namespace BlenderControls
 		LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId,
 		                                   InWidgetStyle, bParentEnabled);
 
-		// Convert absolute/viewport px -> local paint space for this widget
+		const FVector2f LineStart(MouseViewportPx - FVector2D(ClampedLeft, ClampedTop));
+		const FVector2f LineEnd(OriginViewportPx - FVector2D(ClampedLeft, ClampedTop));
+		FVector2f LineVector = (LineEnd - LineStart);
+
 		if (bShowDash)
 		{
-			const FVector2f A(OriginViewportPx);
-			const FVector2f B(MouseViewportPx);
+			constexpr float DashLength = 7.5f;
+			constexpr float GapRatio = 0.3f;
+			constexpr float DashDistance = DashLength * GapRatio;
+			float NumTotalLines = LineVector.Size() / (DashLength + DashDistance);
+			FVector2f Direction = LineVector.GetSafeNormal();
+			int NumFittingLines = FMath::CeilToFloat(NumTotalLines);
 
-			TArray<FVector2f> Pts;
-			Pts.Add(A);
-			Pts.Add(B);
+			FVector2f DashStart = LineStart;
+			FVector2f DashEnd = LineStart + LineVector.GetSafeNormal() * DashLength;
+			for (int i = 0; i < NumFittingLines; ++i)
+			{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+				TArray<FVector2D> Pts;
+				Pts.Add(FVector2D(DashStart));
+				Pts.Add(FVector2D(DashEnd));
+#else
+				TArray<FVector2f> Pts;
+				Pts.Add(DashStart);
+				Pts.Add(DashEnd);
+#endif
 
-			const float Phase = DashPhase; // animate; 0 for static
+				FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), Pts,
+				                             ESlateDrawEffect::None, FLinearColor::White, true, DashThickness);
 
-			FSlateDrawElement::MakeDashedLines(
-				OutDrawElements, ++LayerId, AllottedGeometry.ToPaintGeometry(), MoveTemp(Pts),
-				ESlateDrawEffect::None, FLinearColor::White, DashThickness, DashLengthPx, Phase);
+				DashStart = DashEnd + (Direction * DashDistance);
+				float DistToOrigin = (LineEnd - DashStart).Size();
+				if (DistToOrigin > DashLength)
+				{
+					DashEnd = DashStart + (Direction * DashLength);
+				}
+				else
+				{
+					DashEnd = LineEnd;
+				}
+			}
 		}
 
 		if (bShowCursor && CursorBrush)
 		{
-			const FVector2D Size = CursorSize;
-			const FVector2D LocalP = VirtualCursorViewportPx; // anchor under mouse
-			const FVector2D Pos = LocalP - CursorHotspot;
-
-			// Dashed line endpoints in viewport px
-			const FVector2D A = OriginViewportPx; // pivot/object
-			const FVector2D B = MouseViewportPx; // mouse/virtual cursor
-			const FVector2D V = (B - A);
+			const FVector2D VirtualCursorViewportPos = VirtualCursorViewportPx;
+			FVector2D Pos = VirtualCursorViewportPos - CursorHotspot;
+			Pos -= FVector2D(ClampedLeft, ClampedTop);
 
 			static float LastAngle = 0.f;
-			float BaseAngle = (V.SizeSquared() > KINDA_SMALL_NUMBER)
-				                  ? FMath::Atan2(V.Y, V.X) // radians (Y-down)
+			float BaseAngle = (LineVector.SizeSquared() > KINDA_SMALL_NUMBER)
+				                  ? FMath::Atan2(LineVector.Y, LineVector.X) // radians (Y-down)
 				                  : LastAngle;
 
-			// Decide final angle based on tool mode
-			float Angle = BaseAngle;
+			// Decide cursor angle based on tool mode
+			float CursorAngle = BaseAngle;
 			switch (CursorOrient)
 			{
 			case ECursorOrient::None:
-				Angle = 0.f;
-				break;
-
-			case ECursorOrient::AlongLineToMouse:
-				Angle = BaseAngle;
+				CursorAngle = 0.f;
 				break;
 
 			case ECursorOrient::AlongLineToOrigin:
-				Angle = BaseAngle + PI;
+				CursorAngle = BaseAngle + PI;
 				break;
 
 			case ECursorOrient::PerpendicularCW:
-				Angle = BaseAngle + HALF_PI;
-				break;
-
-			case ECursorOrient::PerpendicularCCW:
-				Angle = BaseAngle - HALF_PI;
+				CursorAngle = BaseAngle + HALF_PI;
 				break;
 			}
 			LastAngle = BaseAngle;
 
 			const FPaintGeometry PG = AllottedGeometry.ToPaintGeometry(
-				Size, FSlateLayoutTransform(Pos));
+				CursorSize, FSlateLayoutTransform(Pos));
 
 			FSlateDrawElement::MakeRotatedBox(
 				OutDrawElements,
@@ -237,39 +290,12 @@ namespace BlenderControls
 				PG,
 				CursorBrush,
 				ESlateDrawEffect::None,
-				Angle,
+				CursorAngle,
 				CursorHotspot,
 				FSlateDrawElement::RelativeToElement
 			);
 		}
 
 		return LayerId;
-	}
-
-	void STransformHUD::UpdateDashPhaseForLengthChange()
-	{
-		const float curLen = (MouseViewportPx - OriginViewportPx).Size();
-
-		if (!bHavePrevLen)
-		{
-			PrevLen = curLen;
-			bHavePrevLen = true;
-			return;
-		}
-
-		const float dL = curLen - PrevLen; // pixels along the line (+grow, -shrink)
-
-		if (FMath::Abs(dL) > 0.01f) // dead-zone
-		{
-			// Slide the pattern opposite to the length change, so ticks "move"
-			DashPhase -= dL;
-
-			// Keep phase within one period [0, 2*DashLengthPx)
-			const float Period = 2.f * DashLengthPx;
-			DashPhase = FMath::Fmod(DashPhase, Period);
-			if (DashPhase < 0.f) DashPhase += Period;
-
-			PrevLen = curLen;
-		}
 	}
 }

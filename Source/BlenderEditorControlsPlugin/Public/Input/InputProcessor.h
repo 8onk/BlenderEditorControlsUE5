@@ -14,11 +14,11 @@ namespace BlenderControls
 
 	/**
 	 * A Slate input pre-processor that captures Blender-style hotkeys.
-	 * Its primary role is to create and manage the lifecycle of a FTransformSession.
+	 * Its primary role is to create and manage the lifecycle of FTransformSession.
 	 * It acts as a "gatekeeper", forwarding input to an active session when one exists.
 	 */
 	class FInputProcessor : public IInputProcessor,
-	                                       public TSharedFromThis<FInputProcessor>
+	                        public TSharedFromThis<FInputProcessor>
 	{
 	public:
 		explicit FInputProcessor(TSharedPtr<FUICommandList> InCommandList);
@@ -26,7 +26,6 @@ namespace BlenderControls
 
 		void BindCommands();
 
-		/** IInputProcessor overrides */
 		virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override;
 		virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent) override;
 		virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent) override;
@@ -43,20 +42,18 @@ namespace BlenderControls
 		                                            const FPointerEvent* InGestureEvent) override;
 
 	private:
-		/** Checks if it's appropriate to handle hotkeys (e.g., viewport is focused). */
+		/** Checks if it's appropriate to handle hotkeys (viewport is focused). */
 		bool ShouldHandleHotkeys(FSlateApplication& SlateApp) const;
 		bool IsMouseOverAnyViewport() const;
-		
+
 		bool CanStartTool() const;
 
-		// --- Command Handlers for Starting a Session ---
 		void OnTransformStart(ETransformMode Mode, bool bDuplicateSelection = false);
 		void DuplicateAndMovePressed();
 
 		/** The command list for binding hotkeys. */
 		TSharedPtr<FUICommandList> CommandList;
 
-		/** The currently active transform session. This is the single source of truth for state. */
 		TSharedPtr<FTransformSession> ActiveSession;
 
 		/** Tracks currently held keys to prevent re-triggering on key-repeat events. */

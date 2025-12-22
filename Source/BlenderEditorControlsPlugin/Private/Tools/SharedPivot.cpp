@@ -17,7 +17,7 @@ namespace BlenderControls
 
 		for (const TWeakObjectPtr<AActor>& ActorPtr : InSelection)
 		{
-			if (AActor* Actor = ActorPtr.Get()) //is actor valid and safe to use?
+			if (AActor* Actor = ActorPtr.Get()) 
 			{
 				const FTransform ActorTransform = Actor->GetTransform();
 				const FQuat ActorRotation = ActorTransform.GetRotation();
@@ -161,7 +161,7 @@ namespace BlenderControls
 	void FSharedPivot::Rotate(FGrabContext GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis)
 	{
 		const FVector PivotPosition = GetStartLocation();
-		const FVector RotationAxis = GC.HelperAxisDir;
+		const FVector RotationAxis = GC.SingleLockAxis;
 
 		const FQuat TargetRotation = FQuat(RotationAxis, AngleToRotateRad);
 		FTransform StartTransform = StartPivotTransform;

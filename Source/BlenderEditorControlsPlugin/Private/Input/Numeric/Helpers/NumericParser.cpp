@@ -26,7 +26,6 @@ namespace BlenderControls
 
 		// decimal separators
 		if (Key == EKeys::Period || Key == EKeys::Decimal) return TEXT('.');
-		// (optionally) accept comma but normalize to '.'
 		if (Key == EKeys::Comma) return TEXT('.');
 
 		// equation ops
@@ -62,7 +61,7 @@ namespace BlenderControls
 			return false;
 		}
 
-		if (EvaluateAdditiveWithUnit(Trimmed, OutResult))
+		if (EvaluateValueWithUnit(Trimmed, OutResult))
 		{
 			return true;
 		}
@@ -82,7 +81,7 @@ namespace BlenderControls
 			return true;
 		}
 
-		return false; // Invalid format
+		return false;
 	}
 
 	bool FNumericParser::HasInvalidUnitsForContext(const FString& RawInput, EBlenderNumericContext Context)
@@ -90,19 +89,17 @@ namespace BlenderControls
 		const bool bContainsDeg = RawInput.Contains(TEXT("°"));
 		const bool bContainsCm = RawInput.Contains(TEXT("cm"), ESearchCase::IgnoreCase);
 
-		// Invalid: Typing "cm" when in Angle mode
 		if (Context == EBlenderNumericContext::Angle_Degrees && bContainsCm)
 		{
 			return true;
 		}
 
-		// Invalid: Typing "°" when in Distance or Scale mode
 		if ((Context == EBlenderNumericContext::Distance || Context == EBlenderNumericContext::Scale) && bContainsDeg)
 		{
 			return true;
 		}
 
-		return false; // All good
+		return false;
 	}
 
 	float FNumericParser::CountOccurrences(const FString& RawString, TCHAR CharToCount)
@@ -119,7 +116,7 @@ namespace BlenderControls
 		return DotCount;
 	}
 
-	bool FNumericParser::EvaluateAdditiveWithUnit(const FString& Trimmed, float& OutResult)
+	bool FNumericParser::EvaluateValueWithUnit(const FString& Trimmed, float& OutResult)
 	{
 		int32 UnitIndex = -1;
 		int32 UnitLength = 0;
@@ -127,14 +124,14 @@ namespace BlenderControls
 		UnitIndex = Trimmed.Find(TEXT("cm"), ESearchCase::IgnoreCase);
 		if (UnitIndex != -1)
 		{
-			UnitLength = 2; // length of "cm"
+			UnitLength = 2;
 		}
 		else
 		{
 			UnitIndex = Trimmed.Find(TEXT("°"));
 			if (UnitIndex != -1)
 			{
-				UnitLength = 1; // length of "°"
+				UnitLength = 1;
 			}
 		}
 
@@ -155,27 +152,22 @@ namespace BlenderControls
 			float LeftValue = 0.f;
 			float RightValue = 0.f;
 
-			// ParseFloat on LeftPart.TrimEnd() handles both "4" (from "4cm")
-			// and "4 " (from "4 cm"). It also handles "cm4" (LeftPart=""), which fails.
 			if (FDefaultValueHelper::ParseFloat(LeftPart.TrimEnd(), LeftValue))
 			{
-				// LeftPart is valid. Now parse RightPart.
 				if (RightPart.TrimEnd().IsEmpty())
 				{
-					RightValue = 0.f; // e.g., "4cm" or "4 cm"
+					RightValue = 0.f;
 				}
 				else if (!FDefaultValueHelper::ParseFloat(RightPart.TrimEnd(), RightValue))
 				{
-					return false; // e.g., "4cmHello"
+					return false;
 				}
 
-				// Both parts are valid, return the sum.
 				OutResult = LeftValue + RightValue;
 				return true;
 			}
 			else
 			{
-				// LeftPart was not a valid float (e.g., "cm4")
 				return false;
 			}
 		}

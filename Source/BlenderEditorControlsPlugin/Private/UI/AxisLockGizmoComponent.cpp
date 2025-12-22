@@ -1,8 +1,12 @@
 ﻿#include "UI/AxisLockGizmoComponent.h"
 #include "PrimitiveSceneProxy.h"
 #include "DynamicMeshBuilder.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+#include "Materials/MaterialInstanceDynamic.h"
+#else
 #include "Materials/MaterialRenderProxy.h"
 #include "MaterialDomain.h"
+#endif
 
 //FAxisLockSceneProxy doesn't need to be visible to other classes.
 class FAxisLockSceneProxy : public FPrimitiveSceneProxy
@@ -54,8 +58,8 @@ public:
 			const FSceneView* View = Views[ViewIndex];
 
 			/* Choose different material for perspective vs orthographic.
-			Using same material results in wierd disconnected line segments in
-			orthographic view.
+				Using same material results in disconnected line segments in
+				orthographic view due to grid lines. 
 			*/
 			UMaterialInterface* ActiveMat =
 				DrawMaterialFromComponent
@@ -249,4 +253,14 @@ void UAxisLockGizmoComponent::OnRegister()
 FPrimitiveSceneProxy* UAxisLockGizmoComponent::CreateSceneProxy()
 {
 	return new FAxisLockSceneProxy(this);
+}
+
+FBoxSphereBounds UAxisLockGizmoComponent::CalcBounds(const FTransform& LocalToWorld) const
+{
+	const FVector SafeDir = AxisDir.IsNearlyZero() ? FVector::ForwardVector : AxisDir.GetSafeNormal();
+	const float SafeLen = FMath::Clamp(LineLength, 1.f, 1e7f); // cap to avoid overflow
+	const FVector A = Origin - SafeDir * SafeLen;
+	const FVector B = Origin + SafeDir * SafeLen;
+	const FBox Box(A, B);
+	return FBoxSphereBounds(Box).TransformBy(LocalToWorld);
 }

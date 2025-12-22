@@ -97,7 +97,6 @@ namespace BlenderControls
 	bool FInputProcessor::HandleMouseButtonDownEvent(FSlateApplication& SlateApp,
 	                                                 const FPointerEvent& MouseEvent)
 	{
-		// Forward mouse clicks to the active session.
 		if (ActiveSession.IsValid())
 		{
 			return ActiveSession->HandleMouseButtonDownEvent(MouseEvent);
@@ -116,9 +115,6 @@ namespace BlenderControls
 		}
 		return false;
 	}
-
-
-	// Command Handler Implementations
 
 	bool FInputProcessor::CanStartTool() const
 	{

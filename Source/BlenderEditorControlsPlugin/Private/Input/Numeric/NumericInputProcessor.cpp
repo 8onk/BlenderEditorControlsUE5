@@ -102,7 +102,6 @@ namespace BlenderControls
 				return false;
 			}
 
-			//FlattenAdditiveSlotIfEmpty();
 			FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 			if (ActiveSlot.bIsEmpty)
 			{
@@ -229,13 +228,11 @@ namespace BlenderControls
 
 		if (MatchesCommand(KeyEvent, Cmd.CommandNumericToggleNegation))
 		{
-			if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false; // Activate slot
 			ActiveSlot.bIsNegative = !ActiveSlot.bIsNegative;
 			return true;
 		}
 		if (MatchesCommand(KeyEvent, Cmd.CommandNumericToggleReciprocal))
 		{
-			if (ActiveSlot.bIsEmpty) ActiveSlot.bIsEmpty = false; // Activate slot
 			ActiveSlot.bIsReciprocal = !ActiveSlot.bIsReciprocal;
 			return true;
 		}
@@ -248,7 +245,7 @@ namespace BlenderControls
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 		if (ActiveSlot.bIsEmpty) return false;
 
-		FlattenAdditiveSlotIfEmpty(/*bUpdateContext=*/false);
+		FlattenAdditiveSlotIfEmpty();
 
 		if (Key == EKeys::Left)
 		{
@@ -265,13 +262,14 @@ namespace BlenderControls
 	{
 		CurrentState.bIsInNumericMode = true;
 
-		// Clear all slots
 		for (FNumericInputSlot& Slot : CurrentState.Slots)
 		{
 			Slot.Reset(CurrentState.CurrentContext);
 		}
 
-		HandleInput(KeyEvent); // Re-run HandleInput, now that we're in numeric mode
+		// First entry sets numeric mode to true, but to parse the inputted number,
+		// HandleInput needs to be called again. 
+		HandleInput(KeyEvent);
 	}
 
 	void FNumericInputProcessor::PropagateUniformScale(int32 SourceSlotIndex)
@@ -286,7 +284,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FNumericInputProcessor::FlattenAdditiveSlotIfEmpty(bool bUpdateContext)
+	void FNumericInputProcessor::FlattenAdditiveSlotIfEmpty()
 	{
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
 
@@ -309,7 +307,7 @@ namespace BlenderControls
 		FNumericInputSlot& Slot = CurrentState.Slots[SlotIndex];
 		const bool bIsActiveSlot = (SlotIndex == CurrentState.ActiveSlotIndex);
 
-		//Render master slot for all slave slots if they are empty for scale tool
+		//Render master slot for all slave slots if they are empty for scale tool (uniform scaling)
 		if (CurrentState.CurrentContext == EBlenderNumericContext::Scale &&
 			SlotIndex > 0 &&
 			Slot.bIsEmpty &&
@@ -318,15 +316,12 @@ namespace BlenderControls
 			return BuildSlotDisplayString(0);
 		}
 
-		//Slot.DebugPrint();
-
-		// State 1: |NONE|
 		if (Slot.bIsEmpty)
 		{
-			return (SlotIndex == CurrentState.ActiveSlotIndex) ? TEXT("|NONE|") : TEXT("NONE");
+			return SlotIndex == CurrentState.ActiveSlotIndex ? TEXT("|NONE|") : TEXT("NONE");
 		}
 
-		// State 2: Active Slot [ ... | ... ]
+		// Active Slot [ ... | ... ]
 		if (bIsActiveSlot)
 		{
 			FString InnerDisplayString = TEXT("");
@@ -367,9 +362,8 @@ namespace BlenderControls
 			return FString::Printf(TEXT("[%s%s"), *OuterDisplayString, *ResultString);
 		}
 
-		// State 3: Inactive, Set Slot
 		float FinalValue = 0.f;
-		EvaluateSlot(Slot, FinalValue); // This will just be BaseValue
+		EvaluateSlot(Slot, FinalValue);
 		return FUnitFormatter::FormatValue(FinalValue, CurrentState.CurrentContext);
 	}
 
@@ -410,15 +404,13 @@ namespace BlenderControls
 
 		float ParsedValue = 0.f;
 
-		// 1. Get value from parser
 		if (!FNumericParser::Evaluate(Slot.RawString, ParsedValue))
 		{
 			OutResult = Slot.LastValidValue;
-			return false; // INVALID
+			return false;
 		}
 
-		// CurrentState.DebugPrint();
-		// 2. Handle conversion from previous tool
+		// Handle conversion from previous tool
 		float BaseValue = Slot.BaseValue;
 		if (Slot.Context != CurrentState.CurrentContext)
 		{
@@ -435,10 +427,10 @@ namespace BlenderControls
 			}
 		}
 
-		// 3. Apply Additive
+		// Apply Additive
 		float Value = Slot.bIsAdditive ? (BaseValue + ParsedValue) : ParsedValue;
 
-		// 4. Apply Modifiers
+		// Apply Modifiers
 		if (Slot.bIsReciprocal)
 		{
 			if (FMath::IsNearlyZero(Value)) return false;

@@ -4,21 +4,23 @@
 
 namespace BlenderControls
 {
+	/**
+	 * Implementation of the Blender-style 'Rotate' operation.
+	 * Supports Screen-Relative rotation, Single-Axis (constrained) rotation, 
+	 * and Trackball (dual-axis) rotation modes.
+	 */
 	class FRotateTool final : public FToolBase
 	{
 	public:
 		explicit FRotateTool(const TSharedRef<FTransformSession>& InSession);
 
-		/* ---------- FToolBase overrides ---------- */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value = 0.0f) override;
 		virtual void UpdateHud() override;
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
-		//virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
 		virtual FText GetNumericHudText() const override;
 		virtual void Tick() override;
-
 		virtual void HandleAxisLock(EAxisLock AxisPressed) override;
 
 	private:
@@ -37,7 +39,6 @@ namespace BlenderControls
 
 		FText BuildTrackballHudText(double LiveAngleX, double LiveAngleY, const FNumberFormattingOptions& NumFmt) const;
 
-		virtual FVector GetSnapOffset(const FVector OffsetFromStart);
 		virtual void SetTrackballRotationMode(const bool bEnabled) override;
 		virtual bool GetTrackballRotationMode() override;
 		virtual void UpdateNumActiveSlots() override;

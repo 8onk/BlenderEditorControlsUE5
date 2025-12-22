@@ -7,14 +7,11 @@
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "BlenderControlsSettings.h"
-#include "Settings/EditorStyleSettings.h"
 #include "Utils/MathHelpers.h"
 #include "Tools/SharedPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
 
-//TODO: Mouse wrapping offsets the cursor slightly, due to the virtual cursor origin.
-//TODO: do something about the GetSnapOffset abstract function
 namespace BlenderControls
 {
 	FToolBase::FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
@@ -25,38 +22,31 @@ namespace BlenderControls
 
 	void FToolBase::OnBegin()
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("OnBegin: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
-
-		// 1. Get Viewport, GEditor, cache settings
-		if (!InitializeEditorState())
+		if (!Session.IsValid())
 		{
-			return; // Bails if no ViewportClient or GEditor
+			return;
 		}
 
-		// 3. Calculate SceneView and base view vectors
+		if (!InitializeEditorState())
+		{
+			return;
+		}
+
 		Viewport = ViewportClient->Viewport;
 		if (!Viewport)
 		{
 			return;
 		}
-		CacheViewVectors(); // Sets ViewUp, ViewRight, ViewForward
+		CacheViewVectors();
 
 		const FVector2D MousePos = Session->StartMousePos;
-
-		// 5. Set internal tool mouse state
 		CurrentMousePosition = MousePos;
 		CurrentViewportMousePos = MousePos;
 
 		InitializePivot();
-
-		// 6. Setup the GrabContext for transform calculations
 		InitializeGrabContext();
-
-		// 7. Setup HUD and Cursors
 		InitializeUI();
-
-		// 8. Restore state from session (axis locks, numeric input)
 		RestorePreviousState();
 
 		if (Session->NumericInputProcessor.IsValid())
@@ -67,9 +57,10 @@ namespace BlenderControls
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		if (!bIsToolActive) return;
-
-		if (!Viewport || !ViewportClient || !VirtualPivot) return;
+		if (!bIsToolActive || !GetSession().IsValid() || !ViewportClient || !VirtualPivot.IsValid())
+		{
+			return;
+		}
 
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		HandleMouseMovement(CurrentViewportMousePosition);
@@ -79,16 +70,13 @@ namespace BlenderControls
 	{
 		bIsToolActive = false;
 
-		// Clean up HUD
 		if (HudWidget.IsValid())
 		{
 			HudWidget->Detach();
 		}
 
-		// Clean up Axis Gizmos
 		ClearDrawnAxisLines();
 
-		// Reset Viewport settings
 		if (ViewportClient)
 		{
 			ViewportClient->SetWidgetMode(InitialWidgetMode);
@@ -102,14 +90,12 @@ namespace BlenderControls
 			FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
 		}
 
-		// Unbind delegates
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (Session.IsValid() && Session->GetNumericInputProcessor())
 		{
 			Session->GetNumericInputProcessor()->OnExitNumericMode.Unbind();
 		}
 
-		// Reset internal state
 		bPrecisionModeActive = false;
 		CurrentPrecisionFactor = 1.0f;
 		MouseDelta = FVector2D::ZeroVector;
@@ -122,33 +108,28 @@ namespace BlenderControls
 
 		if (GEditor)
 		{
-			// Restore mouse position if wrapped
 			if (!Session->GetWrappedCursorPos().IsNearlyZero() && Viewport)
 			{
 				Viewport->SetMouse(static_cast<int32>(Session->GetWrappedCursorPos().X),
 				                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
 			}
 
-			// Logic Revert
+			//Reverts object transform to start transform before transform operation on cancel
 			if (!bApply && VirtualPivot.IsValid())
 			{
 				VirtualPivot->RevertToStartState();
 			}
 
-			// Force redraw
+			// Force viewport redraw
 			GEditor->NoteSelectionChange(true);
 			GEditor->RedrawLevelEditingViewports(true);
 		}
 
-		if (VirtualPivot.IsValid())
-		{
-			VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
-		}
+		VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
 	}
 
 	void FToolBase::UpdateAxisLock()
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("UpdateAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		UpdateNumActiveSlots();
@@ -158,7 +139,6 @@ namespace BlenderControls
 		SetGrabContextAxisLock(Session->LockedAxis);
 		RedrawAxisLines();
 
-		// Refresh
 		if (Session->IsNumericInputActive())
 		{
 			ApplyNumeric();
@@ -172,8 +152,6 @@ namespace BlenderControls
 
 	void FToolBase::UpdateNumActiveSlots()
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("UpdateNumActiveSlots: Session must be valid for %s"),
-		           *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		switch (Session->GetLockedAxis())
@@ -208,7 +186,6 @@ namespace BlenderControls
 
 	void FToolBase::RedrawAxisLines()
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("RedrawAxisLines: Session was invalid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		ClearAxisGizmos();
@@ -242,7 +219,8 @@ namespace BlenderControls
 				const bool bIsActive =
 					(ChildInfo && ChildInfo->Actor && ChildInfo->Actor == Active.Actor);
 
-				//highlight the gizmo for "last selected object" just like in blender
+				// Highlight the gizmo for the "Active Element" while dimming others to mimic Blender's 
+				// visual feedback when transforming multiple objects in local space.
 				if (bIsActive || !Session->IsUsingLocalSpace())
 				{
 					Color = BaseColor * 2.0f;
@@ -350,7 +328,6 @@ namespace BlenderControls
 	                                                   const FLinearColor& Color, float ThicknessPx,
 	                                                   float LineLength) const
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("SpawnAxisGizmo: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
@@ -377,7 +354,6 @@ namespace BlenderControls
 
 	FVector FToolBase::GetAxisVector(const EAxisLock InAxis) const
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("GetAxisVector: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		FVector AxisVector =
@@ -409,7 +385,6 @@ namespace BlenderControls
 			return false;
 		}
 
-		// Cache initial viewport state
 		InitialWidgetMode = ViewportClient->GetWidgetMode();
 		ViewportClient->ShowWidget(false);
 		ViewportClient->Invalidate();
@@ -486,11 +461,11 @@ namespace BlenderControls
 			return;
 		}
 
-		GrabContext.HelperType = FGrabContext::EHelperType::ViewPlane;
-		GrabContext.HelperPlaneN = -ViewForward;
+		GrabContext.ConstraintMode = FGrabContext::EHelperType::ViewPlane;
+		GrabContext.PlaneNormal = -ViewForward;
 		GrabContext.StartMousePos = Session->StartMousePos;
 		GrabContext.StartLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
-		GrabContext.HelperAxisDir = FVector::ZeroVector;
+		GrabContext.SingleLockAxis = FVector::ZeroVector;
 		GrabContext.ViewForward = ViewForward;
 
 		FSceneViewFamilyContext ViewFamily(
@@ -513,6 +488,8 @@ namespace BlenderControls
 		FVector MouseIntersectionB = MathHelper::IntersectHelper(
 			GrabContext, MousePosBOrigin, MousePosBDirection);
 
+		// Deproject two points (current mouse and mouse + 1px) to calculate the world-space size of a single pixel.
+		// This allows the tool to maintain consistent drag sensitivity/distance regardless of the user's FOV or distance from the object.
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
 	}
 
@@ -520,13 +497,11 @@ namespace BlenderControls
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		// Setup HUD
 		HudWidget = SNew(STransformHUD);
 		HudWidget->Attach();
 		UpdateHud();
 		UpdateNumActiveSlots();
 
-		// Setup Cursor
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 		HudWidget->SetVirtualCursorPos(Session->GetWrappedCursorPos());
@@ -555,17 +530,18 @@ namespace BlenderControls
 		}
 
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
-		// If the delta is zero, do nothing to avoid drift from the SetMouse call itself.
 		if (TrueMouseDelta.IsNearlyZero())
 		{
 			return;
 		}
 
 		Session->VirtualMousePosition += TrueMouseDelta;
+
+		// Lock the hardware cursor to a fixed anchor and track a 'VirtualMousePosition' instead.
+		// This allows for mouse wrap without drift (mismatch between software cursor and hardware cursor position)
 		Viewport->SetMouse(static_cast<int32>(Session->CursorAnchorPoint.X),
 		                   static_cast<int32>(Session->CursorAnchorPoint.Y));
 
-		//Software cursor is part of HudWidget
 		if (HudWidget.IsValid())
 		{
 			const FVector2D TotalDelta = Session->VirtualMousePosition - Session->CursorAnchorPoint;
@@ -608,7 +584,6 @@ namespace BlenderControls
 
 	void FToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)
 	{
-		// Only proceed if the state is actually changing.
 		if (bNewPrecisionModeActive == bPrecisionModeActive)
 		{
 			return;
@@ -627,7 +602,6 @@ namespace BlenderControls
 
 	void FToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("SetSnappingEnabled: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (bSnappingEnabled == bNewSnappingEnabled)
@@ -645,7 +619,6 @@ namespace BlenderControls
 
 	void FToolBase::StartNewLock(const EAxisLock NewAxis) const
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("StartNewLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		Session->bIsAxisLockActive = true;
@@ -655,7 +628,6 @@ namespace BlenderControls
 
 	void FToolBase::HandleAxisLock(const EAxisLock AxisPressed)
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("HandleAxisLock: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!Session->IsAxisLockActive() || Session->LockedAxis != AxisPressed)
@@ -683,10 +655,9 @@ namespace BlenderControls
 
 	bool FToolBase::IsSingleAxisLocked() const
 	{
-		ensureMsgf(OwningSession.IsValid(), TEXT("IsSingleAxisLocked: Session must be valid for %s"), *DisplayName);
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (Session->bIsAxisLockActive && GrabContext.HelperAxisDir != FVector::ZeroVector)
+		if (Session->bIsAxisLockActive && GrabContext.SingleLockAxis != FVector::ZeroVector)
 		{
 			return true;
 		}
@@ -726,10 +697,5 @@ namespace BlenderControls
 		{
 			HudWidget->Update(GetLiveHudText());
 		}
-	}
-
-	FVector FToolBase::GetSnapOffset(const FVector OffsetFromStart)
-	{
-		return FVector::ZeroVector;
 	}
 } // namespace BlenderControls

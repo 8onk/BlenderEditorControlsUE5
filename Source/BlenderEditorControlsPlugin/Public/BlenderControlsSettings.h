@@ -2,7 +2,7 @@
 #include "BlenderControlsSettings.generated.h"
 
 /**
- * User-editable settings (shows up under Editor Preferences → Plugins → Blender3D Editor Controls)
+ * User-editable settings (shows up under Editor Preferences → Plugins → Blender Editor Controls)
  */
 UCLASS(config = EditorSettings, defaultconfig)
 class BLENDEREDITORCONTROLSPLUGIN_API UBlenderControlsSettings : public UDeveloperSettings
@@ -16,7 +16,7 @@ public:
 	virtual FName GetCategoryName() const override { return FName("Plugins"); }
 
 	// Display Name in the UI
-	virtual FText GetSectionText() const override { return FText::FromString("Blender3D Editor Controls"); }
+	virtual FText GetSectionText() const override { return FText::FromString("Blender Editor Controls"); }
 
 	// Description in the UI
 	virtual FText GetSectionDescription() const override
@@ -24,15 +24,36 @@ public:
 		return FText::FromString("Configure controls and shortcuts.");
 	}
 
+	UFUNCTION()
+	bool IsOldVersion() const { return UE_BEFORE_5_6; }
+
+	/** Hidden helper to drive UI visibility based on engine version */
+	UPROPERTY(Transient)
+	bool bIsOldVersion = UE_BEFORE_5_6;
+
+	/** Overlay margin from the left edge of the viewport (in pixels). */
+	UPROPERTY(EditAnywhere, config, Category = "Visuals | Overlay", meta = (
+		ClampMin = "0",
+		EditCondition = "IsOldVersion()",
+		EditConditionHides))
+	float MarginLeft = 5.f;
+
+	/** Overlay margin from the top edge of the viewport (in pixels). */
+	UPROPERTY(EditAnywhere, config, Category = "Visuals | Overlay", meta = (
+		ClampMin = "0",
+		EditCondition = "IsOldVersion()",
+		EditConditionHides))
+	float MarginTop = 40.f;
+
 	// --- VISUALS (Cursors & HUD) ---
-	UPROPERTY(EditAnywhere, config, Category = "Visuals | Colors")
-	FLinearColor AxisColorX = FLinearColor::Red;
+	UPROPERTY(EditAnywhere, config, Category = "Visuals | Axis Colors")
+	FLinearColor AxisColorX = FLinearColor(FColor::FromHex(TEXT("9D1E00FF")));
 
-	UPROPERTY(EditAnywhere, config, Category = "Visuals | Colors")
-	FLinearColor AxisColorY = FLinearColor::Green;
+	UPROPERTY(EditAnywhere, config, Category = "Visuals | Axis Colors")
+	FLinearColor AxisColorY = FLinearColor(FColor::FromHex(TEXT("5B9400FF")));
 
-	UPROPERTY(EditAnywhere, config, Category = "Visuals | Colors")
-	FLinearColor AxisColorZ = FLinearColor::Blue;
+	UPROPERTY(EditAnywhere, config, Category = "Visuals | Axis Colors")
+	FLinearColor AxisColorZ = FLinearColor(FColor::FromHex(TEXT("004B9BFF")));
 
 	UPROPERTY(EditAnywhere, config, Category = "Visuals | Gizmos", meta = (ClampMin = "0.5", ClampMax = "5.0"))
 	float AxisLineThickness = 2.5f;
