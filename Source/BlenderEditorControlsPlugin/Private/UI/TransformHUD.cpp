@@ -8,7 +8,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 2
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 2 || ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 1
 #include "Brushes/SlateRoundedBoxBrush.h"
 #endif
 
@@ -130,7 +130,7 @@ ClampedTop= FMath::Clamp (Settings->MarginTop, 0.f, ViewportSize.Y);
 OverlayWrapper=
 SNew(SOverlay)
 			+ SOverlay::Slot()
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION != 0
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 .ZOrder (0)
 #endif
 .VAlign (VAlign_Top)

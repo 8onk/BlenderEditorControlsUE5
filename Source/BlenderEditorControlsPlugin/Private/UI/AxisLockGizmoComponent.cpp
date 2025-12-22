@@ -5,8 +5,11 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #else
 #endif
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION != 1
 #include "Materials/MaterialRenderProxy.h"
 #include "MaterialDomain.h"
+#endif
 
 //FAxisLockSceneProxy doesn't need to be visible to other classes.
 class FAxisLockSceneProxy : public FPrimitiveSceneProxy
