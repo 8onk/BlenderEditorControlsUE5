@@ -1,12 +1,12 @@
 ﻿#include "UI/AxisLockGizmoComponent.h"
 #include "PrimitiveSceneProxy.h"
 #include "DynamicMeshBuilder.h"
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
 #include "Materials/MaterialInstanceDynamic.h"
 #else
+#endif
 #include "Materials/MaterialRenderProxy.h"
 #include "MaterialDomain.h"
-#endif
 
 //FAxisLockSceneProxy doesn't need to be visible to other classes.
 class FAxisLockSceneProxy : public FPrimitiveSceneProxy
