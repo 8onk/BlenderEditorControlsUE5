@@ -4,6 +4,9 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Commands/UICommandInfo.h"
 #include "BlenderControlsCommands.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#include "BlenderControlsSettings.h"
+#endif
 #include "Input/Numeric/NumericInputProcessor.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
 #include "Settings/EditorStyleSettings.h"
@@ -359,6 +362,16 @@ namespace BlenderControls
 		FVector2D CurrentViewportMousePosition;
 		MathHelper::GetMousePosToViewportPos(FSlateApplication::Get().GetCursorPos(),
 		                                     CurrentViewportMousePosition);
+
+		// Add a sensitivity multiplier for ue 5.7, because ue 5.7 uses raw input, as mouse acceleration
+		// doesn't kick in for some reason in ue 5.7...
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		// Create a local sensitivity variable
+		FVector2D RawDelta = CurrentViewportMousePosition - CursorAnchorPoint;
+		CurrentViewportMousePosition = CursorAnchorPoint + (RawDelta * GetDefault<UBlenderControlsSettings>()->
+			MouseSensitivity);
+#endif
+
 		if (NumericInputProcessor->IsInNumericMode())
 		{
 			CurrentTool->HandleMouseMovement(CurrentViewportMousePosition);

@@ -521,6 +521,7 @@ namespace BlenderControls
 		}
 	}
 
+
 	void FToolBase::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
@@ -530,6 +531,7 @@ namespace BlenderControls
 		}
 
 		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
+
 		if (TrueMouseDelta.IsNearlyZero())
 		{
 			return;
@@ -538,7 +540,6 @@ namespace BlenderControls
 		Session->VirtualMousePosition += TrueMouseDelta;
 
 		// Lock the hardware cursor to a fixed anchor and track a 'VirtualMousePosition' instead.
-		// This allows for mouse wrap without drift (mismatch between software cursor and hardware cursor position)
 		Viewport->SetMouse(static_cast<int32>(Session->CursorAnchorPoint.X),
 		                   static_cast<int32>(Session->CursorAnchorPoint.Y));
 
@@ -546,7 +547,6 @@ namespace BlenderControls
 		{
 			const FVector2D TotalDelta = Session->VirtualMousePosition - Session->CursorAnchorPoint;
 			const FVector2D LogicalCursorPosition = Session->CursorAnchorPoint + TotalDelta;
-
 			const FVector2D ViewportSize = Viewport->GetSizeXY();
 
 			Session->WrappedMousePosition.X = FMath::Fmod(LogicalCursorPosition.X, ViewportSize.X);
@@ -560,7 +560,7 @@ namespace BlenderControls
 			{
 				Session->WrappedMousePosition.Y += ViewportSize.Y;
 			}
-
+			
 			HudWidget->SetVirtualCursorPos(Session->WrappedMousePosition);
 		}
 

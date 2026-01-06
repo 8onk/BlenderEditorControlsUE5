@@ -17,6 +17,16 @@ public class BlenderEditorControlsPlugin : ModuleRules
 		{
 			PublicDefinitions.Add("UE_BEFORE_5_6=0");
 		}
+		
+		// Check for 5.7 or newer for global sensitivity setting
+		if (Target.Version.MajorVersion > 5 || (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 7))
+		{
+			PublicDefinitions.Add("UE_5_7_OR_LATER=1");
+		}
+		else
+		{
+			PublicDefinitions.Add("UE_5_7_OR_LATER=0");
+		}
 
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
