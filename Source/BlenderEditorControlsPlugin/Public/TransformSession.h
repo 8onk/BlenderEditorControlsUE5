@@ -1,8 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Enums.h"
 #include "Input/Numeric/NumericInputProcessor.h"
+#include "Utils/ControlRigSelectionHelper.h"
+#include "Tools/ControlRigPivot.h"
 
 struct FKeyEvent;
 struct FPointerEvent;
@@ -11,8 +13,17 @@ namespace BlenderControls
 {
 	class FToolBase;
 	class FSharedPivot;
+	class FControlRigPivot;
 	class STransformHUD;
 	class FNumericInputProcessor;
+
+	/** Identifies what type of selection we're operating on */
+	enum class ESelectionType : uint8
+	{
+		None,
+		Actors,      // Standard AActor selection
+		ControlRig   // Control Rig bones/controls in Animation Mode
+	};
 
 	/**
 	 * Manages the state and lifecycle of a single, modal transform operation (e.g., from pressing 'G' to clicking to confirm).
@@ -41,6 +52,7 @@ namespace BlenderControls
 
 		// State Accessors
 		TSharedPtr<FSharedPivot> GetPivot() const { return VirtualPivot; }
+		TSharedPtr<FControlRigPivot> GetControlRigPivot() const { return ControlRigVirtualPivot; }
 		EAxisLock GetLockedAxis() const { return LockedAxis; }
 		bool IsUsingLocalSpace() const { return bUsingLocalSpace; }
 		bool IsAxisLockActive() const { return bIsAxisLockActive; }
@@ -51,12 +63,25 @@ namespace BlenderControls
 			else return false;
 		}
 
-		bool HasValidPivot() const { return VirtualPivot.IsValid(); }
+		bool HasValidPivot() const 
+		{ 
+			if (SelectionType == ESelectionType::ControlRig)
+			{
+				return ControlRigVirtualPivot.IsValid() && ControlRigVirtualPivot->IsValid();
+			}
+			return VirtualPivot.IsValid(); 
+		}
 
 		const TArray<TWeakObjectPtr<AActor>>& GetSelectedActors() const { return SelectedActors; }
 		const FVector2D& GetVirtualMousePos() const { return VirtualMousePosition; }
 		const FVector2D& GetWrappedCursorPos() const { return WrappedMousePosition; }
 		const FVector2D& GetStartMousePos() const { return StartMousePos; }
+
+		// Selection Type Accessors
+		ESelectionType GetSelectionType() const { return SelectionType; }
+		bool IsControlRigSelection() const { return SelectionType == ESelectionType::ControlRig; }
+		bool IsActorSelection() const { return SelectionType == ESelectionType::Actors; }
+		const TArray<FControlRigElementInfo>& GetSelectedRigElements() const { return SelectedRigElements; }
 
 		// State Setters 
 		void SetAxisLockActive(bool bActive) { bIsAxisLockActive = bActive; }
@@ -69,7 +94,7 @@ namespace BlenderControls
 		FNumericInputProcessor* GetNumericInputProcessor() const { return NumericInputProcessor.Get(); }
 
 	private:
-		bool ValidateEditorState() const;
+		bool ValidateEditorState();
 		void PerformDuplicateSelected();
 		void InitializeMouseState();
 		void InitializePivot();
@@ -79,6 +104,7 @@ namespace BlenderControls
 		TSharedPtr<FToolBase> CurrentTool;
 		TUniquePtr<FNumericInputProcessor> NumericInputProcessor;
 		TSharedPtr<FSharedPivot> VirtualPivot;
+		TSharedPtr<FControlRigPivot> ControlRigVirtualPivot;
 		TUniquePtr<FScopedTransaction> ScopedTransaction;
 
 		// --- Interaction State ---
@@ -95,6 +121,10 @@ namespace BlenderControls
 		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
 		FVector2D WrappedMousePosition = FVector2D::ZeroVector;
 		FVector2D StartMousePos = FVector2D::ZeroVector;
+
+		// --- Selection Type ---
+		ESelectionType SelectionType = ESelectionType::None;
+		TArray<FControlRigElementInfo> SelectedRigElements;
 
 		// --- Session Control ---
 		bool bIsFirstTool = true;

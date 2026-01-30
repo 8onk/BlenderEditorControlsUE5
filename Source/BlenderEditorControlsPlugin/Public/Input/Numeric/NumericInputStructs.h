@@ -109,18 +109,10 @@ namespace BlenderControls
 
 		void DebugPrint() const
 		{
-			UE_LOG(LogTemp, Warning, TEXT("=== BlenderNumericState ==="));
-			UE_LOG(LogTemp, Warning, TEXT("ActiveSlotIndex=%d, InNumericMode=%d, UniformScale=%d"),
-			       ActiveSlotIndex,
-			       bIsInNumericMode,
-			       bIsUniformScaleMode
-			);
-
 			for (int32 i = 0; i < Slots.Num(); ++i)
 			{
 				Slots[i].DebugPrint(i);
 			}
-			UE_LOG(LogTemp, Warning, TEXT("==========================="));
 		}
 	};
 }

@@ -71,7 +71,12 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"RenderCore",
 				"InteractiveToolsFramework",
 				"EditorInteractiveToolsFramework",
-				"ComponentVisualizers"
+				"ComponentVisualizers",
+				// Control Rig support for bone/control selection
+				"ControlRig",
+				"ControlRigEditor",
+				"RigVM",
+				"AnimationCore"
 			}
 		);
 

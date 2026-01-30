@@ -7,7 +7,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Style.h"
 #include "Tools/SharedPivot.h"
+#include "Tools/ControlRigPivot.h"
 #include "UI/TransformHUD.h"
+#include "Utils/ControlRigSelectionHelper.h"
 
 // NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling unlike this tool
 
@@ -34,12 +36,12 @@ namespace BlenderControls
 
 		FVector RayOrigin, RayDirection;
 		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
-		PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
+		PivotStartPosition = GetPivotStartLocation();
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
 		ScaleFactor = 1.0f;
 		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(CurrentMousePosition, PivotViewportPosition);
-		StartScale = VirtualPivot->GetStartTransform().GetScale3D();
+		StartScale = GetActiveElementStartTransform().GetScale3D();
 		InitialMousePosition = CurrentMousePosition;
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
@@ -119,7 +121,7 @@ namespace BlenderControls
 			SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
 		}
 
-		VirtualPivot->Scale(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
+		ScaleElements(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
 		UpdateHud();
 	}
 
@@ -182,7 +184,7 @@ namespace BlenderControls
 		}
 
 		bool bUsingLocalSpace = Session->GetLockedAxis() == EAxisLock::All ? true : Session->IsUsingLocalSpace();
-		VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
+		ScaleElements(ScaleMultiplier, bUsingLocalSpace);
 	}
 
 	void FScaleTool::UpdateHud()
@@ -227,12 +229,12 @@ namespace BlenderControls
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!GetSession().IsValid())
+		if (!GetSession().IsValid() || !HasValidPivotInternal())
 		{
 			return;
 		}
 
-		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
+		const FTransform ObjectTransform = GetActiveElementStartTransform();
 		const FVector X = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
 		const FVector Z = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
@@ -370,13 +372,30 @@ namespace BlenderControls
 	FText FScaleTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !VirtualPivot.IsValid())
+		if (!Session.IsValid() || !HasValidPivotInternal())
 		{
 			return FText::GetEmpty();
 		}
 
-		const FVector CurrentScale = VirtualPivot->GetActiveElement().Actor->GetActorScale3D();
-		const FVector StartScaleVec = VirtualPivot->GetStartTransform().GetScale3D();
+		// For Control Rig, we use the scale factor directly since we don't have Actor scale
+		// For actors, compute from current/start scale ratio
+		FVector CurrentScale, StartScaleVec;
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			// For Control Rig, get the current transform from the hierarchy
+			const FControlRigElementInfo& Element = ControlRigVirtualPivot->GetActiveElement();
+			CurrentScale = FControlRigSelectionHelper::GetElementGlobalTransform(Element.ElementKey).GetScale3D();
+			StartScaleVec = Element.StartTransform.GetScale3D();
+		}
+		else if (VirtualPivot.IsValid())
+		{
+			CurrentScale = VirtualPivot->GetActiveElement().Actor->GetActorScale3D();
+			StartScaleVec = VirtualPivot->GetStartTransform().GetScale3D();
+		}
+		else
+		{
+			return FText::GetEmpty();
+		}
 
 		FVector LiveScale;
 		LiveScale.X = FMath::IsNearlyZero(StartScaleVec.X) ? 1.0f : CurrentScale.X / StartScaleVec.X;

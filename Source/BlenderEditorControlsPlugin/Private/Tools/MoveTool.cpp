@@ -5,6 +5,7 @@
 #include "Input/Numeric/NumericInputStructs.h"
 #include "Style.h"
 #include "Tools/SharedPivot.h"
+#include "Tools/ControlRigPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/MathHelpers.h"
 
@@ -66,7 +67,7 @@ namespace BlenderControls
 			const FVector UnconstrainedMouseDelta3d = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
 				(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
 
-			const FVector ActiveObjectLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
+			const FVector ActiveObjectLocation = GetActiveElementStartLocation();
 
 			//Intersect ghost pos to get the blender mouse drag "feel", NOT the current mouse pos. 
 			const FVector GhostPos = ActiveObjectLocation + UnconstrainedMouseDelta3d;
@@ -124,7 +125,7 @@ namespace BlenderControls
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
 
-		VirtualPivot->Translate(Session->IsUsingLocalSpace(), Session->GetLockedAxis(), LiveDelta);
+		TranslateElements(Session->IsUsingLocalSpace(), Session->GetLockedAxis(), LiveDelta);
 		UpdateHud();
 	}
 
@@ -132,7 +133,7 @@ namespace BlenderControls
 	{
 		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !VirtualPivot.IsValid()) return;
+		if (!Session.IsValid() || !HasValidPivotInternal()) return;
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 		if (!Processor) return;
@@ -191,7 +192,7 @@ namespace BlenderControls
 			break;
 		}
 
-		VirtualPivot->Translate(NumericDelta, Session->IsUsingLocalSpace());
+		TranslateElements(NumericDelta, Session->IsUsingLocalSpace());
 	}
 
 	void FMoveTool::UpdateHud()
@@ -203,11 +204,11 @@ namespace BlenderControls
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (!VirtualPivot)
+		if (!HasValidPivotInternal())
 		{
 			return;
 		}
-		const FTransform ActiveObjectTransform = VirtualPivot->GetActiveElement().Transform;
+		const FTransform ActiveObjectTransform = GetActiveElementStartTransform();
 		const FVector X = Session->IsUsingLocalSpace()
 			                  ? ActiveObjectTransform.GetUnitAxis(EAxis::X)
 			                  : FVector::XAxisVector;
@@ -421,13 +422,12 @@ namespace BlenderControls
 	FText FMoveTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !VirtualPivot.IsValid())
+		if (!Session.IsValid() || !HasValidPivotInternal())
 		{
 			return FText::GetEmpty();
 		}
 
-		const FVector LiveDelta =
-			VirtualPivot->GetActiveElement().Actor->GetActorLocation() - VirtualPivot->GetStartLocation();
+		const FVector LiveDelta = GetActiveElementCurrentLocation() - GetPivotStartLocation();
 
 		FNumberFormattingOptions NumFmt;
 		NumFmt.MaximumFractionalDigits = 3;

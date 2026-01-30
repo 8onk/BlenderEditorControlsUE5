@@ -9,6 +9,7 @@
 #include "BlenderControlsSettings.h"
 #include "Utils/MathHelpers.h"
 #include "Tools/SharedPivot.h"
+#include "Tools/ControlRigPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
 
@@ -57,7 +58,7 @@ namespace BlenderControls
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		if (!bIsToolActive || !GetSession().IsValid() || !ViewportClient || !VirtualPivot.IsValid())
+		if (!bIsToolActive || !GetSession().IsValid() || !ViewportClient || !HasValidPivotInternal())
 		{
 			return;
 		}
@@ -114,10 +115,10 @@ namespace BlenderControls
 				                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
 			}
 
-			//Reverts object transform to start transform before transform operation on cancel
-			if (!bApply && VirtualPivot.IsValid())
+			// Reverts object transform to start transform before transform operation on cancel
+			if (!bApply)
 			{
-				VirtualPivot->RevertToStartState();
+				RevertElementsToStartState();
 			}
 
 			// Force viewport redraw
@@ -125,7 +126,11 @@ namespace BlenderControls
 			GEditor->RedrawLevelEditingViewports(true);
 		}
 
-		VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
+		// End transform proxy sequence for actor-based transforms
+		if (VirtualPivot.IsValid() && VirtualPivot->GetTransformProxy())
+		{
+			VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
+		}
 	}
 
 	void FToolBase::UpdateAxisLock()
@@ -190,47 +195,41 @@ namespace BlenderControls
 
 		ClearAxisGizmos();
 
-		auto AddAxis = [&](EAxisLock Axis, const FChildInfo* ChildInfo)
+		// Lambda for adding axis gizmos - works with optional transform info
+		auto AddAxisWithTransform = [&](EAxisLock Axis, const FTransform* ElementTransform, bool bIsActiveElement)
 		{
 			FVector Origin, AxisDir;
-			if (ChildInfo && Session->bUsingLocalSpace)
+			if (ElementTransform && Session->bUsingLocalSpace)
 			{
-				const FTransform& T = ChildInfo->Transform;
-				Origin = T.GetLocation();
+				Origin = ElementTransform->GetLocation();
 				const FVector Local =
 					(Axis == EAxisLock::X)
 						? FVector::XAxisVector
 						: (Axis == EAxisLock::Y)
 						? FVector::YAxisVector
 						: FVector::ZAxisVector;
-				AxisDir = T.TransformVectorNoScale(Local);
+				AxisDir = ElementTransform->TransformVectorNoScale(Local);
 			}
 			else
 			{
-				Origin = VirtualPivot->GetStartTransform().GetLocation();
+				Origin = GetPivotStartLocation();
 				AxisDir = GetAxisVector(Axis);
 			}
 
 			FLinearColor Color;
 			const FLinearColor BaseColor = GetAxisColor(Axis);
-			if (VirtualPivot)
+			
+			// Highlight the gizmo for the "Active Element" while dimming others to mimic Blender's 
+			// visual feedback when transforming multiple objects in local space.
+			if (bIsActiveElement || !Session->IsUsingLocalSpace())
 			{
-				const FChildInfo& Active = VirtualPivot->GetActiveElement();
-				const bool bIsActive =
-					(ChildInfo && ChildInfo->Actor && ChildInfo->Actor == Active.Actor);
-
-				// Highlight the gizmo for the "Active Element" while dimming others to mimic Blender's 
-				// visual feedback when transforming multiple objects in local space.
-				if (bIsActive || !Session->IsUsingLocalSpace())
-				{
-					Color = BaseColor * 2.0f;
-					Color.A = 1.0f;
-				}
-				else
-				{
-					Color = BaseColor * 0.3f;
-					Color.A = 0.7f;
-				}
+				Color = BaseColor * 2.0f;
+				Color.A = 1.0f;
+			}
+			else
+			{
+				Color = BaseColor * 0.3f;
+				Color.A = 0.7f;
 			}
 
 			constexpr float Length = WORLD_MAX;
@@ -243,53 +242,59 @@ namespace BlenderControls
 			}
 		};
 
+		auto AddAxisForLock = [&](EAxisLock LockedAxis, const FTransform* Transform, bool bIsActive)
+		{
+			switch (LockedAxis)
+			{
+			case EAxisLock::XY:
+				AddAxisWithTransform(EAxisLock::X, Transform, bIsActive);
+				AddAxisWithTransform(EAxisLock::Y, Transform, bIsActive);
+				break;
+			case EAxisLock::XZ:
+				AddAxisWithTransform(EAxisLock::X, Transform, bIsActive);
+				AddAxisWithTransform(EAxisLock::Z, Transform, bIsActive);
+				break;
+			case EAxisLock::YZ:
+				AddAxisWithTransform(EAxisLock::Y, Transform, bIsActive);
+				AddAxisWithTransform(EAxisLock::Z, Transform, bIsActive);
+				break;
+			case EAxisLock::All:
+				break;
+			default:
+				AddAxisWithTransform(LockedAxis, Transform, bIsActive);
+				break;
+			}
+		};
+
 		if (Session->IsUsingLocalSpace())
 		{
-			for (const FChildInfo& Child : VirtualPivot->GetChildren())
+			if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
 			{
-				if (!Child.Actor) continue;
-				switch (Session->LockedAxis)
+				// Control Rig elements
+				const FControlRigElementInfo& ActiveElement = ControlRigVirtualPivot->GetActiveElement();
+				for (const FControlRigElementInfo& Element : ControlRigVirtualPivot->GetElements())
 				{
-				case EAxisLock::XY:
-					AddAxis(EAxisLock::X, &Child);
-					AddAxis(EAxisLock::Y, &Child);
-					break;
-				case EAxisLock::XZ:
-					AddAxis(EAxisLock::X, &Child);
-					AddAxis(EAxisLock::Z, &Child);
-					break;
-				case EAxisLock::YZ:
-					AddAxis(EAxisLock::Y, &Child);
-					AddAxis(EAxisLock::Z, &Child);
-					break;
-				case EAxisLock::All: break;
-				default:
-					AddAxis(Session->LockedAxis, &Child);
-					break;
+					if (!Element.IsValid()) continue;
+					const bool bIsActive = (Element.ElementKey == ActiveElement.ElementKey);
+					AddAxisForLock(Session->LockedAxis, &Element.StartTransform, bIsActive);
+				}
+			}
+			else if (VirtualPivot.IsValid())
+			{
+				// Actor elements
+				const FChildInfo& ActiveElement = VirtualPivot->GetActiveElement();
+				for (const FChildInfo& Child : VirtualPivot->GetChildren())
+				{
+					if (!Child.Actor) continue;
+					const bool bIsActive = (Child.Actor == ActiveElement.Actor);
+					AddAxisForLock(Session->LockedAxis, &Child.Transform, bIsActive);
 				}
 			}
 		}
 		else
 		{
-			switch (Session->LockedAxis)
-			{
-			case EAxisLock::XY:
-				AddAxis(EAxisLock::X, nullptr);
-				AddAxis(EAxisLock::Y, nullptr);
-				break;
-			case EAxisLock::XZ:
-				AddAxis(EAxisLock::X, nullptr);
-				AddAxis(EAxisLock::Z, nullptr);
-				break;
-			case EAxisLock::YZ:
-				AddAxis(EAxisLock::Y, nullptr);
-				AddAxis(EAxisLock::Z, nullptr);
-				break;
-			case EAxisLock::All: break;
-			default:
-				AddAxis(Session->LockedAxis, nullptr);
-				break;
-			}
+			// Global space - just add axes at pivot location
+			AddAxisForLock(Session->LockedAxis, nullptr, true);
 		}
 	}
 
@@ -367,7 +372,8 @@ namespace BlenderControls
 
 		if (Session->IsUsingLocalSpace())
 		{
-			AxisVector = VirtualPivot->GetActiveElement().Transform.TransformVectorNoScale(AxisVector);
+			const FTransform ActiveTransform = GetActiveElementStartTransform();
+			AxisVector = ActiveTransform.TransformVectorNoScale(AxisVector);
 		}
 		return AxisVector.GetSafeNormal();
 	}
@@ -398,8 +404,20 @@ namespace BlenderControls
 	void FToolBase::InitializePivot()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		VirtualPivot = Session->VirtualPivot;
-		VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
+		
+		if (Session->IsControlRigSelection())
+		{
+			ControlRigVirtualPivot = Session->GetControlRigPivot();
+			// Control Rig doesn't use TransformProxy - transforms are applied directly through the hierarchy
+		}
+		else
+		{
+			VirtualPivot = Session->GetPivot();
+			if (VirtualPivot.IsValid() && VirtualPivot->GetTransformProxy())
+			{
+				VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
+			}
+		}
 	}
 
 	void FToolBase::CacheViewVectors()
@@ -450,7 +468,7 @@ namespace BlenderControls
 
 	void FToolBase::InitializeGrabContext()
 	{
-		if (!VirtualPivot.IsValid())
+		if (!HasValidPivotInternal())
 		{
 			return;
 		}
@@ -464,7 +482,7 @@ namespace BlenderControls
 		GrabContext.ConstraintMode = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.PlaneNormal = -ViewForward;
 		GrabContext.StartMousePos = Session->StartMousePos;
-		GrabContext.StartLocation = VirtualPivot->GetActiveElement().Transform.GetLocation();
+		GrabContext.StartLocation = GetActiveElementStartLocation();
 		GrabContext.SingleLockAxis = FVector::ZeroVector;
 		GrabContext.ViewForward = ViewForward;
 
@@ -671,7 +689,7 @@ namespace BlenderControls
 
 	void FToolBase::Cancel()
 	{
-		if (!GEditor || !VirtualPivot)
+		if (!GEditor || !HasValidPivotInternal())
 		{
 			return;
 		}
@@ -696,6 +714,137 @@ namespace BlenderControls
 		else
 		{
 			HudWidget->Update(GetLiveHudText());
+		}
+	}
+
+	// --- Pivot Helper Method Implementations ---
+
+	bool FToolBase::IsControlRigMode() const
+	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		return Session.IsValid() && Session->IsControlRigSelection();
+	}
+
+	bool FToolBase::HasValidPivotInternal() const
+	{
+		if (IsControlRigMode())
+		{
+			return ControlRigVirtualPivot.IsValid() && ControlRigVirtualPivot->IsValid();
+		}
+		return VirtualPivot.IsValid();
+	}
+
+	FVector FToolBase::GetActiveElementStartLocation() const
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			return ControlRigVirtualPivot->GetActiveElement().StartTransform.GetLocation();
+		}
+		if (VirtualPivot.IsValid())
+		{
+			return VirtualPivot->GetActiveElement().Transform.GetLocation();
+		}
+		return FVector::ZeroVector;
+	}
+
+	FTransform FToolBase::GetActiveElementStartTransform() const
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			return ControlRigVirtualPivot->GetActiveElement().StartTransform;
+		}
+		if (VirtualPivot.IsValid())
+		{
+			return VirtualPivot->GetActiveElement().Transform;
+		}
+		return FTransform::Identity;
+	}
+
+	FVector FToolBase::GetActiveElementCurrentLocation() const
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			// For Control Rig, get the current transform from the hierarchy
+			const FControlRigElementInfo& Element = ControlRigVirtualPivot->GetActiveElement();
+			return FControlRigSelectionHelper::GetElementGlobalTransform(Element.ElementKey).GetLocation();
+		}
+		if (VirtualPivot.IsValid())
+		{
+			return VirtualPivot->GetActiveElement().Actor->GetActorLocation();
+		}
+		return FVector::ZeroVector;
+	}
+
+	FVector FToolBase::GetPivotStartLocation() const
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			return ControlRigVirtualPivot->GetStartLocation();
+		}
+		if (VirtualPivot.IsValid())
+		{
+			return VirtualPivot->GetStartTransform().GetLocation();
+		}
+		return FVector::ZeroVector;
+	}
+
+	void FToolBase::TranslateElements(const FVector& Delta, bool bUsingLocalSpace)
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			ControlRigVirtualPivot->Translate(Delta, bUsingLocalSpace);
+		}
+		else if (VirtualPivot.IsValid())
+		{
+			VirtualPivot->Translate(Delta, bUsingLocalSpace);
+		}
+	}
+
+	void FToolBase::TranslateElements(bool bUsingLocalSpace, EAxisLock LockedAxis, const FVector& Delta)
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			ControlRigVirtualPivot->Translate(bUsingLocalSpace, LockedAxis, Delta);
+		}
+		else if (VirtualPivot.IsValid())
+		{
+			VirtualPivot->Translate(bUsingLocalSpace, LockedAxis, Delta);
+		}
+	}
+
+	void FToolBase::RotateElements(float AngleRad, bool bUsingLocalSpace, EAxisLock LockedAxis)
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			ControlRigVirtualPivot->Rotate(GrabContext, AngleRad, bUsingLocalSpace, LockedAxis);
+		}
+		else if (VirtualPivot.IsValid())
+		{
+			VirtualPivot->Rotate(GrabContext, AngleRad, bUsingLocalSpace, LockedAxis);
+		}
+	}
+
+	void FToolBase::ScaleElements(const FVector& ScaleMultiplier, bool bUsingLocalSpace)
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			ControlRigVirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
+		}
+		else if (VirtualPivot.IsValid())
+		{
+			VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
+		}
+	}
+
+	void FToolBase::RevertElementsToStartState()
+	{
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			ControlRigVirtualPivot->RevertToStartState();
+		}
+		else if (VirtualPivot.IsValid())
+		{
+			VirtualPivot->RevertToStartState();
 		}
 	}
 } // namespace BlenderControls

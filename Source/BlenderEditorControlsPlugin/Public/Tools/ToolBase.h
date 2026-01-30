@@ -4,6 +4,7 @@
 #include "Enums.h"
 #include "GrabContext.h"
 #include "ScopedTransaction.h"
+#include "Utils/ControlRigSelectionHelper.h"
 
 class UAxisLockGizmoComponent;
 
@@ -13,6 +14,7 @@ namespace BlenderControls
 	class STransformHUD;
 	struct FChildInfo;
 	class FSharedPivot;
+	class FControlRigPivot;
 
 	/**
 	 * Abstract base class for transform operations (Translate, Rotate, Scale).
@@ -105,6 +107,40 @@ namespace BlenderControls
 
 		TSharedPtr<FTransformSession> GetSession() const { return OwningSession.Pin(); }
 
+		// --- Pivot Helper Methods ---
+		// These methods abstract pivot operations to work with both Actor and Control Rig selections
+		
+		/** Returns true if we're working with Control Rig selection */
+		bool IsControlRigMode() const;
+		
+		/** Gets the start location of the active element (works with both pivot types) */
+		FVector GetActiveElementStartLocation() const;
+		
+		/** Gets the start transform of the active element */
+		FTransform GetActiveElementStartTransform() const;
+		
+		/** Gets the current location of the active element */
+		FVector GetActiveElementCurrentLocation() const;
+		
+		/** Gets the start location of the pivot */
+		FVector GetPivotStartLocation() const;
+		
+		/** Translates all elements (delegates to appropriate pivot) */
+		void TranslateElements(const FVector& Delta, bool bUsingLocalSpace);
+		void TranslateElements(bool bUsingLocalSpace, EAxisLock LockedAxis, const FVector& Delta);
+		
+		/** Rotates all elements (delegates to appropriate pivot) */
+		void RotateElements(float AngleRad, bool bUsingLocalSpace, EAxisLock LockedAxis);
+		
+		/** Scales all elements (delegates to appropriate pivot) */
+		void ScaleElements(const FVector& ScaleMultiplier, bool bUsingLocalSpace);
+		
+		/** Reverts all elements to start state */
+		void RevertElementsToStartState();
+		
+		/** Returns true if any pivot is valid */
+		bool HasValidPivotInternal() const;
+
 		const FSlateBrush* CursorBrush = nullptr;
 		FVector2D CurrentViewportMousePos;
 		FVector2D CurrentMousePosition;
@@ -118,6 +154,7 @@ namespace BlenderControls
 		FString DisplayName;
 		FViewport* Viewport = nullptr;
 		TSharedPtr<FSharedPivot> VirtualPivot;
+		TSharedPtr<FControlRigPivot> ControlRigVirtualPivot;
 		float CurrentPrecisionFactor = 1.0f;
 		bool bPrecisionModeActive = false;
 		bool bWasPrecisionModeActive = false;

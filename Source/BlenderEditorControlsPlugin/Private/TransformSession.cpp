@@ -1,4 +1,4 @@
-﻿#include "TransformSession.h"
+#include "TransformSession.h"
 #include "Editor.h"
 #include "Selection.h"
 #include "Framework/Application/SlateApplication.h"
@@ -19,6 +19,10 @@
 #include "Tools/RotateTool.h"
 #include "Tools/ScaleTool.h"
 #include "Utils/MathHelpers.h"
+#include "Utils/ControlRigSelectionHelper.h"
+#include "Tools/ControlRigPivot.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogTransformSession, Log, All);
 
 namespace BlenderControls
 {
@@ -33,9 +37,10 @@ namespace BlenderControls
 		// Tracks duplication state to prevent calling Cancel() on ScopedTransaction.
 		// Since edactDuplicateSelected commits its own transaction, calling Cancel() 
 		// here would revert the transform but leave the duplicated actors orphaned in the scene.
-		bStartedWithDuplicate = bDuplicateSelection;
+		// Note: Duplication is only supported for actors, not Control Rig elements.
+		bStartedWithDuplicate = bDuplicateSelection && (SelectionType == ESelectionType::Actors);
 
-		if (bDuplicateSelection)
+		if (bStartedWithDuplicate)
 		{
 			PerformDuplicateSelected();
 		}
@@ -66,9 +71,33 @@ namespace BlenderControls
 		}
 	}
 
-	bool FTransformSession::ValidateEditorState() const
+	bool FTransformSession::ValidateEditorState()
 	{
-		return GEditor && GEditor->GetSelectedActorCount() > 0;
+		if (!GEditor)
+		{
+			return false;
+		}
+
+		// First, check if we have Control Rig elements selected (Animation Mode + Control Rig)
+		// This takes priority because the user might have both actors and rig elements selected
+		if (FControlRigSelectionHelper::IsControlRigEditModeActive() && 
+			FControlRigSelectionHelper::HasSelectedRigElements())
+		{
+			SelectionType = ESelectionType::ControlRig;
+			UE_LOG(LogTransformSession, Log, TEXT("ValidateEditorState: Control Rig selection detected"));
+			return true;
+		}
+
+		// Fall back to standard actor selection
+		if (GEditor->GetSelectedActorCount() > 0)
+		{
+			SelectionType = ESelectionType::Actors;
+			UE_LOG(LogTransformSession, Log, TEXT("ValidateEditorState: Actor selection detected"));
+			return true;
+		}
+
+		SelectionType = ESelectionType::None;
+		return false;
 	}
 
 	void FTransformSession::PerformDuplicateSelected()
@@ -102,17 +131,37 @@ namespace BlenderControls
 	void FTransformSession::InitializePivot()
 	{
 		SelectedActors.Empty();
-		USelection* ActorSelection = GEditor->GetSelectedActors();
-		for (FSelectionIterator It(*ActorSelection); It; ++It)
-		{
-			if (AActor* Actor = Cast<AActor>(*It))
-			{
-				SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
-			}
-		}
+		SelectedRigElements.Empty();
+		VirtualPivot.Reset();
+		ControlRigVirtualPivot.Reset();
 
 		constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
-		VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
+
+		if (SelectionType == ESelectionType::ControlRig)
+		{
+			// Get Control Rig element selection
+			FControlRigSelectionHelper::GetSelectedRigElements(SelectedRigElements);
+			
+			UE_LOG(LogTransformSession, Log, TEXT("InitializePivot: Initialized with %d Control Rig elements"), 
+				SelectedRigElements.Num());
+
+			// Create the Control Rig pivot for transformations
+			ControlRigVirtualPivot = MakeShared<FControlRigPivot>(SelectedRigElements, PivotMode);
+		}
+		else
+		{  
+			// Standard actor selection
+			USelection* ActorSelection = GEditor->GetSelectedActors();
+			for (FSelectionIterator It(*ActorSelection); It; ++It)
+			{
+				if (AActor* Actor = Cast<AActor>(*It))
+				{
+					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
+				}
+			}
+
+			VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
+		}
 	}
 
 	void FTransformSession::InitializeTransaction(const FString& InTransactionName)
@@ -124,9 +173,22 @@ namespace BlenderControls
 
 		FText TransactionName = FText::FromString(InTransactionName + TEXT(" - BlenderEditorControls"));
 		ScopedTransaction = MakeUnique<FScopedTransaction>(TransactionName);
-		for (auto Actor : SelectedActors)
+
+		if (SelectionType == ESelectionType::ControlRig)
 		{
-			Actor->Modify();
+			// For Control Rig, mark the rig for modification
+			FControlRigSelectionHelper::BeginTransaction(TransactionName);
+		}
+		else
+		{
+			// Standard actor modification
+			for (auto Actor : SelectedActors)
+			{
+				if (Actor.IsValid())
+				{
+					Actor->Modify();
+				}
+			}
 		}
 	}
 
@@ -138,7 +200,12 @@ namespace BlenderControls
 		FBlenderNumericState OldState;
 		if (CurrentTool.IsValid())
 		{
-			if (VirtualPivot.IsValid())
+			// Revert the appropriate pivot type
+			if (SelectionType == ESelectionType::ControlRig && ControlRigVirtualPivot.IsValid())
+			{
+				ControlRigVirtualPivot->RevertToStartState();
+			}
+			else if (VirtualPivot.IsValid())
 			{
 				VirtualPivot->RevertToStartState();
 			}

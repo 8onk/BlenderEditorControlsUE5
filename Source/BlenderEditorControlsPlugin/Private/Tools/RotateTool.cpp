@@ -7,6 +7,7 @@
 #include "BlenderControlsSettings.h"
 #include "Style.h"
 #include "Tools/SharedPivot.h"
+#include "Tools/ControlRigPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/MathHelpers.h"
 
@@ -22,8 +23,17 @@ namespace BlenderControls
 		FToolBase::OnBegin();
 		bTrackballModeEnabled = false;
 
-		StartPivotTransform = VirtualPivot->GetStartTransform();
-		PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
+		// Get start transform based on selection type
+		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		{
+			StartPivotTransform = ControlRigVirtualPivot->GetStartTransform();
+			PivotStartPosition = ControlRigVirtualPivot->GetStartLocation();
+		}
+		else if (VirtualPivot.IsValid())
+		{
+			StartPivotTransform = VirtualPivot->GetStartTransform();
+			PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
+		}
 
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
@@ -53,7 +63,7 @@ namespace BlenderControls
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!bIsToolActive || !VirtualPivot)
+		if (!bIsToolActive || !HasValidPivotInternal())
 		{
 			return;
 		}
@@ -88,7 +98,12 @@ namespace BlenderControls
 			const FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
-			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+			
+			// Trackball mode only supported for actors (uses TransformProxy)
+			if (!IsControlRigMode() && VirtualPivot.IsValid())
+			{
+				VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+			}
 		}
 		else
 		{
@@ -96,7 +111,7 @@ namespace BlenderControls
 			float AngleDeltaRad = MathHelper::GetSignedAngle2D(LastDragVector, CurrentDragVector);
 			AccumulatedAngleRad += AngleDeltaRad * CurrentPrecisionFactor;
 
-			const FVector PivotPosition = VirtualPivot->GetTransformProxy()->GetTransform().GetLocation();
+			const FVector PivotPosition = GetPivotStartLocation();
 			const FVector ViewToPivot = PivotPosition - ViewLocation;
 
 			const FVector RotationAxis = GrabContext.SingleLockAxis;
@@ -122,7 +137,7 @@ namespace BlenderControls
 				AngleToApplyRad = FMath::DegreesToRadians(SnappedAngleDeg);
 			}
 
-			VirtualPivot->Rotate(GrabContext, AngleToApplyRad, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
+			RotateElements(AngleToApplyRad, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
 			LastDragVector = CurrentDragVector;
 		}
 
@@ -172,7 +187,12 @@ namespace BlenderControls
 			const FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
-			VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+			
+			// Trackball mode only supported for actors
+			if (!IsControlRigMode() && VirtualPivot.IsValid())
+			{
+				VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+			}
 		}
 		else
 		{
@@ -184,7 +204,7 @@ namespace BlenderControls
 			}
 
 			const double RadiansToRotate = FMath::DegreesToRadians(Slot0);
-			VirtualPivot->Rotate(GrabContext, RadiansToRotate, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
+			RotateElements(RadiansToRotate, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
 		}
 	}
 
@@ -239,12 +259,12 @@ namespace BlenderControls
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
+		if (!Session.IsValid() || !HasValidPivotInternal())
 		{
 			return;
 		}
 
-		const FTransform ObjectTransform = VirtualPivot->GetStartTransform();
+		const FTransform ObjectTransform = GetActiveElementStartTransform();
 		const FVector X = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::X) : FVector::XAxisVector;
 		const FVector Y = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::Y) : FVector::YAxisVector;
 		const FVector Z = Session->IsUsingLocalSpace() ? ObjectTransform.GetUnitAxis(EAxis::Z) : FVector::ZAxisVector;
@@ -334,9 +354,6 @@ namespace BlenderControls
 					// Trackball Mode (2 Slots)
 					if (!Processor->CurrentState.Slots.IsValidIndex(1))
 					{
-						UE_LOG(LogTemp, Error,
-						       TEXT("Slot index 1 is NOT valid in BTrackballMode! Current number of slots: %d"),
-						       Processor->CurrentState.Slots.Num());
 						return FText::GetEmpty();
 					}
 
@@ -443,7 +460,7 @@ namespace BlenderControls
 	FText FRotateTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !VirtualPivot.IsValid())
+		if (!Session.IsValid() || !HasValidPivotInternal())
 		{
 			return FText::GetEmpty();
 		}
