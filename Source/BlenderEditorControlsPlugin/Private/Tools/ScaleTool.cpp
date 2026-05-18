@@ -7,9 +7,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Style.h"
 #include "Tools/SharedPivot.h"
-#include "Tools/ControlRigPivot.h"
+#include "ControlRig/ControlRigPivot.h"
 #include "UI/TransformHUD.h"
-#include "Utils/ControlRigSelectionHelper.h"
+#include "ControlRig/ControlRigSelectionHelper.h"
 
 // NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling unlike this tool
 

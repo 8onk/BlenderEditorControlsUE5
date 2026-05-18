@@ -7,7 +7,7 @@
 #include "BlenderControlsSettings.h"
 #include "Style.h"
 #include "Tools/SharedPivot.h"
-#include "Tools/ControlRigPivot.h"
+#include "ControlRig/ControlRigPivot.h"
 #include "UI/TransformHUD.h"
 #include "Utils/MathHelpers.h"
 

@@ -9,7 +9,7 @@
 #include "BlenderControlsSettings.h"
 #include "Utils/MathHelpers.h"
 #include "Tools/SharedPivot.h"
-#include "Tools/ControlRigPivot.h"
+#include "ControlRig/ControlRigPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
 

@@ -19,8 +19,8 @@
 #include "Tools/RotateTool.h"
 #include "Tools/ScaleTool.h"
 #include "Utils/MathHelpers.h"
-#include "Utils/ControlRigSelectionHelper.h"
-#include "Tools/ControlRigPivot.h"
+#include "ControlRig/ControlRigSelectionHelper.h"
+#include "ControlRig/ControlRigPivot.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTransformSession, Log, All);
 
@@ -78,25 +78,47 @@ namespace BlenderControls
 			return false;
 		}
 
+		// Debug: Log current selection state
+		const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
+		const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
+		const int32 ActorCount = GEditor->GetSelectedActorCount();
+		
+		UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: ControlRigModeActive=%d, HasRigElements=%d, ActorCount=%d"),
+			bControlRigModeActive, bHasRigElements, ActorCount);
+
+		// Log selected actors
+		if (ActorCount > 0)
+		{
+			USelection* ActorSelection = GEditor->GetSelectedActors();
+			for (FSelectionIterator It(*ActorSelection); It; ++It)
+			{
+				if (AActor* Actor = Cast<AActor>(*It))
+				{
+					UE_LOG(LogTransformSession, Warning, TEXT("  Selected Actor: %s (Class: %s)"), 
+						*Actor->GetName(), *Actor->GetClass()->GetName());
+				}
+			}
+		}
+
 		// First, check if we have Control Rig elements selected (Animation Mode + Control Rig)
 		// This takes priority because the user might have both actors and rig elements selected
-		if (FControlRigSelectionHelper::IsControlRigEditModeActive() && 
-			FControlRigSelectionHelper::HasSelectedRigElements())
+		if (bControlRigModeActive && bHasRigElements)
 		{
 			SelectionType = ESelectionType::ControlRig;
-			UE_LOG(LogTransformSession, Log, TEXT("ValidateEditorState: Control Rig selection detected"));
+			UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Control Rig selection"));
 			return true;
 		}
 
 		// Fall back to standard actor selection
-		if (GEditor->GetSelectedActorCount() > 0)
+		if (ActorCount > 0)
 		{
 			SelectionType = ESelectionType::Actors;
-			UE_LOG(LogTransformSession, Log, TEXT("ValidateEditorState: Actor selection detected"));
+			UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Actor selection"));
 			return true;
 		}
 
 		SelectionType = ESelectionType::None;
+		UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> None"));
 		return false;
 	}
 
@@ -171,6 +193,16 @@ namespace BlenderControls
 			return;
 		}
 
+		// Check if a transaction is already active (e.g., from Animation Mode's "Select Control")
+		// Animation Mode starts a transaction on click that can conflict with ours.
+		// We need to end it first to avoid our changes being reverted when their transaction ends.
+		if (GEditor && GEditor->IsTransactionActive())
+		{
+			UE_LOG(LogTransformSession, Warning, TEXT("InitializeTransaction: Ending existing active transaction to avoid conflict"));
+			GEditor->EndTransaction();
+		}
+
+		// Now create our own transaction
 		FText TransactionName = FText::FromString(InTransactionName + TEXT(" - BlenderEditorControls"));
 		ScopedTransaction = MakeUnique<FScopedTransaction>(TransactionName);
 
@@ -181,7 +213,7 @@ namespace BlenderControls
 		}
 		else
 		{
-			// Standard actor modification
+			// Standard actor modification - call Modify() to register with OUR transaction
 			for (auto Actor : SelectedActors)
 			{
 				if (Actor.IsValid())

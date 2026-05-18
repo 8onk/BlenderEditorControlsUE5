@@ -4,7 +4,7 @@
 #include "Enums.h"
 #include "GrabContext.h"
 #include "ScopedTransaction.h"
-#include "Utils/ControlRigSelectionHelper.h"
+#include "ControlRig/ControlRigSelectionHelper.h"
 
 class UAxisLockGizmoComponent;
 

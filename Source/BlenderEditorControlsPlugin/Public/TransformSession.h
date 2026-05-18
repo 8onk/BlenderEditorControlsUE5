@@ -3,8 +3,8 @@
 #include "CoreMinimal.h"
 #include "Enums.h"
 #include "Input/Numeric/NumericInputProcessor.h"
-#include "Utils/ControlRigSelectionHelper.h"
-#include "Tools/ControlRigPivot.h"
+#include "ControlRig/ControlRigSelectionHelper.h"
+#include "ControlRig/ControlRigPivot.h"
 
 struct FKeyEvent;
 struct FPointerEvent;
