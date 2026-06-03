@@ -6,6 +6,7 @@
 #include "ControlRig/ControlRigSelectionHelper.h"
 #include "ControlRig/ControlRigPivot.h"
 
+class FBlueprintEditor;
 struct FKeyEvent;
 struct FPointerEvent;
 
@@ -127,7 +128,7 @@ namespace BlenderControls
 		ESelectionType SelectionType = ESelectionType::None;
 		TArray<FControlRigElementInfo> SelectedRigElements;
 
-		static IBlueprintEditor* GetActiveBlueprintEditor();
+		static FBlueprintEditor* GetActiveBlueprintEditor();
 
 		// --- Session Control ---
 		bool bIsFirstTool = true;

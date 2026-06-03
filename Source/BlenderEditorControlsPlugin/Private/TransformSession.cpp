@@ -101,7 +101,19 @@ namespace BlenderControls
 		return false;
 	}
 
-	IBlueprintEditor* FTransformSession::GetActiveBlueprintEditor()
+	FEditorViewportClient* GetGloballyActiveViewportClient()
+	{
+		for (FEditorViewportClient* ViewportClient : GEditor->GetAllViewportClients())
+		{
+			if (ViewportClient && ViewportClient->Viewport && ViewportClient->Viewport->HasFocus())
+			{
+				return ViewportClient;
+			}
+		}
+		return nullptr;
+	}
+
+	FBlueprintEditor* FTransformSession::GetActiveBlueprintEditor()
 	{
 		if (!GEditor)
 		{
@@ -127,7 +139,7 @@ namespace BlenderControls
 
 		TArray<IAssetEditorInstance*> OpenEditors = AssetEditorSubsystem->GetAllOpenEditors();
 
-		IBlueprintEditor* FocusedBPEditor = nullptr;
+		FBlueprintEditor* FocusedBPEditor = nullptr;
 		double MaxLastActivationTime = 0.0;
 
 		for (IAssetEditorInstance* Editor : OpenEditors)
@@ -140,7 +152,7 @@ namespace BlenderControls
 				if (Editor->GetLastActivationTime() > MaxLastActivationTime)
 				{
 					MaxLastActivationTime = Editor->GetLastActivationTime();
-					FocusedBPEditor = static_cast<IBlueprintEditor*>(Editor);
+					FocusedBPEditor = static_cast<FBlueprintEditor*>(Editor);
 				}
 			}
 		}
@@ -165,28 +177,22 @@ namespace BlenderControls
 		{
 			return false;
 		}
-
-		if (IBlueprintEditor* BlueprintEditorInst = GetActiveBlueprintEditor())
+		FBlueprintEditor* BlueprintEditorInst = GetActiveBlueprintEditor();
+		if (BlueprintEditorInst)
 		{
-			UE_LOG(LogTransformSession, Error, TEXT("Blueprint editor instance ACTIVE!"));
-			
-			FViewport* ActiveViewport = GEditor->GetActiveViewport();
-			if (ActiveViewport)
+			FEditorViewportClient* ActiveViewportClient = GetGloballyActiveViewportClient();
+			FSCSEditorViewportClient* SCSClient = static_cast<FSCSEditorViewportClient*>(ActiveViewportClient);
+
+			if (SCSClient)
 			{
-				FViewportClient* BaseClient = ActiveViewport->GetClient();
-    
-				//So despite casting to FSCSEditorViewportClient, it calls the overload function of FLevelEditorViewport. 
-				FSCSEditorViewportClient* SCSClient = dynamic_cast<FSCSEditorViewportClient*>(BaseClient);
+				UE_LOG(LogTransformSession, Log, TEXT("SCSEDITOR ACTIVE!!!!!!!!!!!"));
+				FVector Drag(100.0f, 0.0f, 0.0f);
+				FRotator Rot = FRotator::ZeroRotator;
+				FVector Scale = FVector::ZeroVector;
 
-				if (SCSClient)
-				{
-					UE_LOG(LogTransformSession, Log, TEXT("SCSEDITOR ACTIVE!!!!!!!!!!!"));
-					FVector Drag(100.0f, 0.0f, 0.0f);
-					FRotator Rot = FRotator::ZeroRotator;
-					FVector Scale = FVector::ZeroVector;
-
-					SCSClient->InputWidgetDelta(ActiveViewport, EAxisList::X, Drag, Rot, Scale);
-				}
+				//Need to call the tracking started, otherwise InputWidgetDelta will return early
+				SCSClient->TrackingStarted(FInputEventState(ActiveViewportClient->Viewport, EKeys::LeftMouseButton, IE_Pressed), true, false);
+				SCSClient->InputWidgetDelta(ActiveViewportClient->Viewport, EAxisList::Screen, Drag, Rot, Scale);
 			}
 		}
 		else
