@@ -21,6 +21,7 @@ namespace BlenderControls
 	enum class ESelectionType : uint8
 	{
 		None,
+		BlueprintViewport, // Blueprint level viewport
 		Actors,      // Standard AActor selection
 		ControlRig   // Control Rig bones/controls in Animation Mode
 	};
@@ -125,6 +126,8 @@ namespace BlenderControls
 		// --- Selection Type ---
 		ESelectionType SelectionType = ESelectionType::None;
 		TArray<FControlRigElementInfo> SelectedRigElements;
+
+		static IBlueprintEditor* GetActiveBlueprintEditor();
 
 		// --- Session Control ---
 		bool bIsFirstTool = true;

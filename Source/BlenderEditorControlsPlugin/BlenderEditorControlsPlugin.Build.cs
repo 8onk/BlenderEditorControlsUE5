@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class BlenderEditorControlsPlugin : ModuleRules
 {
@@ -40,7 +41,7 @@ public class BlenderEditorControlsPlugin : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[]
 			{
-				// ... add other private include paths required here ...
+				Path.Combine(EngineDirectory, "Source", "Editor", "Kismet", "Private")
 			}
 		);
 
@@ -76,7 +77,10 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"ControlRig",
 				"ControlRigEditor",
 				"RigVM",
-				"AnimationCore"
+				"AnimationCore",
+				"SubobjectEditor",
+				"Kismet",
+				"BlueprintGraph"
 			}
 		);
 

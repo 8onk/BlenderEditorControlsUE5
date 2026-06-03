@@ -4,6 +4,11 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Commands/UICommandInfo.h"
 #include "BlenderControlsCommands.h"
+#include "BlueprintEditorModule.h"
+#include "SSubobjectEditor.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 #include "BlenderControlsSettings.h"
 #endif
@@ -21,6 +26,8 @@
 #include "Utils/MathHelpers.h"
 #include "ControlRig/ControlRigSelectionHelper.h"
 #include "ControlRig/ControlRigPivot.h"
+#include "LevelEditorViewport.h"
+#include "SCSEditorViewportClient.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTransformSession, Log, All);
 
@@ -71,6 +78,76 @@ namespace BlenderControls
 		}
 	}
 
+	bool IsUserFocusInLevelEditor()
+	{
+		if (!FSlateApplication::Get().IsInitialized()) return false;
+
+		// Get the specific widget the user is interacting with right now
+		TSharedPtr<SWidget> CurrentWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
+
+		// Walk up the Slate UI tree to see if this widget lives inside the Level Editor
+		while (CurrentWidget.IsValid())
+		{
+			FString WidgetType = CurrentWidget->GetTypeAsString();
+
+			if (WidgetType == "SLevelEditor" || WidgetType == "SLevelViewport")
+			{
+				return true;
+			}
+
+			CurrentWidget = CurrentWidget->GetParentWidget();
+		}
+
+		return false;
+	}
+
+	IBlueprintEditor* FTransformSession::GetActiveBlueprintEditor()
+	{
+		if (!GEditor)
+		{
+			return nullptr;
+		}
+
+		//IF Main level viewport is active tab, return nullptr.
+		TSharedPtr<SDockTab> ActiveTab = FGlobalTabmanager::Get()->GetActiveTab();
+		if (ActiveTab.IsValid())
+		{
+			FName TabName = ActiveTab->GetLayoutIdentifier().TabType;
+			//UE_LOG(LogTransformSession, Log, TEXT("Active tab: %s"), *TabName.ToString());
+
+			//Main level viewport name is: LevelEditorViewport
+			if (TabName == FName("LevelEditorViewport"))
+			{
+				return nullptr;
+			}
+		}
+
+		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+		if (!AssetEditorSubsystem) return nullptr;
+
+		TArray<IAssetEditorInstance*> OpenEditors = AssetEditorSubsystem->GetAllOpenEditors();
+
+		IBlueprintEditor* FocusedBPEditor = nullptr;
+		double MaxLastActivationTime = 0.0;
+
+		for (IAssetEditorInstance* Editor : OpenEditors)
+		{
+			// Ensure the open editor instance is a Blueprint Editor
+			UE_LOG(LogTransformSession, Log, TEXT("EDITOR NAME: %s"), *Editor->GetEditorName().ToString());
+			if (Editor && Editor->GetEditorName() == FName("BlueprintEditor"))
+			{
+				// The editor with the highest activation time is the active/focused one
+				if (Editor->GetLastActivationTime() > MaxLastActivationTime)
+				{
+					MaxLastActivationTime = Editor->GetLastActivationTime();
+					FocusedBPEditor = static_cast<IBlueprintEditor*>(Editor);
+				}
+			}
+		}
+
+		return FocusedBPEditor;
+	}
+
 	bool FTransformSession::ValidateEditorState()
 	{
 		if (!GEditor)
@@ -82,11 +159,42 @@ namespace BlenderControls
 		const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
 		const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
 		const int32 ActorCount = GEditor->GetSelectedActorCount();
-		
-		UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: ControlRigModeActive=%d, HasRigElements=%d, ActorCount=%d"),
-			bControlRigModeActive, bHasRigElements, ActorCount);
 
-		// Log selected actors
+		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+		if (!AssetEditorSubsystem)
+		{
+			return false;
+		}
+
+		if (IBlueprintEditor* BlueprintEditorInst = GetActiveBlueprintEditor())
+		{
+			UE_LOG(LogTransformSession, Error, TEXT("Blueprint editor instance ACTIVE!"));
+			
+			FViewport* ActiveViewport = GEditor->GetActiveViewport();
+			if (ActiveViewport)
+			{
+				FViewportClient* BaseClient = ActiveViewport->GetClient();
+    
+				//So despite casting to FSCSEditorViewportClient, it calls the overload function of FLevelEditorViewport. 
+				FSCSEditorViewportClient* SCSClient = dynamic_cast<FSCSEditorViewportClient*>(BaseClient);
+
+				if (SCSClient)
+				{
+					UE_LOG(LogTransformSession, Log, TEXT("SCSEDITOR ACTIVE!!!!!!!!!!!"));
+					FVector Drag(100.0f, 0.0f, 0.0f);
+					FRotator Rot = FRotator::ZeroRotator;
+					FVector Scale = FVector::ZeroVector;
+
+					SCSClient->InputWidgetDelta(ActiveViewport, EAxisList::X, Drag, Rot, Scale);
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogTransformSession, Error, TEXT("Blueprint editor instance NOT active!"));
+		}
+
+
 		if (ActorCount > 0)
 		{
 			USelection* ActorSelection = GEditor->GetSelectedActors();
@@ -94,8 +202,8 @@ namespace BlenderControls
 			{
 				if (AActor* Actor = Cast<AActor>(*It))
 				{
-					UE_LOG(LogTransformSession, Warning, TEXT("  Selected Actor: %s (Class: %s)"), 
-						*Actor->GetName(), *Actor->GetClass()->GetName());
+					UE_LOG(LogTransformSession, Warning, TEXT("  Selected Actor: %s (Class: %s)"),
+					       *Actor->GetName(), *Actor->GetClass()->GetName());
 				}
 			}
 		}
@@ -105,7 +213,7 @@ namespace BlenderControls
 		if (bControlRigModeActive && bHasRigElements)
 		{
 			SelectionType = ESelectionType::ControlRig;
-			UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Control Rig selection"));
+			//UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Control Rig selection"));
 			return true;
 		}
 
@@ -113,12 +221,12 @@ namespace BlenderControls
 		if (ActorCount > 0)
 		{
 			SelectionType = ESelectionType::Actors;
-			UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Actor selection"));
+			//UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Actor selection"));
 			return true;
 		}
 
 		SelectionType = ESelectionType::None;
-		UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> None"));
+		//UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> None"));
 		return false;
 	}
 
@@ -163,15 +271,15 @@ namespace BlenderControls
 		{
 			// Get Control Rig element selection
 			FControlRigSelectionHelper::GetSelectedRigElements(SelectedRigElements);
-			
-			UE_LOG(LogTransformSession, Log, TEXT("InitializePivot: Initialized with %d Control Rig elements"), 
-				SelectedRigElements.Num());
+
+			UE_LOG(LogTransformSession, Log, TEXT("InitializePivot: Initialized with %d Control Rig elements"),
+			       SelectedRigElements.Num());
 
 			// Create the Control Rig pivot for transformations
 			ControlRigVirtualPivot = MakeShared<FControlRigPivot>(SelectedRigElements, PivotMode);
 		}
 		else
-		{  
+		{
 			// Standard actor selection
 			USelection* ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
@@ -179,10 +287,20 @@ namespace BlenderControls
 				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
+					UE_LOG(LogTemp, Warning, TEXT("Actor: %s"), *Actor->GetName());
 				}
 			}
 
 			VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
+		}
+
+		USelection* SelectedComponents = GEditor->GetSelectedComponents();
+		for (FSelectionIterator It(*SelectedComponents); It; ++It)
+		{
+			if (USceneComponent* Component = Cast<USceneComponent>(*It))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Selected Blueprint Component: %s"), *Component->GetName());
+			}
 		}
 	}
 
@@ -198,7 +316,8 @@ namespace BlenderControls
 		// We need to end it first to avoid our changes being reverted when their transaction ends.
 		if (GEditor && GEditor->IsTransactionActive())
 		{
-			UE_LOG(LogTransformSession, Warning, TEXT("InitializeTransaction: Ending existing active transaction to avoid conflict"));
+			UE_LOG(LogTransformSession, Warning,
+			       TEXT("InitializeTransaction: Ending existing active transaction to avoid conflict"));
 			GEditor->EndTransaction();
 		}
 
