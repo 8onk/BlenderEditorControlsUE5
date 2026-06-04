@@ -43,10 +43,30 @@ namespace BlenderControls
 		);
 	}
 
+	//MAIN ENTRY POINT, this is called when a registered command is fired.
+	void FInputProcessor::OnTransformStart(ETransformMode Mode, bool bDuplicateSelection)
+	{
+		if (ActiveSession.IsValid())
+		{
+			return;
+		}
+
+		TSharedRef<FTransformSession> NewSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
+
+		//Session is terminated if failed the initialization process during construction phase. 
+		if (NewSession->HasSessionTerminated())
+		{
+			return;
+		}
+
+		ActiveSession = NewSession;
+		ActiveSession->SwitchTool(Mode);
+	}
+
 	void FInputProcessor::Tick(const float DeltaTime, FSlateApplication& SlateApp,
 	                           TSharedRef<ICursor> Cursor)
 	{
-		if (ActiveSession.IsValid() && ActiveSession->IsSessionFinished())
+		if (ActiveSession.IsValid() && ActiveSession->HasSessionTerminated())
 		{
 			ActiveSession.Reset();
 		}
@@ -119,21 +139,6 @@ namespace BlenderControls
 	bool FInputProcessor::CanStartTool() const
 	{
 		return !ActiveSession.IsValid();
-	}
-
-	void FInputProcessor::OnTransformStart(ETransformMode Mode, bool bDuplicateSelection)
-	{
-		if (ActiveSession.IsValid()) return;
-
-		TSharedRef<FTransformSession> NewSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
-
-		if (NewSession->IsSessionFinished())
-		{
-			return;
-		}
-
-		ActiveSession = NewSession;
-		ActiveSession->SwitchTool(Mode);
 	}
 
 	void FInputProcessor::DuplicateAndMovePressed()

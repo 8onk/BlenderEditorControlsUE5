@@ -22,7 +22,7 @@ namespace BlenderControls
 	enum class ESelectionType : uint8
 	{
 		None,
-		BlueprintViewport, // Blueprint level viewport
+		SCSTreeNodes, // Blueprint level viewport
 		Actors,      // Standard AActor selection
 		ControlRig   // Control Rig bones/controls in Animation Mode
 	};
@@ -40,7 +40,7 @@ namespace BlenderControls
 		/** Finalizes the session, either committing changes to the Undo stack or reverting them. */
 		void End(bool bApply);
 
-		bool IsSessionFinished() const { return bIsSessionFinished; }
+		bool HasSessionTerminated() const { return bHasSessionTerminated; }
 
 		/** Transitions between Move, Rotate, and Scale while preserving numeric input state. */
 		void SwitchTool(ETransformMode NewMode);
@@ -133,7 +133,7 @@ namespace BlenderControls
 		// --- Session Control ---
 		bool bIsFirstTool = true;
 		bool bIsSwitchingTools = false;
-		bool bIsSessionFinished = false;
+		bool bHasSessionTerminated = false;
 		bool bStartedWithDuplicate = false;
 
 		friend class FToolBase;

@@ -1,3 +1,11 @@
+//#TODO
+/*
+ * Blueprint viewport
+ *		Route translation to InputWidgetDelta()
+ *		Make the Numeric tab attach in blueprint viewport
+ *		Make mouse wrapping work in blueprint viewport.
+ */
+
 #include "TransformSession.h"
 #include "Editor.h"
 #include "Selection.h"
@@ -37,7 +45,7 @@ namespace BlenderControls
 	{
 		if (!ValidateEditorState())
 		{
-			bIsSessionFinished = true;
+			bHasSessionTerminated = true;
 			return;
 		}
 
@@ -78,30 +86,30 @@ namespace BlenderControls
 		}
 	}
 
-	bool IsUserFocusInLevelEditor()
-	{
-		if (!FSlateApplication::Get().IsInitialized()) return false;
+	// bool IsUserFocusInLevelEditor()
+	// {
+	// 	if (!FSlateApplication::Get().IsInitialized()) return false;
+	//
+	// 	// Get the specific widget the user is interacting with right now
+	// 	TSharedPtr<SWidget> CurrentWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
+	//
+	// 	// Walk up the Slate UI tree to see if this widget lives inside the Level Editor
+	// 	while (CurrentWidget.IsValid())
+	// 	{
+	// 		FString WidgetType = CurrentWidget->GetTypeAsString();
+	//
+	// 		if (WidgetType == "SLevelEditor" || WidgetType == "SLevelViewport")
+	// 		{
+	// 			return true;
+	// 		}
+	//
+	// 		CurrentWidget = CurrentWidget->GetParentWidget();
+	// 	}
+	//
+	// 	return false;
+	// }
 
-		// Get the specific widget the user is interacting with right now
-		TSharedPtr<SWidget> CurrentWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
-
-		// Walk up the Slate UI tree to see if this widget lives inside the Level Editor
-		while (CurrentWidget.IsValid())
-		{
-			FString WidgetType = CurrentWidget->GetTypeAsString();
-
-			if (WidgetType == "SLevelEditor" || WidgetType == "SLevelViewport")
-			{
-				return true;
-			}
-
-			CurrentWidget = CurrentWidget->GetParentWidget();
-		}
-
-		return false;
-	}
-
-	FEditorViewportClient* GetGloballyActiveViewportClient()
+	FEditorViewportClient* GetFocusedViewportClient()
 	{
 		for (FEditorViewportClient* ViewportClient : GEditor->GetAllViewportClients())
 		{
@@ -113,6 +121,19 @@ namespace BlenderControls
 		return nullptr;
 	}
 
+	bool GetActiveTabName(FName& OutTabName)
+	{
+		TSharedPtr<SDockTab> ActiveTab = FGlobalTabmanager::Get()->GetActiveTab();
+		if (ActiveTab.IsValid())
+		{
+			OutTabName = ActiveTab->GetLayoutIdentifier().TabType;
+			UE_LOG(LogTransformSession, Log, TEXT("Active tab: %s"), *OutTabName.ToString());
+			return true;
+		}
+
+		return false;
+	}
+
 	FBlueprintEditor* FTransformSession::GetActiveBlueprintEditor()
 	{
 		if (!GEditor)
@@ -120,33 +141,32 @@ namespace BlenderControls
 			return nullptr;
 		}
 
-		//IF Main level viewport is active tab, return nullptr.
-		TSharedPtr<SDockTab> ActiveTab = FGlobalTabmanager::Get()->GetActiveTab();
-		if (ActiveTab.IsValid())
+		FName ActiveTabName;
+		if (!GetActiveTabName(ActiveTabName))
 		{
-			FName TabName = ActiveTab->GetLayoutIdentifier().TabType;
-			//UE_LOG(LogTransformSession, Log, TEXT("Active tab: %s"), *TabName.ToString());
+			return nullptr;
+		}
 
-			//Main level viewport name is: LevelEditorViewport
-			if (TabName == FName("LevelEditorViewport"))
-			{
-				return nullptr;
-			}
+		if (ActiveTabName != TEXT("SCSViewport"))
+		{
+			return nullptr;
 		}
 
 		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-		if (!AssetEditorSubsystem) return nullptr;
+		if (!AssetEditorSubsystem)
+		{
+			return nullptr;
+		}
 
-		TArray<IAssetEditorInstance*> OpenEditors = AssetEditorSubsystem->GetAllOpenEditors();
+		//Seems like this is the only straightforward route to get a hold of FBlueprintEditor* (ie by iterating over all open editors)
+		const TArray<IAssetEditorInstance*> OpenEditors = AssetEditorSubsystem->GetAllOpenEditors();
 
 		FBlueprintEditor* FocusedBPEditor = nullptr;
 		double MaxLastActivationTime = 0.0;
-
+		
 		for (IAssetEditorInstance* Editor : OpenEditors)
 		{
-			// Ensure the open editor instance is a Blueprint Editor
-			UE_LOG(LogTransformSession, Log, TEXT("EDITOR NAME: %s"), *Editor->GetEditorName().ToString());
-			if (Editor && Editor->GetEditorName() == FName("BlueprintEditor"))
+			if (Editor && Editor->GetEditorName() == TEXT("BlueprintEditor"))
 			{
 				// The editor with the highest activation time is the active/focused one
 				if (Editor->GetLastActivationTime() > MaxLastActivationTime)
@@ -167,39 +187,46 @@ namespace BlenderControls
 			return false;
 		}
 
-		// Debug: Log current selection state
-		const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
-		const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
-		const int32 ActorCount = GEditor->GetSelectedActorCount();
-
-		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-		if (!AssetEditorSubsystem)
+		//Is any viewport focused?
+		if (!GetFocusedViewportClient())
 		{
 			return false;
 		}
-		FBlueprintEditor* BlueprintEditorInst = GetActiveBlueprintEditor();
-		if (BlueprintEditorInst)
+
+		if (const FBlueprintEditor* BPEditor = GetActiveBlueprintEditor())
 		{
-			FEditorViewportClient* ActiveViewportClient = GetGloballyActiveViewportClient();
-			FSCSEditorViewportClient* SCSClient = static_cast<FSCSEditorViewportClient*>(ActiveViewportClient);
-
-			if (SCSClient)
+			if (BPEditor->GetSelectedSubobjectEditorTreeNodes().Num())
 			{
-				UE_LOG(LogTransformSession, Log, TEXT("SCSEDITOR ACTIVE!!!!!!!!!!!"));
-				FVector Drag(100.0f, 0.0f, 0.0f);
-				FRotator Rot = FRotator::ZeroRotator;
-				FVector Scale = FVector::ZeroVector;
-
-				//Need to call the tracking started, otherwise InputWidgetDelta will return early
-				SCSClient->TrackingStarted(FInputEventState(ActiveViewportClient->Viewport, EKeys::LeftMouseButton, IE_Pressed), true, false);
-				SCSClient->InputWidgetDelta(ActiveViewportClient->Viewport, EAxisList::Screen, Drag, Rot, Scale);
+				UE_LOG(LogTransformSession, Log, TEXT("Blueprint editor session!"));
+				UE_LOG(LogTransformSession, Log, TEXT("Count: %d"),
+				       BPEditor->GetSelectedSubobjectEditorTreeNodes().Num());
+				SelectionType = ESelectionType::SCSTreeNodes;
+				return true;
 			}
+
+			// FEditorViewportClient* ActiveViewportClient = GetGloballyActiveViewportClient();
+			// FSCSEditorViewportClient* SCSClient = static_cast<FSCSEditorViewportClient*>(ActiveViewportClient);
+			//
+			// if (SCSClient)
+			// {
+			// 	UE_LOG(LogTransformSession, Log, TEXT("SCSEDITOR ACTIVE!!!!!!!!!!!"));
+			// 	FVector Drag(100.0f, 0.0f, 0.0f);
+			// 	FRotator Rot = FRotator::ZeroRotator;
+			// 	FVector Scale = FVector::ZeroVector;
+			//
+			// 	//Need to call the tracking started, otherwise InputWidgetDelta will return early
+			// 	SCSClient->TrackingStarted(FInputEventState(ActiveViewportClient->Viewport, EKeys::LeftMouseButton, IE_Pressed), true, false);
+			// 	SCSClient->InputWidgetDelta(ActiveViewportClient->Viewport, EAxisList::Screen, Drag, Rot, Scale);
+			// }
 		}
 		else
 		{
 			UE_LOG(LogTransformSession, Error, TEXT("Blueprint editor instance NOT active!"));
 		}
 
+		const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
+		const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
+		const int32 ActorCount = GEditor->GetSelectedActorCount();
 
 		if (ActorCount > 0)
 		{
@@ -219,7 +246,6 @@ namespace BlenderControls
 		if (bControlRigModeActive && bHasRigElements)
 		{
 			SelectionType = ESelectionType::ControlRig;
-			//UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Control Rig selection"));
 			return true;
 		}
 
@@ -227,12 +253,10 @@ namespace BlenderControls
 		if (ActorCount > 0)
 		{
 			SelectionType = ESelectionType::Actors;
-			//UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> Actor selection"));
 			return true;
 		}
 
 		SelectionType = ESelectionType::None;
-		//UE_LOG(LogTransformSession, Warning, TEXT("ValidateEditorState: RESULT -> None"));
 		return false;
 	}
 
@@ -278,35 +302,28 @@ namespace BlenderControls
 			// Get Control Rig element selection
 			FControlRigSelectionHelper::GetSelectedRigElements(SelectedRigElements);
 
-			UE_LOG(LogTransformSession, Log, TEXT("InitializePivot: Initialized with %d Control Rig elements"),
-			       SelectedRigElements.Num());
-
 			// Create the Control Rig pivot for transformations
 			ControlRigVirtualPivot = MakeShared<FControlRigPivot>(SelectedRigElements, PivotMode);
 		}
+		//Selected components in blueprint editor graph
+		else if (SelectionType == ESelectionType::SCSTreeNodes)
+		{
+			
+		}
+		//Actors selected in standard level viewport
 		else
 		{
-			// Standard actor selection
 			USelection* ActorSelection = GEditor->GetSelectedActors();
 			for (FSelectionIterator It(*ActorSelection); It; ++It)
 			{
 				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
-					UE_LOG(LogTemp, Warning, TEXT("Actor: %s"), *Actor->GetName());
 				}
 			}
 
+			//Create the pivot for selected actors (holds the selected actors and transform related functions).
 			VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
-		}
-
-		USelection* SelectedComponents = GEditor->GetSelectedComponents();
-		for (FSelectionIterator It(*SelectedComponents); It; ++It)
-		{
-			if (USceneComponent* Component = Cast<USceneComponent>(*It))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Selected Blueprint Component: %s"), *Component->GetName());
-			}
 		}
 	}
 
@@ -430,7 +447,7 @@ namespace BlenderControls
 
 	void FTransformSession::End(bool bApply)
 	{
-		if (bIsSessionFinished || !CurrentTool.IsValid()) return;
+		if (bHasSessionTerminated || !CurrentTool.IsValid()) return;
 
 		if (bApply)
 		{
@@ -449,7 +466,7 @@ namespace BlenderControls
 		}
 
 		ScopedTransaction.Reset();
-		bIsSessionFinished = true;
+		bHasSessionTerminated = true;
 	}
 
 	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp) const

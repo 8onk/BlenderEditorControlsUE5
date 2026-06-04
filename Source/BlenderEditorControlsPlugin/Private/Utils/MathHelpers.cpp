@@ -37,7 +37,6 @@ namespace BlenderControls::MathHelper
 			!UE::Geometry::VectorUtil::IsFinite(RayDir) || RayDir.IsNearlyZero() ||
 			!UE::Geometry::VectorUtil::IsFinite(GC.PlaneNormal) || GC.PlaneNormal.IsNearlyZero())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("IntersectHelper: invalid input; returning StartLocation."));
 			return GC.StartLocation;
 		}
 
