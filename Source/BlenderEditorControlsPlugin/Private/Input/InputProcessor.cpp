@@ -107,6 +107,8 @@ namespace BlenderControls
 	bool FInputProcessor::HandleMouseMoveEvent(FSlateApplication& SlateApp,
 	                                           const FPointerEvent& MouseEvent)
 	{
+		//UE_LOG(LogTemp, Warning, TEXT("[FInputProcessor::HandleMouseMoveEvent] Delta: %s"), *MouseEvent.GetCursorDelta().ToString());
+
 		if (ActiveSession.IsValid())
 		{
 			return ActiveSession->HandleMouseMoveEvent(SlateApp, MouseEvent);

@@ -67,10 +67,10 @@ namespace BlenderControls
 			const FVector UnconstrainedMouseDelta3d = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
 				(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
 
-			const FVector ActiveObjectLocation = GetActiveElementStartLocation();
+			const FVector ActiveObjectStartLocation = GetActiveElementStartLocation();
 
 			//Intersect ghost pos to get the blender mouse drag "feel", NOT the current mouse pos. 
-			const FVector GhostPos = ActiveObjectLocation + UnconstrainedMouseDelta3d;
+			const FVector GhostPos = ActiveObjectStartLocation + UnconstrainedMouseDelta3d;
 
 			FVector RayOrigin, RayDir;
 			if (ViewportClient->IsPerspective())
@@ -78,7 +78,7 @@ namespace BlenderControls
 				RayOrigin = ViewLocation;
 				RayDir = (GhostPos - RayOrigin).GetSafeNormal();
 				const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
-				FinalTotalDelta = FinalHit - ActiveObjectLocation;
+				FinalTotalDelta = FinalHit - ActiveObjectStartLocation;
 			}
 			else
 			{
@@ -100,13 +100,13 @@ namespace BlenderControls
 					else
 					{
 						const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
-						FinalTotalDelta = FinalHit - ActiveObjectLocation;
+						FinalTotalDelta = FinalHit - ActiveObjectStartLocation;
 					}
 				}
 				else
 				{
 					const FVector FinalHit = MathHelper::IntersectHelper(GrabContext, RayOrigin, RayDir);
-					FinalTotalDelta = FinalHit - ActiveObjectLocation;
+					FinalTotalDelta = FinalHit - ActiveObjectStartLocation;
 				}
 			}
 		}
@@ -125,7 +125,23 @@ namespace BlenderControls
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
 
-		TranslateElements(Session->IsUsingLocalSpace(), Session->GetLockedAxis(), LiveDelta);
+		// Calculate relative 3D frame delta from the snapped total delta
+		FVector FrameDelta = LiveDelta - PreviousFrameTotalDelta;
+		FRotator Rot = FRotator::ZeroRotator;
+		FVector Scale = FVector::ZeroVector;
+		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+		// Set this, as InputWidgetDelta() internally calls GetCurrentWidgetAxis() for some checks (like surface snapping)
+		ViewportClient->SetCurrentWidgetAxis(Axis);
+
+		UE_LOG(LogTemp, Warning, TEXT("[MoveTool] MouseDelta: %s | LiveDelta: %s | FrameDelta: %s"),
+		       *MouseDelta.ToString(),
+		       *LiveDelta.ToString(),
+		       *FrameDelta.ToString());
+
+		// Let the active polymorphic ViewportClient (Level, SCS, etc.) handle the drag delta
+		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
+
+		PreviousFrameTotalDelta = LiveDelta;
 		UpdateHud();
 	}
 
@@ -133,7 +149,7 @@ namespace BlenderControls
 	{
 		FToolBase::ApplyNumeric(Value);
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !HasValidPivotInternal()) return;
+		if (!Session.IsValid()) return;
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 		if (!Processor) return;
@@ -204,10 +220,10 @@ namespace BlenderControls
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (!HasValidPivotInternal())
-		{
-			return;
-		}
+		// if (!HasValidPivotInternal())
+		// {
+		// 	return;
+		// }
 		const FTransform ActiveObjectTransform = GetActiveElementStartTransform();
 		const FVector X = Session->IsUsingLocalSpace()
 			                  ? ActiveObjectTransform.GetUnitAxis(EAxis::X)
@@ -422,7 +438,7 @@ namespace BlenderControls
 	FText FMoveTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !HasValidPivotInternal())
+		if (!Session.IsValid())
 		{
 			return FText::GetEmpty();
 		}

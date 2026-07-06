@@ -1,8 +1,8 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-class SLevelViewport;
+class SEditorViewport;
 
 namespace BlenderControls
 {
@@ -29,8 +29,8 @@ namespace BlenderControls
 		void SetReadout(const FText& In) const;
 		void SetNumericEcho(const FString& In) const;
 
-		void Attach();
-		void Update(const FText& Readout, const FString& NumericEcho = TEXT(""));
+		void Attach(TSharedPtr<SEditorViewport> TargetViewport);
+		void Update(TSharedPtr<SEditorViewport> TargetViewport, const FText& Readout, const FString& NumericEcho = TEXT(""));
 		void Detach();
 
 		void SetDashState(bool bEnabled, const FVector2D& InOriginPx,
@@ -83,10 +83,8 @@ namespace BlenderControls
 		TSharedPtr<STextBlock> ReadoutText;
 		TSharedPtr<STextBlock> NumericText;
 
-		TWeakPtr<SLevelViewport> AttachedViewport;
+		TWeakPtr<SEditorViewport> AttachedViewport;
 		TSharedPtr<SWidget> OverlayWrapper;
-
-		TSharedPtr<SLevelViewport> GetActiveLevelViewportWidget();
 
 		bool bShowDash = false;
 		FVector2D OriginViewportPx = FVector2D::ZeroVector;

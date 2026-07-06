@@ -56,8 +56,11 @@ namespace BlenderControls
 		TSharedPtr<FSharedPivot> GetPivot() const { return VirtualPivot; }
 		TSharedPtr<FControlRigPivot> GetControlRigPivot() const { return ControlRigVirtualPivot; }
 		EAxisLock GetLockedAxis() const { return LockedAxis; }
+		EAxisList::Type GetResolvedWidgetAxis() const;
+		FEditorViewportClient* GetActiveViewportClient() const { return ActiveViewportClient; }
 		bool IsUsingLocalSpace() const { return bUsingLocalSpace; }
 		bool IsAxisLockActive() const { return bIsAxisLockActive; }
+		ESelectionType GetSelectionType() const { return SelectionType; }
 
 		bool IsNumericInputActive() const
 		{
@@ -80,7 +83,6 @@ namespace BlenderControls
 		const FVector2D& GetStartMousePos() const { return StartMousePos; }
 
 		// Selection Type Accessors
-		ESelectionType GetSelectionType() const { return SelectionType; }
 		bool IsControlRigSelection() const { return SelectionType == ESelectionType::ControlRig; }
 		bool IsActorSelection() const { return SelectionType == ESelectionType::Actors; }
 		const TArray<FControlRigElementInfo>& GetSelectedRigElements() const { return SelectedRigElements; }
@@ -121,6 +123,7 @@ namespace BlenderControls
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
 		FVector2D VirtualMousePosition;
 		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
+		FVector2D GlobalCursorAnchor = FVector2D::ZeroVector;
 		FVector2D WrappedMousePosition = FVector2D::ZeroVector;
 		FVector2D StartMousePos = FVector2D::ZeroVector;
 
@@ -135,6 +138,8 @@ namespace BlenderControls
 		bool bIsSwitchingTools = false;
 		bool bHasSessionTerminated = false;
 		bool bStartedWithDuplicate = false;
+		
+		FEditorViewportClient* ActiveViewportClient = nullptr;
 
 		friend class FToolBase;
 	};

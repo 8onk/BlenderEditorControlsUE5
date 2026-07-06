@@ -4,7 +4,7 @@
 #include "ControlRig.h"
 #include "Rigs/RigHierarchy.h"
 #include "Rigs/RigHierarchyElements.h"
-#include "EditMode/ControlRigEditMode.h" // Path may vary by UE version
+#include "EditMode/ControlRigEditMode.h" 
 
 DEFINE_LOG_CATEGORY_STATIC(LogControlRigHelper, Log, All);
 

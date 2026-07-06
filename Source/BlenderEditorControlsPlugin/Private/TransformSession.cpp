@@ -86,29 +86,6 @@ namespace BlenderControls
 		}
 	}
 
-	// bool IsUserFocusInLevelEditor()
-	// {
-	// 	if (!FSlateApplication::Get().IsInitialized()) return false;
-	//
-	// 	// Get the specific widget the user is interacting with right now
-	// 	TSharedPtr<SWidget> CurrentWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
-	//
-	// 	// Walk up the Slate UI tree to see if this widget lives inside the Level Editor
-	// 	while (CurrentWidget.IsValid())
-	// 	{
-	// 		FString WidgetType = CurrentWidget->GetTypeAsString();
-	//
-	// 		if (WidgetType == "SLevelEditor" || WidgetType == "SLevelViewport")
-	// 		{
-	// 			return true;
-	// 		}
-	//
-	// 		CurrentWidget = CurrentWidget->GetParentWidget();
-	// 	}
-	//
-	// 	return false;
-	// }
-
 	FEditorViewportClient* GetFocusedViewportClient()
 	{
 		for (FEditorViewportClient* ViewportClient : GEditor->GetAllViewportClients())
@@ -163,7 +140,7 @@ namespace BlenderControls
 
 		FBlueprintEditor* FocusedBPEditor = nullptr;
 		double MaxLastActivationTime = 0.0;
-		
+
 		for (IAssetEditorInstance* Editor : OpenEditors)
 		{
 			if (Editor && Editor->GetEditorName() == TEXT("BlueprintEditor"))
@@ -188,7 +165,8 @@ namespace BlenderControls
 		}
 
 		//Is any viewport focused?
-		if (!GetFocusedViewportClient())
+		ActiveViewportClient = GetFocusedViewportClient();
+		if (!ActiveViewportClient)
 		{
 			return false;
 		}
@@ -203,10 +181,10 @@ namespace BlenderControls
 				SelectionType = ESelectionType::SCSTreeNodes;
 				return true;
 			}
-
-			// FEditorViewportClient* ActiveViewportClient = GetGloballyActiveViewportClient();
+			//
 			// FSCSEditorViewportClient* SCSClient = static_cast<FSCSEditorViewportClient*>(ActiveViewportClient);
 			//
+			// //TEMP
 			// if (SCSClient)
 			// {
 			// 	UE_LOG(LogTransformSession, Log, TEXT("SCSEDITOR ACTIVE!!!!!!!!!!!"));
@@ -218,6 +196,7 @@ namespace BlenderControls
 			// 	SCSClient->TrackingStarted(FInputEventState(ActiveViewportClient->Viewport, EKeys::LeftMouseButton, IE_Pressed), true, false);
 			// 	SCSClient->InputWidgetDelta(ActiveViewportClient->Viewport, EAxisList::Screen, Drag, Rot, Scale);
 			// }
+			// return true;
 		}
 		else
 		{
@@ -286,6 +265,8 @@ namespace BlenderControls
 			VirtualMousePosition = StartMousePos;
 			WrappedMousePosition = StartMousePos;
 		}
+
+		GlobalCursorAnchor = FSlateApplication::Get().GetCursorPos();
 	}
 
 	void FTransformSession::InitializePivot()
@@ -308,7 +289,6 @@ namespace BlenderControls
 		//Selected components in blueprint editor graph
 		else if (SelectionType == ESelectionType::SCSTreeNodes)
 		{
-			
 		}
 		//Actors selected in standard level viewport
 		else
@@ -329,7 +309,8 @@ namespace BlenderControls
 
 	void FTransformSession::InitializeTransaction(const FString& InTransactionName)
 	{
-		if (ScopedTransaction)
+		// SCSTreeNodes are transformed using internal InputWidgetDelta() thus transaction is handled automatically. 
+		if (ScopedTransaction || SelectionType == ESelectionType::SCSTreeNodes)
 		{
 			return;
 		}
@@ -622,6 +603,28 @@ namespace BlenderControls
 		}
 
 		return true;
+	}
+
+	EAxisList::Type FTransformSession::GetResolvedWidgetAxis() const
+	{
+		switch (LockedAxis)
+		{
+		case EAxisLock::X:
+			return EAxisList::X;
+		case EAxisLock::Y:
+			return EAxisList::Y;
+		case EAxisLock::Z:
+			return EAxisList::Z;
+		case EAxisLock::XY:
+			return EAxisList::XY;
+		case EAxisLock::XZ:
+			return EAxisList::XZ;
+		case EAxisLock::YZ:
+			return EAxisList::YZ;
+		case EAxisLock::All:
+		default:
+			return EAxisList::XYZ;
+		}
 	}
 
 	bool FTransformSession::HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent)

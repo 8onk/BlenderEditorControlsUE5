@@ -12,6 +12,7 @@
 #include "ControlRig/ControlRigPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
+#include "SEditorViewport.h"
 
 namespace BlenderControls
 {
@@ -54,11 +55,18 @@ namespace BlenderControls
 		{
 			Session->NumericInputProcessor->OnExitNumericMode.BindSP(AsShared(), &FToolBase::OnExitNumericMode);
 		}
+
+			ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), true,
+			                                false);
+		
+		Viewport->CaptureMouse(true);
+		Viewport->LockMouseToViewport(true);
 	}
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		if (!bIsToolActive || !GetSession().IsValid() || !ViewportClient || !HasValidPivotInternal())
+		//#TODO HAS VALID PIVOT INTERNAL BREAKS SCSEDITOR (MOUSE MOVEMENT IS SKIPPED FOR IT). Do Something about it
+		if (!bIsToolActive || !GetSession().IsValid() || !ViewportClient)
 		{
 			return;
 		}
@@ -131,6 +139,8 @@ namespace BlenderControls
 		{
 			VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
 		}
+
+		ViewportClient->TrackingStopped();
 	}
 
 	void FToolBase::UpdateAxisLock()
@@ -218,7 +228,7 @@ namespace BlenderControls
 
 			FLinearColor Color;
 			const FLinearColor BaseColor = GetAxisColor(Axis);
-			
+
 			// Highlight the gizmo for the "Active Element" while dimming others to mimic Blender's 
 			// visual feedback when transforming multiple objects in local space.
 			if (bIsActiveElement || !Session->IsUsingLocalSpace())
@@ -335,7 +345,7 @@ namespace BlenderControls
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+		UWorld* World = ViewportClient->GetWorld();
 		if (!World) return nullptr;
 
 		UAxisLockGizmoComponent* Comp =
@@ -380,7 +390,8 @@ namespace BlenderControls
 
 	bool FToolBase::InitializeEditorState()
 	{
-		ViewportClient = static_cast<FLevelEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		ViewportClient = Session->GetActiveViewportClient();
 		if (!ViewportClient)
 		{
 			return false;
@@ -404,7 +415,7 @@ namespace BlenderControls
 	void FToolBase::InitializePivot()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		
+
 		if (Session->IsControlRigSelection())
 		{
 			ControlRigVirtualPivot = Session->GetControlRigPivot();
@@ -468,10 +479,10 @@ namespace BlenderControls
 
 	void FToolBase::InitializeGrabContext()
 	{
-		if (!HasValidPivotInternal())
-		{
-			return;
-		}
+		// if (!HasValidPivotInternal())
+		// {
+		// 	return;
+		// }
 
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (!Session.IsValid())
@@ -516,7 +527,7 @@ namespace BlenderControls
 		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		HudWidget = SNew(STransformHUD);
-		HudWidget->Attach();
+		HudWidget->Attach(ViewportClient->GetEditorViewportWidget());
 		UpdateHud();
 		UpdateNumActiveSlots();
 
@@ -548,7 +559,13 @@ namespace BlenderControls
 			return;
 		}
 
-		const FVector2D TrueMouseDelta = CurrentViewportMousePosition - Session->CursorAnchorPoint;
+		FVector2D CurrentGlobalPos = FSlateApplication::Get().GetCursorPos();
+		const FVector2D TrueMouseDelta = CurrentGlobalPos - Session->GlobalCursorAnchor;
+
+		UE_LOG(LogTemp, Warning, TEXT("[HandleMouseMovement] GlobalPos: %s | GlobalAnchor: %s | TrueDelta: %s"),
+		       *CurrentGlobalPos.ToString(),
+		       *Session->GlobalCursorAnchor.ToString(),
+		       *TrueMouseDelta.ToString());
 
 		if (TrueMouseDelta.IsNearlyZero())
 		{
@@ -557,9 +574,10 @@ namespace BlenderControls
 
 		Session->VirtualMousePosition += TrueMouseDelta;
 
-		// Lock the hardware cursor to a fixed anchor and track a 'VirtualMousePosition' instead.
-		Viewport->SetMouse(static_cast<int32>(Session->CursorAnchorPoint.X),
-		                   static_cast<int32>(Session->CursorAnchorPoint.Y));
+		// Force the hardware cursor back globally to perfectly lock it
+		FSlateApplication::Get().GetPlatformApplication()->Cursor->SetPosition(
+			static_cast<int32>(Session->GlobalCursorAnchor.X),
+			static_cast<int32>(Session->GlobalCursorAnchor.Y));
 
 		if (HudWidget.IsValid())
 		{
@@ -578,7 +596,7 @@ namespace BlenderControls
 			{
 				Session->WrappedMousePosition.Y += ViewportSize.Y;
 			}
-			
+
 			HudWidget->SetVirtualCursorPos(Session->WrappedMousePosition);
 		}
 
@@ -707,13 +725,15 @@ namespace BlenderControls
 
 		const TUniquePtr<FNumericInputProcessor>& Processor = Session->NumericInputProcessor;
 
+		TSharedPtr<SEditorViewport> GenericViewportWidget = ViewportClient->GetEditorViewportWidget();
+
 		if (Processor->IsInNumericMode())
 		{
-			HudWidget->Update(GetNumericHudText());
+			HudWidget->Update(GenericViewportWidget, GetNumericHudText());
 		}
 		else
 		{
-			HudWidget->Update(GetLiveHudText());
+			HudWidget->Update(GenericViewportWidget, GetLiveHudText());
 		}
 	}
 
@@ -727,11 +747,12 @@ namespace BlenderControls
 
 	bool FToolBase::HasValidPivotInternal() const
 	{
-		if (IsControlRigMode())
-		{
-			return ControlRigVirtualPivot.IsValid() && ControlRigVirtualPivot->IsValid();
-		}
-		return VirtualPivot.IsValid();
+		return true;
+		// if (IsControlRigMode())
+		// {
+		// 	return ControlRigVirtualPivot.IsValid() && ControlRigVirtualPivot->IsValid();
+		// }
+		// return VirtualPivot.IsValid();
 	}
 
 	FVector FToolBase::GetActiveElementStartLocation() const

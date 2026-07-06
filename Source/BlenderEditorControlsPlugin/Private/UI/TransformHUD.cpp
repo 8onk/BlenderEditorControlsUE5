@@ -1,7 +1,6 @@
-﻿#include "UI/TransformHUD.h"
+#include "UI/TransformHUD.h"
 #include "BlenderControlsSettings.h"
-#include "LevelEditor.h"
-#include "SLevelViewport.h"
+#include "SEditorViewport.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateTypes.h"
 #include "Widgets/Text/STextBlock.h"
@@ -47,12 +46,12 @@ namespace BlenderControls
 		[
 			SNew(SBorder)
 			// Point to the static brush created above
-			.BorderImage(&PillBrush)
+			             .BorderImage(&PillBrush)
 			// Remove the manual background color override since the brush handles it
 			//.BorderBackgroundColor(...) 
-			.Padding(FMargin(12.f, 5.5f)) // Increased side padding for pill look
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
+			             .Padding(FMargin(12.f, 5.5f)) // Increased side padding for pill look
+			             .HAlign(HAlign_Center)
+			             .VAlign(VAlign_Center)
 			[
 				SAssignNew(ReadoutText, STextBlock)
 				.Font(FAppStyle::Get().GetFontStyle("NormalFont"))
@@ -78,34 +77,44 @@ namespace BlenderControls
 		}
 	}
 
-	TSharedPtr<SLevelViewport> STransformHUD::GetActiveLevelViewportWidget()
+	static TSharedPtr<SOverlay> FindViewportOverlay(TSharedPtr<SWidget> RootWidget)
 	{
-		FLevelEditorModule& LevelEditorModule =
-			FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+		if (!RootWidget.IsValid()) return nullptr;
 
-		TSharedPtr<SLevelViewport> Viewport = LevelEditorModule.GetFirstActiveLevelViewport();
+		TArray<TSharedPtr<SWidget>> Queue;
+		Queue.Add(RootWidget);
 
-		//fallback via ILevelEditor instance
-		if (!Viewport.IsValid())
+		while (Queue.Num() > 0)
 		{
-			if (const TSharedPtr<ILevelEditor> LE = LevelEditorModule.GetFirstLevelEditor())
+			TSharedPtr<SWidget> Current = Queue[0];
+			Queue.RemoveAt(0);
+
+			if (Current->GetTypeAsString() == TEXT("SOverlay"))
 			{
-				Viewport = LE->GetActiveViewportInterface();
+				return StaticCastSharedPtr<SOverlay>(Current);
+			}
+
+			FChildren* Children = Current->GetChildren();
+			if (Children)
+			{
+				for (int32 i = 0; i < Children->Num(); ++i)
+				{
+					Queue.Add(Children->GetChildAt(i));
+				}
 			}
 		}
-		return Viewport;
+
+		return nullptr;
 	}
 
-	void STransformHUD::Attach()
+	void STransformHUD::Attach(TSharedPtr<SEditorViewport> TargetViewport)
 	{
-		// Find the currently active Level Viewport (focused one)
-		TSharedPtr<SLevelViewport> ActiveViewport = GetActiveLevelViewportWidget();
-		if (!ActiveViewport.IsValid())
+		if (!TargetViewport.IsValid())
 		{
 			return;
 		}
 
-		if (AttachedViewport.Pin() == ActiveViewport && OverlayWrapper.IsValid())
+		if (AttachedViewport.Pin() == TargetViewport && OverlayWrapper.IsValid())
 		{
 			return;
 		}
@@ -147,19 +156,25 @@ namespace BlenderControls
 				]
 			];
 
-		ActiveViewport->AddOverlayWidget(OverlayWrapper.ToSharedRef());
-		AttachedViewport = ActiveViewport;
+		TSharedPtr<SOverlay> HackedOverlay = FindViewportOverlay(TargetViewport);
+		if (HackedOverlay.IsValid())
+		{
+			HackedOverlay->AddSlot()
+			[
+				OverlayWrapper.ToSharedRef()
+			];
+			AttachedViewport = TargetViewport;
+		}
 	}
 
-	void STransformHUD::Update(const FText& Readout, const FString& NumericEcho)
+	void STransformHUD::Update(TSharedPtr<SEditorViewport> TargetViewport, const FText& Readout, const FString& NumericEcho)
 	{
-		// Ensure we're attached to whatever viewport is active *right now*
+		// Ensure we're attached to whatever viewport is active right now
 		{
-			TSharedPtr<SLevelViewport> Pinned = AttachedViewport.Pin();
-			TSharedPtr<SLevelViewport> Active = GetActiveLevelViewportWidget();
-			if (!Pinned.IsValid() || Pinned != Active || !OverlayWrapper.IsValid())
+			TSharedPtr<SEditorViewport> Pinned = AttachedViewport.Pin();
+			if (!Pinned.IsValid() || Pinned != TargetViewport || !OverlayWrapper.IsValid())
 			{
-				Attach();
+				Attach(TargetViewport);
 			}
 		}
 
@@ -183,11 +198,15 @@ namespace BlenderControls
 
 	void STransformHUD::Detach()
 	{
-		if (TSharedPtr<SLevelViewport> VP = AttachedViewport.Pin())
+		if (TSharedPtr<SEditorViewport> VP = AttachedViewport.Pin())
 		{
 			if (OverlayWrapper.IsValid())
 			{
-				VP->RemoveOverlayWidget(OverlayWrapper.ToSharedRef());
+				TSharedPtr<SOverlay> HackedOverlay = FindViewportOverlay(VP);
+				if (HackedOverlay.IsValid())
+				{
+					HackedOverlay->RemoveSlot(OverlayWrapper.ToSharedRef());
+				}
 			}
 		}
 
