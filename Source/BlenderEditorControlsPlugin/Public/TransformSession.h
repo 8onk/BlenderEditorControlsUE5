@@ -23,8 +23,8 @@ namespace BlenderControls
 	{
 		None,
 		SCSTreeNodes, // Blueprint level viewport
-		Actors,      // Standard AActor selection
-		ControlRig   // Control Rig bones/controls in Animation Mode
+		Actors, // Standard AActor selection
+		ControlRig // Control Rig bones/controls in Animation Mode
 	};
 
 	/**
@@ -33,6 +33,8 @@ namespace BlenderControls
 	 */
 	class FTransformSession : public TSharedFromThis<FTransformSession>
 	{
+		friend class FToolBase;
+
 	public:
 		FTransformSession(ETransformMode InStartMode, bool bDuplicateSelection = false);
 		~FTransformSession();
@@ -68,13 +70,13 @@ namespace BlenderControls
 			else return false;
 		}
 
-		bool HasValidPivot() const 
-		{ 
+		bool HasValidPivot() const
+		{
 			if (SelectionType == ESelectionType::ControlRig)
 			{
 				return ControlRigVirtualPivot.IsValid() && ControlRigVirtualPivot->IsValid();
 			}
-			return VirtualPivot.IsValid(); 
+			return VirtualPivot.IsValid();
 		}
 
 		const TArray<TWeakObjectPtr<AActor>>& GetSelectedActors() const { return SelectedActors; }
@@ -121,9 +123,11 @@ namespace BlenderControls
 
 		// --- Mouse & Coordinate State ---
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
-		FVector2D VirtualMousePosition;
+		/** Position of the mouse ignoring wrapping.  */
+		FVector2D VirtualMousePosition = FVector2D::ZeroVector;
 		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;
 		FVector2D GlobalCursorAnchor = FVector2D::ZeroVector;
+		/** Position of the mouse in viewport */
 		FVector2D WrappedMousePosition = FVector2D::ZeroVector;
 		FVector2D StartMousePos = FVector2D::ZeroVector;
 
@@ -138,9 +142,7 @@ namespace BlenderControls
 		bool bIsSwitchingTools = false;
 		bool bHasSessionTerminated = false;
 		bool bStartedWithDuplicate = false;
-		
-		FEditorViewportClient* ActiveViewportClient = nullptr;
 
-		friend class FToolBase;
+		FEditorViewportClient* ActiveViewportClient = nullptr;
 	};
 }
