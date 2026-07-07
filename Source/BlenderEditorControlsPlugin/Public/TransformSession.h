@@ -3,8 +3,7 @@
 #include "CoreMinimal.h"
 #include "Enums.h"
 #include "Input/Numeric/NumericInputProcessor.h"
-#include "ControlRig/ControlRigSelectionHelper.h"
-#include "ControlRig/ControlRigPivot.h"
+#include "Pivots/VirtualPivotBase.h"
 
 class FBlueprintEditor;
 struct FKeyEvent;
@@ -12,9 +11,9 @@ struct FPointerEvent;
 
 namespace BlenderControls
 {
+	struct FControlRigElementInfo;
 	class FToolBase;
-	class FSharedPivot;
-	class FControlRigPivot;
+	class FVirtualPivotBase;
 	class STransformHUD;
 	class FNumericInputProcessor;
 
@@ -55,8 +54,7 @@ namespace BlenderControls
 		bool IsSwitchingTools() const { return bIsSwitchingTools; }
 
 		// State Accessors
-		TSharedPtr<FSharedPivot> GetPivot() const { return VirtualPivot; }
-		TSharedPtr<FControlRigPivot> GetControlRigPivot() const { return ControlRigVirtualPivot; }
+		TSharedPtr<FVirtualPivotBase> GetPivot() const { return VirtualPivot; }
 		EAxisLock GetLockedAxis() const { return LockedAxis; }
 		EAxisList::Type GetResolvedWidgetAxis() const;
 		FEditorViewportClient* GetActiveViewportClient() const { return ActiveViewportClient; }
@@ -72,11 +70,7 @@ namespace BlenderControls
 
 		bool HasValidPivot() const
 		{
-			if (SelectionType == ESelectionType::ControlRig)
-			{
-				return ControlRigVirtualPivot.IsValid() && ControlRigVirtualPivot->IsValid();
-			}
-			return VirtualPivot.IsValid();
+			return VirtualPivot.IsValid() && VirtualPivot->IsValid();
 		}
 
 		const TArray<TWeakObjectPtr<AActor>>& GetSelectedActors() const { return SelectedActors; }
@@ -109,8 +103,7 @@ namespace BlenderControls
 		// --- Core Tool Components ---
 		TSharedPtr<FToolBase> CurrentTool;
 		TUniquePtr<FNumericInputProcessor> NumericInputProcessor;
-		TSharedPtr<FSharedPivot> VirtualPivot;
-		TSharedPtr<FControlRigPivot> ControlRigVirtualPivot;
+		TSharedPtr<FVirtualPivotBase> VirtualPivot;
 		TUniquePtr<FScopedTransaction> ScopedTransaction;
 
 		// --- Interaction State ---

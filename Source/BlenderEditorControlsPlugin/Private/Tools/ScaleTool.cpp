@@ -6,8 +6,7 @@
 #include "Input/Numeric/NumericInputStructs.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Style.h"
-#include "Tools/SharedPivot.h"
-#include "ControlRig/ControlRigPivot.h"
+#include "Pivots/VirtualPivotBase.h"
 #include "UI/TransformHUD.h"
 #include "ControlRig/ControlRigSelectionHelper.h"
 
@@ -195,8 +194,17 @@ namespace BlenderControls
 			break;
 		}
 
-		bool bUsingLocalSpace = Session->GetLockedAxis() == EAxisLock::All ? true : Session->IsUsingLocalSpace();
-		ScaleElements(ScaleMultiplier, bUsingLocalSpace);
+		FVector FrameScaleDelta = ScaleMultiplier - PreviousScaleMultiplier;
+		if (FrameScaleDelta.IsNearlyZero()) return;
+
+		FVector Drag = FVector::ZeroVector;
+		FRotator Rot = FRotator::ZeroRotator;
+		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+		ViewportClient->SetCurrentWidgetAxis(Axis);
+
+		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
+
+		PreviousScaleMultiplier = ScaleMultiplier;
 	}
 
 	void FScaleTool::UpdateHud()
@@ -241,7 +249,7 @@ namespace BlenderControls
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!GetSession().IsValid() || !HasValidPivotInternal())
+		if (!GetSession().IsValid() || !GetSession()->HasValidPivot())
 		{
 			return;
 		}
@@ -384,35 +392,12 @@ namespace BlenderControls
 	FText FScaleTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !HasValidPivotInternal())
+		if (!Session.IsValid() || !Session->HasValidPivot())
 		{
 			return FText::GetEmpty();
 		}
 
-		// For Control Rig, we use the scale factor directly since we don't have Actor scale
-		// For actors, compute from current/start scale ratio
-		FVector CurrentScale, StartScaleVec;
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			// For Control Rig, get the current transform from the hierarchy
-			const FControlRigElementInfo& Element = ControlRigVirtualPivot->GetActiveElement();
-			CurrentScale = FControlRigSelectionHelper::GetElementGlobalTransform(Element.ElementKey).GetScale3D();
-			StartScaleVec = Element.StartTransform.GetScale3D();
-		}
-		else if (VirtualPivot.IsValid())
-		{
-			CurrentScale = VirtualPivot->GetActiveElement().Actor->GetActorScale3D();
-			StartScaleVec = VirtualPivot->GetStartTransform().GetScale3D();
-		}
-		else
-		{
-			return FText::GetEmpty();
-		}
-
-		FVector LiveScale;
-		LiveScale.X = FMath::IsNearlyZero(StartScaleVec.X) ? 1.0f : CurrentScale.X / StartScaleVec.X;
-		LiveScale.Y = FMath::IsNearlyZero(StartScaleVec.Y) ? 1.0f : CurrentScale.Y / StartScaleVec.Y;
-		LiveScale.Z = FMath::IsNearlyZero(StartScaleVec.Z) ? 1.0f : CurrentScale.Z / StartScaleVec.Z;
+		FVector LiveScale = PreviousScaleMultiplier;
 
 		FNumberFormattingOptions NumFmt;
 		NumFmt.MaximumFractionalDigits = 3;

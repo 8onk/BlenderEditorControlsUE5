@@ -1,10 +1,4 @@
-//#TODO
-/*
- * Blueprint viewport
- *		Route translation to InputWidgetDelta()
- *		Make the Numeric tab attach in blueprint viewport
- *		Make mouse wrapping work in blueprint viewport.
- */
+// #TODO AXIS ROTATION IS INVERTED
 
 #include "TransformSession.h"
 #include "Editor.h"
@@ -12,11 +6,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Commands/UICommandInfo.h"
 #include "BlenderControlsCommands.h"
-#include "BlueprintEditorModule.h"
 #include "SSubobjectEditor.h"
-#include "UnrealEdGlobals.h"
-#include "Editor/UnrealEdEngine.h"
-#include "Kismet2/BlueprintEditorUtils.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 #include "BlenderControlsSettings.h"
 #endif
@@ -26,16 +16,16 @@
 #else
 #include "Classes/EditorStyleSettings.h"
 #endif
-#include "Tools/SharedPivot.h"
 #include "Tools/ToolBase.h"
 #include "Tools/MoveTool.h"
 #include "Tools/RotateTool.h"
 #include "Tools/ScaleTool.h"
+#include "Pivots/ActorPivot.h"
+#include "Pivots/SCSPivot.h"
+#include "Pivots/ControlRigPivot.h"
 #include "Utils/MathHelpers.h"
 #include "ControlRig/ControlRigSelectionHelper.h"
-#include "ControlRig/ControlRigPivot.h"
-#include "LevelEditorViewport.h"
-#include "SCSEditorViewportClient.h"
+#include "BlueprintEditor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTransformSession, Log, All);
 
@@ -175,32 +165,9 @@ namespace BlenderControls
 		{
 			if (BPEditor->GetSelectedSubobjectEditorTreeNodes().Num())
 			{
-				UE_LOG(LogTransformSession, Log, TEXT("Blueprint editor session!"));
-				UE_LOG(LogTransformSession, Log, TEXT("Count: %d"),
-				       BPEditor->GetSelectedSubobjectEditorTreeNodes().Num());
 				SelectionType = ESelectionType::SCSTreeNodes;
 				return true;
 			}
-			//
-			// FSCSEditorViewportClient* SCSClient = static_cast<FSCSEditorViewportClient*>(ActiveViewportClient);
-			//
-			// //TEMP
-			// if (SCSClient)
-			// {
-			// 	UE_LOG(LogTransformSession, Log, TEXT("SCSEDITOR ACTIVE!!!!!!!!!!!"));
-			// 	FVector Drag(100.0f, 0.0f, 0.0f);
-			// 	FRotator Rot = FRotator::ZeroRotator;
-			// 	FVector Scale = FVector::ZeroVector;
-			//
-			// 	//Need to call the tracking started, otherwise InputWidgetDelta will return early
-			// 	SCSClient->TrackingStarted(FInputEventState(ActiveViewportClient->Viewport, EKeys::LeftMouseButton, IE_Pressed), true, false);
-			// 	SCSClient->InputWidgetDelta(ActiveViewportClient->Viewport, EAxisList::Screen, Drag, Rot, Scale);
-			// }
-			// return true;
-		}
-		else
-		{
-			UE_LOG(LogTransformSession, Error, TEXT("Blueprint editor instance NOT active!"));
 		}
 
 		const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
@@ -274,7 +241,6 @@ namespace BlenderControls
 		SelectedActors.Empty();
 		SelectedRigElements.Empty();
 		VirtualPivot.Reset();
-		ControlRigVirtualPivot.Reset();
 
 		constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
 
@@ -284,11 +250,41 @@ namespace BlenderControls
 			FControlRigSelectionHelper::GetSelectedRigElements(SelectedRigElements);
 
 			// Create the Control Rig pivot for transformations
-			ControlRigVirtualPivot = MakeShared<FControlRigPivot>(SelectedRigElements, PivotMode);
+			VirtualPivot = MakeShared<FControlRigPivot>(SelectedRigElements, PivotMode);
 		}
 		//Selected components in blueprint editor graph
 		else if (SelectionType == ESelectionType::SCSTreeNodes)
 		{
+			const FBlueprintEditor* BPEditor = GetActiveBlueprintEditor();
+			if (!BPEditor)
+			{
+				return;
+			}
+
+			TArray<USceneComponent*> SelectedComponents;
+			for (const TSharedPtr<FSubobjectEditorTreeNode>& Node : BPEditor->GetSelectedSubobjectEditorTreeNodes())
+			{
+				if (!Node.IsValid())
+				{
+					continue;
+				}
+
+				const UObject* UnderlyingObject = Node->GetObject();
+				if (USceneComponent* SceneComponent = const_cast<USceneComponent*>(Cast<USceneComponent>(
+					UnderlyingObject)))
+				{
+					SelectedComponents.Add(SceneComponent);
+				}
+				else if (AActor* Actor = const_cast<AActor*>(Cast<AActor>(UnderlyingObject)))
+				{
+					if (USceneComponent* RootComp = Actor->GetRootComponent())
+					{
+						SelectedComponents.Add(RootComp);
+					}
+				}
+			}
+
+			VirtualPivot = MakeShared<FSCSPivot>(SelectedComponents);
 		}
 		//Actors selected in standard level viewport
 		else
@@ -303,7 +299,7 @@ namespace BlenderControls
 			}
 
 			//Create the pivot for selected actors (holds the selected actors and transform related functions).
-			VirtualPivot = MakeShared<FSharedPivot>(SelectedActors, PivotMode);
+			VirtualPivot = MakeShared<FActorPivot>(SelectedActors, PivotMode);
 		}
 	}
 
@@ -356,11 +352,7 @@ namespace BlenderControls
 		if (CurrentTool.IsValid())
 		{
 			// Revert the appropriate pivot type
-			if (SelectionType == ESelectionType::ControlRig && ControlRigVirtualPivot.IsValid())
-			{
-				ControlRigVirtualPivot->RevertToStartState();
-			}
-			else if (VirtualPivot.IsValid())
+			if (VirtualPivot.IsValid())
 			{
 				VirtualPivot->RevertToStartState();
 			}
@@ -484,7 +476,7 @@ namespace BlenderControls
 
 		CurrentTool->SetSnappingEnabled(bIsSnapEnabled);
 		CurrentTool->Tick();
-		
+
 		if (bHasPendingMouseMovement)
 		{
 			if (NumericInputProcessor->IsInNumericMode())

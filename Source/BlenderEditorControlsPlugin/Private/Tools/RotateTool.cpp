@@ -6,8 +6,7 @@
 #include "Input/Numeric/NumericInputStructs.h"
 #include "BlenderControlsSettings.h"
 #include "Style.h"
-#include "Tools/SharedPivot.h"
-#include "ControlRig/ControlRigPivot.h"
+#include "Pivots/VirtualPivotBase.h"
 #include "UI/TransformHUD.h"
 #include "Utils/MathHelpers.h"
 
@@ -23,16 +22,10 @@ namespace BlenderControls
 		FToolBase::OnBegin();
 		bTrackballModeEnabled = false;
 
-		// Get start transform based on selection type
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+		if (VirtualPivot.IsValid())
 		{
-			StartPivotTransform = ControlRigVirtualPivot->GetStartTransform();
-			PivotStartPosition = ControlRigVirtualPivot->GetStartLocation();
-		}
-		else if (VirtualPivot.IsValid())
-		{
-			StartPivotTransform = VirtualPivot->GetStartTransform();
-			PivotStartPosition = VirtualPivot->GetStartTransform().GetLocation();
+			//StartPivotTransform = VirtualPivot->GetStartTransform();
+			PivotStartPosition = VirtualPivot->GetStartLocation();
 		}
 
 		FSceneViewFamilyContext ViewFamily(
@@ -65,7 +58,7 @@ namespace BlenderControls
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!bIsToolActive || !HasValidPivotInternal())
+		if (!bIsToolActive || !GetSession()->HasValidPivot())
 		{
 			return;
 		}
@@ -210,27 +203,25 @@ namespace BlenderControls
 
 			const float AngleXRad = FMath::DegreesToRadians(Slot1);
 			const float AngleYRad = FMath::DegreesToRadians(Slot0);
+			FVector2D NumericTrackballDelta(AngleYRad, AngleXRad);
 
-			const FVector RotationAxis = (-ViewUp * AngleXRad) + (-ViewRight * AngleYRad);
-			const float RotationAngle = RotationAxis.Length();
-
-			if (FMath::IsNearlyZero(RotationAngle))
+			FVector2D FrameDelta2D = NumericTrackballDelta - PreviousTrackballMouseDelta;
+			if (!FrameDelta2D.IsNearlyZero())
 			{
-				return;
+				const FVector RotationAxis = (-ViewUp * FrameDelta2D.X) + (-ViewRight * FrameDelta2D.Y);
+				const float RotationAngle = RotationAxis.Length();
+				const FQuat FrameQuat(RotationAxis.GetSafeNormal(), RotationAngle);
+
+				FVector Drag = FVector::ZeroVector;
+				FVector Scale = FVector::ZeroVector;
+				FRotator Rot = FrameQuat.Rotator();
+
+				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+				ViewportClient->SetCurrentWidgetAxis(Axis);
+				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
 			}
 
-			const FQuat TargetRotation = FQuat(RotationAxis.GetSafeNormal(), RotationAngle);
-
-			FTransform NewTransform = StartPivotTransform;
-			const FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
-			NewTransform.SetRotation(FinalRotation);
-			NewTransform.NormalizeRotation();
-
-			// Trackball mode only supported for actors
-			if (!IsControlRigMode() && VirtualPivot.IsValid())
-			{
-				VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
-			}
+			PreviousTrackballMouseDelta = NumericTrackballDelta;
 		}
 		else
 		{
@@ -242,7 +233,40 @@ namespace BlenderControls
 			}
 
 			const double RadiansToRotate = FMath::DegreesToRadians(Slot0);
-			RotateElements(RadiansToRotate, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
+			float FrameAngleRad = RadiansToRotate - PreviousAngleRad;
+
+			if (!FMath::IsNearlyZero(FrameAngleRad))
+			{
+				float FrameAngleDeg = FMath::RadiansToDegrees(FrameAngleRad);
+				FVector Drag = FVector::ZeroVector;
+				FVector Scale = FVector::ZeroVector;
+				FRotator Rot = FRotator::ZeroRotator;
+
+				EAxisLock LockedAxis = Session->GetLockedAxis();
+				if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ)
+				{
+					Rot.Roll = FrameAngleDeg;
+				}
+				else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
+				{
+					Rot.Pitch = FrameAngleDeg;
+				}
+				else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
+				{
+					Rot.Yaw = FrameAngleDeg;
+				}
+				else
+				{
+					FQuat ScreenSpaceQuat(GrabContext.ViewForward.GetSafeNormal(), FrameAngleRad);
+					Rot = ScreenSpaceQuat.Rotator();
+				}
+
+				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+				ViewportClient->SetCurrentWidgetAxis(Axis);
+				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+			}
+
+			PreviousAngleRad = RadiansToRotate;
 		}
 	}
 
@@ -297,7 +321,7 @@ namespace BlenderControls
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !HasValidPivotInternal())
+		if (!Session.IsValid() || !GetSession()->HasValidPivot())
 		{
 			return;
 		}
@@ -498,7 +522,7 @@ namespace BlenderControls
 	FText FRotateTool::GetLiveHudText() const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !HasValidPivotInternal())
+		if (!Session.IsValid() || !GetSession()->HasValidPivot())
 		{
 			return FText::GetEmpty();
 		}

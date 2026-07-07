@@ -8,8 +8,7 @@
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "BlenderControlsSettings.h"
 #include "Utils/MathHelpers.h"
-#include "Tools/SharedPivot.h"
-#include "ControlRig/ControlRigPivot.h"
+#include "Pivots/ControlRigPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
 #include "SEditorViewport.h"
@@ -56,8 +55,17 @@ namespace BlenderControls
 			Session->NumericInputProcessor->OnExitNumericMode.BindSP(AsShared(), &FToolBase::OnExitNumericMode);
 		}
 
-			ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), true,
-			                                false);
+		TSharedPtr<SWindow> SlateWindow = FSlateApplication::Get().FindWidgetWindow(
+			ViewportClient->GetEditorViewportWidget().ToSharedRef());
+		if (SlateWindow.IsValid() && SlateWindow->GetNativeWindow().IsValid())
+		{
+			FSlateApplication::Get().GetPlatformApplication()->SetHighPrecisionMouseMode(
+				true, SlateWindow->GetNativeWindow());
+		}
+		ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), true,
+		                                false);
+		Viewport->CaptureMouse(true);
+		Viewport->LockMouseToViewport(true);
 	}
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -67,7 +75,6 @@ namespace BlenderControls
 		{
 			return;
 		}
-
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		HandleMouseMovement(CurrentViewportMousePosition);
 	}
@@ -85,6 +92,8 @@ namespace BlenderControls
 
 		if (ViewportClient)
 		{
+			ViewportClient->Viewport->CaptureMouse(false);
+			ViewportClient->Viewport->LockMouseToViewport(false);
 			ViewportClient->SetWidgetMode(InitialWidgetMode);
 			ViewportClient->ShowWidget(true);
 			ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
@@ -93,6 +102,7 @@ namespace BlenderControls
 
 		if (FSlateApplication::IsInitialized())
 		{
+			FSlateApplication::Get().GetPlatformApplication()->SetHighPrecisionMouseMode(false, nullptr);
 			FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
 		}
 
@@ -120,10 +130,22 @@ namespace BlenderControls
 				                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
 			}
 
-			// Reverts object transform to start transform before transform operation on cancel
+			ViewportClient->TrackingStopped();
+
 			if (!bApply)
 			{
-				RevertElementsToStartState();
+				if (Session->GetSelectionType() == ESelectionType::SCSTreeNodes)
+				{
+					// For SCS Editor, the internal transaction is committed by TrackingStopped().
+					// We undo it immediately to revert to start state.
+					GEditor->UndoTransaction();
+				}
+				else if (VirtualPivot.IsValid())
+				{
+					// For Actors and Control Rig, manually revert back to the start transform 
+					// to be perfectly safe before the session kills the transaction.
+					VirtualPivot->RevertToStartState();
+				}
 			}
 
 			// Force viewport redraw
@@ -132,12 +154,10 @@ namespace BlenderControls
 		}
 
 		// End transform proxy sequence for actor-based transforms
-		if (VirtualPivot.IsValid() && VirtualPivot->GetTransformProxy())
+		if (VirtualPivot.IsValid())
 		{
-			VirtualPivot->GetTransformProxy()->EndTransformEditSequence();
+			VirtualPivot->EndTransformSequence();
 		}
-
-		ViewportClient->TrackingStopped();
 	}
 
 	void FToolBase::UpdateAxisLock()
@@ -275,27 +295,10 @@ namespace BlenderControls
 
 		if (Session->IsUsingLocalSpace())
 		{
-			if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
+			if (VirtualPivot.IsValid())
 			{
-				// Control Rig elements
-				const FControlRigElementInfo& ActiveElement = ControlRigVirtualPivot->GetActiveElement();
-				for (const FControlRigElementInfo& Element : ControlRigVirtualPivot->GetElements())
-				{
-					if (!Element.IsValid()) continue;
-					const bool bIsActive = (Element.ElementKey == ActiveElement.ElementKey);
-					AddAxisForLock(Session->LockedAxis, &Element.StartTransform, bIsActive);
-				}
-			}
-			else if (VirtualPivot.IsValid())
-			{
-				// Actor elements
-				const FChildInfo& ActiveElement = VirtualPivot->GetActiveElement();
-				for (const FChildInfo& Child : VirtualPivot->GetChildren())
-				{
-					if (!Child.Actor) continue;
-					const bool bIsActive = (Child.Actor == ActiveElement.Actor);
-					AddAxisForLock(Session->LockedAxis, &Child.Transform, bIsActive);
-				}
+				const FTransform StartTransform = VirtualPivot->GetActiveElementStartTransform();
+				AddAxisForLock(Session->LockedAxis, &StartTransform, true);
 			}
 		}
 		else
@@ -412,19 +415,10 @@ namespace BlenderControls
 	void FToolBase::InitializePivot()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
-
-		if (Session->IsControlRigSelection())
+		VirtualPivot = Session->GetPivot();
+		if (VirtualPivot.IsValid())
 		{
-			ControlRigVirtualPivot = Session->GetControlRigPivot();
-			// Control Rig doesn't use TransformProxy - transforms are applied directly through the hierarchy
-		}
-		else
-		{
-			VirtualPivot = Session->GetPivot();
-			if (VirtualPivot.IsValid() && VirtualPivot->GetTransformProxy())
-			{
-				VirtualPivot->GetTransformProxy()->BeginTransformEditSequence();
-			}
+			VirtualPivot->BeginTransformSequence();
 		}
 	}
 
@@ -528,10 +522,10 @@ namespace BlenderControls
 		UpdateHud();
 		UpdateNumActiveSlots();
 
-		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
+		ViewportClient->SetRequiredCursorOverride(true, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 		HudWidget->SetVirtualCursorPos(Session->GetWrappedCursorPos());
-		
+
 		if (Session->bIsFirstTool)
 		{
 			//Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
@@ -615,7 +609,13 @@ namespace BlenderControls
 
 		if (ViewportClient)
 		{
+			ViewportClient->TrackingStopped();
 			ViewportClient->Invalidate();
+		}
+
+		if (GEditor)
+		{
+			GEditor->NoteSelectionChange(true);
 		}
 	}
 
@@ -708,7 +708,7 @@ namespace BlenderControls
 
 	void FToolBase::Cancel()
 	{
-		if (!GEditor || !HasValidPivotInternal())
+		if (!GEditor || !GetSession()->HasValidPivot())
 		{
 			return;
 		}
@@ -740,133 +740,40 @@ namespace BlenderControls
 
 	// --- Pivot Helper Method Implementations ---
 
-	bool FToolBase::IsControlRigMode() const
-	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		return Session.IsValid() && Session->IsControlRigSelection();
-	}
-
-	bool FToolBase::HasValidPivotInternal() const
-	{
-		return true;
-		// if (IsControlRigMode())
-		// {
-		// 	return ControlRigVirtualPivot.IsValid() && ControlRigVirtualPivot->IsValid();
-		// }
-		// return VirtualPivot.IsValid();
-	}
-
 	FVector FToolBase::GetActiveElementStartLocation() const
 	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			return ControlRigVirtualPivot->GetActiveElement().StartTransform.GetLocation();
-		}
 		if (VirtualPivot.IsValid())
 		{
-			return VirtualPivot->GetActiveElement().Transform.GetLocation();
+			return VirtualPivot->GetActiveElementStartTransform().GetLocation();
 		}
 		return FVector::ZeroVector;
 	}
 
 	FTransform FToolBase::GetActiveElementStartTransform() const
 	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			return ControlRigVirtualPivot->GetActiveElement().StartTransform;
-		}
 		if (VirtualPivot.IsValid())
 		{
-			return VirtualPivot->GetActiveElement().Transform;
+			return VirtualPivot->GetActiveElementStartTransform();
 		}
 		return FTransform::Identity;
 	}
 
 	FVector FToolBase::GetActiveElementCurrentLocation() const
 	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			// For Control Rig, get the current transform from the hierarchy
-			const FControlRigElementInfo& Element = ControlRigVirtualPivot->GetActiveElement();
-			return FControlRigSelectionHelper::GetElementGlobalTransform(Element.ElementKey).GetLocation();
-		}
 		if (VirtualPivot.IsValid())
 		{
-			return VirtualPivot->GetActiveElement().Actor->GetActorLocation();
+			return VirtualPivot->GetActiveElementCurrentLocation();
 		}
 		return FVector::ZeroVector;
 	}
 
 	FVector FToolBase::GetPivotStartLocation() const
 	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			return ControlRigVirtualPivot->GetStartLocation();
-		}
 		if (VirtualPivot.IsValid())
 		{
-			return VirtualPivot->GetStartTransform().GetLocation();
+			return VirtualPivot->GetStartLocation();
 		}
 		return FVector::ZeroVector;
 	}
 
-	void FToolBase::TranslateElements(const FVector& Delta, bool bUsingLocalSpace)
-	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			ControlRigVirtualPivot->Translate(Delta, bUsingLocalSpace);
-		}
-		else if (VirtualPivot.IsValid())
-		{
-			VirtualPivot->Translate(Delta, bUsingLocalSpace);
-		}
-	}
-
-	void FToolBase::TranslateElements(bool bUsingLocalSpace, EAxisLock LockedAxis, const FVector& Delta)
-	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			ControlRigVirtualPivot->Translate(bUsingLocalSpace, LockedAxis, Delta);
-		}
-		else if (VirtualPivot.IsValid())
-		{
-			VirtualPivot->Translate(bUsingLocalSpace, LockedAxis, Delta);
-		}
-	}
-
-	void FToolBase::RotateElements(float AngleRad, bool bUsingLocalSpace, EAxisLock LockedAxis)
-	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			ControlRigVirtualPivot->Rotate(GrabContext, AngleRad, bUsingLocalSpace, LockedAxis);
-		}
-		else if (VirtualPivot.IsValid())
-		{
-			VirtualPivot->Rotate(GrabContext, AngleRad, bUsingLocalSpace, LockedAxis);
-		}
-	}
-
-	void FToolBase::ScaleElements(const FVector& ScaleMultiplier, bool bUsingLocalSpace)
-	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			ControlRigVirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
-		}
-		else if (VirtualPivot.IsValid())
-		{
-			VirtualPivot->Scale(ScaleMultiplier, bUsingLocalSpace);
-		}
-	}
-
-	void FToolBase::RevertElementsToStartState()
-	{
-		if (IsControlRigMode() && ControlRigVirtualPivot.IsValid())
-		{
-			ControlRigVirtualPivot->RevertToStartState();
-		}
-		else if (VirtualPivot.IsValid())
-		{
-			VirtualPivot->RevertToStartState();
-		}
-	}
 } // namespace BlenderControls

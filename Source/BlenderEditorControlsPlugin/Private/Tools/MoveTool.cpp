@@ -1,11 +1,10 @@
 #include "Tools/MoveTool.h"
 #include "LevelEditorViewport.h"
+#include "Style.h"
 #include "TransformSession.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Input/Numeric/NumericInputStructs.h"
-#include "Style.h"
-#include "Tools/SharedPivot.h"
-#include "ControlRig/ControlRigPivot.h"
+#include "Pivots/VirtualPivotBase.h"
 #include "UI/TransformHUD.h"
 #include "Utils/MathHelpers.h"
 
@@ -139,11 +138,6 @@ namespace BlenderControls
 		// Set this, as InputWidgetDelta() internally calls GetCurrentWidgetAxis() for some checks (like surface snapping)
 		ViewportClient->SetCurrentWidgetAxis(Axis);
 
-		// UE_LOG(LogTemp, Warning, TEXT("[MoveTool] MouseDelta: %s | LiveDelta: %s | FrameDelta: %s"),
-		//        *MouseDelta.ToString(),
-		//        *LiveDelta.ToString(),
-		//        *FrameDelta.ToString());
-
 		// Let the active polymorphic ViewportClient (Level, SCS, etc.) handle the drag delta
 		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
 
@@ -213,8 +207,17 @@ namespace BlenderControls
 			NumericDelta.Z = Slot2;
 			break;
 		}
+		FVector FrameDelta = NumericDelta - PreviousFrameTotalDelta;
+		if (FrameDelta.IsNearlyZero()) return;
 
-		TranslateElements(NumericDelta, Session->IsUsingLocalSpace());
+		FRotator Rot = FRotator::ZeroRotator;
+		FVector Scale = FVector::ZeroVector;
+		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+		ViewportClient->SetCurrentWidgetAxis(Axis);
+
+		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
+
+		PreviousFrameTotalDelta = NumericDelta;
 	}
 
 	void FMoveTool::UpdateHud()
