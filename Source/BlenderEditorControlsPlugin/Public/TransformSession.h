@@ -48,9 +48,9 @@ namespace BlenderControls
 		void SwitchTool(ETransformMode NewMode);
 
 		// Input Forwarding to FInputProcessor
-		void Tick(const float DeltaTime, FSlateApplication& SlateApp) const;
+		void Tick(const float DeltaTime, FSlateApplication& SlateApp);
 		bool HandleKeyDownEvent(const FKeyEvent& KeyEvent);
-		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) const;
+		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
 		bool HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent);
 		bool IsSwitchingTools() const { return bIsSwitchingTools; }
 
@@ -142,6 +142,9 @@ namespace BlenderControls
 		bool bIsSwitchingTools = false;
 		bool bHasSessionTerminated = false;
 		bool bStartedWithDuplicate = false;
+
+		FVector2D PendingMousePosition = FVector2D::ZeroVector;
+		bool bHasPendingMouseMovement = false;
 
 		FEditorViewportClient* ActiveViewportClient = nullptr;
 	};

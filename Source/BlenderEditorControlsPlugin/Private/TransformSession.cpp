@@ -450,7 +450,7 @@ namespace BlenderControls
 		bHasSessionTerminated = true;
 	}
 
-	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp) const
+	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp)
 	{
 		if (!CurrentTool.IsValid())
 		{
@@ -484,6 +484,19 @@ namespace BlenderControls
 
 		CurrentTool->SetSnappingEnabled(bIsSnapEnabled);
 		CurrentTool->Tick();
+		
+		if (bHasPendingMouseMovement)
+		{
+			if (NumericInputProcessor->IsInNumericMode())
+			{
+				CurrentTool->HandleMouseMovement(PendingMousePosition);
+			}
+			else
+			{
+				CurrentTool->OnActive(PendingMousePosition);
+			}
+			bHasPendingMouseMovement = false;
+		}
 	}
 
 	bool FTransformSession::HandleKeyDownEvent(const FKeyEvent& KeyEvent)
@@ -574,7 +587,7 @@ namespace BlenderControls
 		return true; // Disable all other inputs while any tool is active
 	}
 
-	bool FTransformSession::HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) const
+	bool FTransformSession::HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent)
 	{
 		if (!CurrentTool.IsValid())
 		{
@@ -593,14 +606,8 @@ namespace BlenderControls
 			MouseSensitivity);
 #endif
 
-		if (NumericInputProcessor->IsInNumericMode())
-		{
-			CurrentTool->HandleMouseMovement(CurrentViewportMousePosition);
-		}
-		else
-		{
-			CurrentTool->OnActive(CurrentViewportMousePosition);
-		}
+		PendingMousePosition = CurrentViewportMousePosition;
+		bHasPendingMouseMovement = true;
 
 		return true;
 	}

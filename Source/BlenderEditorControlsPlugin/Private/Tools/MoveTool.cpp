@@ -127,6 +127,12 @@ namespace BlenderControls
 
 		// Calculate relative 3D frame delta from the snapped total delta
 		FVector FrameDelta = LiveDelta - PreviousFrameTotalDelta;
+		
+		if (FrameDelta.IsNearlyZero())
+		{
+			return; // Skip doing work if there is no actual movement!
+		}
+
 		FRotator Rot = FRotator::ZeroRotator;
 		FVector Scale = FVector::ZeroVector;
 		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
