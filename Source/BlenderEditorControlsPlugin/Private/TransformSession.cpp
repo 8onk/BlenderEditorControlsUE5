@@ -255,10 +255,10 @@ namespace BlenderControls
 
 	void FTransformSession::InitializeMouseState()
 	{
-		if (FViewport* Viewport = GEditor->GetActiveViewport())
+		if (ActiveViewportClient && ActiveViewportClient->Viewport)
 		{
 			FIntPoint MousePosInt;
-			Viewport->GetMousePos(MousePosInt);
+			ActiveViewportClient->Viewport->GetMousePos(MousePosInt);
 
 			StartMousePos = FVector2D(MousePosInt);
 			CursorAnchorPoint = StartMousePos;
