@@ -33,7 +33,9 @@ namespace BlenderControls
 		bool bTrackballModeEnabled;
 		EAxisLock PreviousAxisLock = EAxisLock::All;
 		float AccumulatedAngleRad;
+		float PreviousAngleRad;
 		FVector2D TrackballMouseDelta;
+		FVector2D PreviousTrackballMouseDelta;
 		float AngleToApplyRad;
 		EAxisLock CachedAxisLockPreTrackball = EAxisLock::All;
 

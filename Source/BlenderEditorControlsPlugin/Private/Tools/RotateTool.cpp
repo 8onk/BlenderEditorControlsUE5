@@ -43,13 +43,15 @@ namespace BlenderControls
 		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
-		StartDragVector = CurrentMousePosition - PivotViewportPosition;
+		StartDragVector = GetSession()->GetVirtualMousePos() - PivotViewportPosition;
 		LastDragVector = StartDragVector;
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Rotate);
 		ViewportClient->Invalidate();
 		AccumulatedAngleRad = 0.0f;
+		PreviousAngleRad = 0.0f;
 		TrackballMouseDelta = FVector2D::ZeroVector;
+		PreviousTrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
 
 		CursorBrush = FStyle::Get().GetBrush(
@@ -90,20 +92,23 @@ namespace BlenderControls
 				TrackballMouseDelta.Y = FMath::GridSnap(TrackballMouseDelta.Y, SnapIncrement);
 			}
 
-			const FVector RotationAxis = (-ViewUp * TrackballMouseDelta.X) + (-ViewRight * TrackballMouseDelta.Y);
-			const float RotationAngle = RotationAxis.Length();
-			const FQuat TargetRotation = FQuat(RotationAxis.GetSafeNormal(), RotationAngle);
-
-			FTransform NewTransform = StartPivotTransform;
-			const FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
-			NewTransform.SetRotation(FinalRotation);
-			NewTransform.NormalizeRotation();
-			
-			// Trackball mode only supported for actors (uses TransformProxy)
-			if (!IsControlRigMode() && VirtualPivot.IsValid())
+			FVector2D FrameDelta2D = TrackballMouseDelta - PreviousTrackballMouseDelta;
+			if (!FrameDelta2D.IsNearlyZero())
 			{
-				VirtualPivot->GetTransformProxy()->SetTransform(NewTransform);
+				const FVector RotationAxis = (-ViewUp * FrameDelta2D.X) + (-ViewRight * FrameDelta2D.Y);
+				const float RotationAngle = RotationAxis.Length();
+				const FQuat FrameQuat(RotationAxis.GetSafeNormal(), RotationAngle);
+
+				FVector Drag = FVector::ZeroVector;
+				FVector Scale = FVector::ZeroVector;
+				FRotator Rot = FrameQuat.Rotator();
+
+				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+				ViewportClient->SetCurrentWidgetAxis(Axis);
+				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
 			}
+
+			PreviousTrackballMouseDelta = TrackballMouseDelta;
 		}
 		else
 		{
@@ -137,7 +142,40 @@ namespace BlenderControls
 				AngleToApplyRad = FMath::DegreesToRadians(SnappedAngleDeg);
 			}
 
-			RotateElements(AngleToApplyRad, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
+			float FrameAngleRad = AngleToApplyRad - PreviousAngleRad;
+			if (!FMath::IsNearlyZero(FrameAngleRad))
+			{
+				float FrameAngleDeg = FMath::RadiansToDegrees(FrameAngleRad);
+				FVector Drag = FVector::ZeroVector;
+				FVector Scale = FVector::ZeroVector;
+				FRotator Rot = FRotator::ZeroRotator;
+
+				EAxisLock LockedAxis = Session->GetLockedAxis();
+				if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ)
+				{
+					Rot.Roll = FrameAngleDeg;
+				}
+				else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
+				{
+					Rot.Pitch = FrameAngleDeg;
+				}
+				else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
+				{
+					Rot.Yaw = FrameAngleDeg;
+				}
+				else
+				{
+					// Screen Space Rotation (EAxisLock::All)
+					FQuat ScreenSpaceQuat(GrabContext.ViewForward.GetSafeNormal(), FrameAngleRad);
+					Rot = ScreenSpaceQuat.Rotator();
+				}
+
+				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+				ViewportClient->SetCurrentWidgetAxis(Axis);
+				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+			}
+
+			PreviousAngleRad = AngleToApplyRad;
 			LastDragVector = CurrentDragVector;
 		}
 
@@ -187,7 +225,7 @@ namespace BlenderControls
 			const FQuat FinalRotation = TargetRotation * StartPivotTransform.GetRotation();
 			NewTransform.SetRotation(FinalRotation);
 			NewTransform.NormalizeRotation();
-			
+
 			// Trackball mode only supported for actors
 			if (!IsControlRigMode() && VirtualPivot.IsValid())
 			{

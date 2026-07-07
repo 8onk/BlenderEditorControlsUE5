@@ -34,15 +34,14 @@ namespace BlenderControls
 				ViewportClient->EngineShowFlags));
 		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 
-		FVector RayOrigin, RayDirection;
-		SceneView->DeprojectFVector2D(CurrentMousePosition, RayOrigin, RayDirection);
 		PivotStartPosition = GetPivotStartLocation();
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
 		ScaleFactor = 1.0f;
-		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(CurrentMousePosition, PivotViewportPosition);
+		InitialMousePosition = GetSession()->GetVirtualMousePos();
+		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(InitialMousePosition, PivotViewportPosition);
 		StartScale = GetActiveElementStartTransform().GetScale3D();
-		InitialMousePosition = CurrentMousePosition;
+		PreviousScaleMultiplier = FVector::OneVector;
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
@@ -121,7 +120,20 @@ namespace BlenderControls
 			SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
 		}
 
-		ScaleElements(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
+		FVector FrameScaleDelta = SnappedScaleMultiplier - PreviousScaleMultiplier;
+		if (FrameScaleDelta.IsNearlyZero())
+		{
+			return;
+		}
+
+		FVector Drag = FVector::ZeroVector;
+		FRotator Rot = FRotator::ZeroRotator;
+		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
+		ViewportClient->SetCurrentWidgetAxis(Axis);
+
+		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
+
+		PreviousScaleMultiplier = SnappedScaleMultiplier;
 		UpdateHud();
 	}
 

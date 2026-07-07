@@ -23,6 +23,7 @@ namespace BlenderControls
 		FVector PivotStartPosition;
 		FVector2D PivotViewportPosition;
 		FVector StartScale;
+		FVector PreviousScaleMultiplier;
 		FVector2D InitialMousePosition;
 		float InitialMouseToPivotDistance;
 		float CurrentMouseToPivotDistance;
