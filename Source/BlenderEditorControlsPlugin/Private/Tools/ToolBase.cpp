@@ -560,13 +560,13 @@ namespace BlenderControls
 			return;
 		}
 
-		FVector2D CurrentGlobalPos = FSlateApplication::Get().GetCursorPos();
+		const FVector2D CurrentGlobalPos = FSlateApplication::Get().GetCursorPos();
 		const FVector2D TrueMouseDelta = CurrentGlobalPos - Session->GlobalCursorAnchor;
 
-		UE_LOG(LogTemp, Warning, TEXT("[HandleMouseMovement] GlobalPos: %s | GlobalAnchor: %s | TrueDelta: %s"),
-		       *CurrentGlobalPos.ToString(),
-		       *Session->GlobalCursorAnchor.ToString(),
-		       *TrueMouseDelta.ToString());
+		// UE_LOG(LogTemp, Warning, TEXT("[HandleMouseMovement] GlobalPos: %s | GlobalAnchor: %s | TrueDelta: %s"),
+		//        *CurrentGlobalPos.ToString(),
+		//        *Session->GlobalCursorAnchor.ToString(),
+		//        *TrueMouseDelta.ToString());
 
 		if (TrueMouseDelta.IsNearlyZero())
 		{

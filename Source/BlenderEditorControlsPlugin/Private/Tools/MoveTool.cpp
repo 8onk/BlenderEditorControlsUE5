@@ -133,10 +133,10 @@ namespace BlenderControls
 		// Set this, as InputWidgetDelta() internally calls GetCurrentWidgetAxis() for some checks (like surface snapping)
 		ViewportClient->SetCurrentWidgetAxis(Axis);
 
-		UE_LOG(LogTemp, Warning, TEXT("[MoveTool] MouseDelta: %s | LiveDelta: %s | FrameDelta: %s"),
-		       *MouseDelta.ToString(),
-		       *LiveDelta.ToString(),
-		       *FrameDelta.ToString());
+		// UE_LOG(LogTemp, Warning, TEXT("[MoveTool] MouseDelta: %s | LiveDelta: %s | FrameDelta: %s"),
+		//        *MouseDelta.ToString(),
+		//        *LiveDelta.ToString(),
+		//        *FrameDelta.ToString());
 
 		// Let the active polymorphic ViewportClient (Level, SCS, etc.) handle the drag delta
 		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
