@@ -58,9 +58,6 @@ namespace BlenderControls
 
 			ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), true,
 			                                false);
-		
-		Viewport->CaptureMouse(true);
-		Viewport->LockMouseToViewport(true);
 	}
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -534,8 +531,12 @@ namespace BlenderControls
 		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 		HudWidget->SetVirtualCursorPos(Session->GetWrappedCursorPos());
-		//Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
-		Session->VirtualMousePosition = Session->CursorAnchorPoint;
+		
+		if (Session->bIsFirstTool)
+		{
+			//Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
+			Session->VirtualMousePosition = Session->CursorAnchorPoint;
+		}
 	}
 
 	void FToolBase::RestorePreviousState()
