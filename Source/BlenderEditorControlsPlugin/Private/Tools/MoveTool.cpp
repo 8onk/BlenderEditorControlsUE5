@@ -1,5 +1,4 @@
 #include "Tools/MoveTool.h"
-#include "LevelEditorViewport.h"
 #include "Style.h"
 #include "TransformSession.h"
 #include "Input/Numeric/NumericInputProcessor.h"
@@ -35,7 +34,7 @@ namespace BlenderControls
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!bIsToolActive)
+		if (!bIsToolActive || !ViewportClient)
 		{
 			return;
 		}
@@ -124,34 +123,7 @@ namespace BlenderControls
 			LiveDelta = GetSnapOffset(LiveDelta);
 		}
 
-		// Calculate relative 3D frame delta from the snapped total delta
-		FVector FrameDelta = LiveDelta - PreviousFrameTotalDelta;
-		
-		if (FrameDelta.IsNearlyZero())
-		{
-			return; // Skip doing work if there is no actual movement!
-		}
-
-		FRotator Rot = FRotator::ZeroRotator;
-		FVector Scale = FVector::ZeroVector;
-		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
-		// Set this, as InputWidgetDelta() internally calls GetCurrentWidgetAxis() for some checks (like surface snapping)
-		ViewportClient->SetCurrentWidgetAxis(Axis);
-
-		// Let the active polymorphic ViewportClient (Level, SCS, etc.) handle the drag delta
-		bool bHandledManually = false;
-		if (VirtualPivot.IsValid())
-		{
-			bHandledManually = VirtualPivot->ApplyManualTransformDelta(FrameDelta, Rot, Scale);
-		}
-
-		if (!bHandledManually)
-		{
-			ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
-		}
-
-		PreviousFrameTotalDelta = LiveDelta;
-		UpdateHud();
+		ApplyTranslationInternal(LiveDelta, false);
 	}
 
 	void FMoveTool::ApplyNumeric(double Value)
@@ -216,22 +188,55 @@ namespace BlenderControls
 			NumericDelta.Z = Slot2;
 			break;
 		}
-		FVector FrameDelta = NumericDelta - PreviousFrameTotalDelta;
-		if (FrameDelta.IsNearlyZero()) return;
-
-		FRotator Rot = FRotator::ZeroRotator;
-		FVector Scale = FVector::ZeroVector;
-		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
-		ViewportClient->SetCurrentWidgetAxis(Axis);
-
-		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
-
-		PreviousFrameTotalDelta = NumericDelta;
+		ApplyTranslationInternal(NumericDelta, true);
 	}
 
-	void FMoveTool::UpdateHud()
+	void FMoveTool::ApplyTranslationInternal(const FVector& TotalDelta, bool bIsNumeric)
 	{
-		FToolBase::UpdateHud();
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid() || !ViewportClient)
+		{
+			return;
+		}
+
+		if (Session->GetLockedAxis() == EAxisLock::All)
+		{
+			FVector FrameDelta = TotalDelta - PreviousFrameTotalDelta;
+
+			constexpr EAxisList::Type Axis = EAxisList::Type::All;
+			FRotator Rot = FRotator::ZeroRotator;
+			FVector Scale = FVector::ZeroVector;
+
+			ViewportClient->SetCurrentWidgetAxis(Axis);
+
+			// Fallback to InputWidgetDelta() as it handles additional natively supported snapping features. 
+			bool bHandledManually = false;
+			if (VirtualPivot.IsValid())
+			{
+				bHandledManually = VirtualPivot->ApplyManualTransformDelta(FrameDelta, Rot, Scale);
+			}
+
+			if (!bHandledManually)
+			{
+				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
+			}
+			PreviousFrameTotalDelta = TotalDelta;
+		}
+		else
+		{
+			if (VirtualPivot.IsValid())
+			{
+				if (bIsNumeric)
+				{
+					VirtualPivot->ApplyTranslation(TotalDelta, Session->IsUsingLocalSpace());
+				}
+				else
+				{
+					VirtualPivot->ApplyTranslation(TotalDelta, Session->IsUsingLocalSpace(), Session->GetLockedAxis());
+				}
+			}
+		}
+		UpdateHud();
 	}
 
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)

@@ -23,9 +23,16 @@ namespace BlenderControls
 		// FVirtualPivotBase interface
 		virtual FVector GetStartLocation() const override { return StartPivotTransform.GetLocation(); }
 		virtual FTransform GetActiveElementStartTransform() const override { return ActiveElement.StartTransform; }
-		virtual FVector GetActiveElementCurrentLocation() const override { return FControlRigSelectionHelper::GetElementGlobalTransform(ActiveElement.ElementKey).GetLocation(); }
+		virtual FVector GetActiveElementCurrentLocation() const override;
 		virtual void RevertToStartState() override;
 		virtual bool IsValid() const override { return Elements.Num() > 0; }
+		virtual void BeginTransformSequence() override {}
+		virtual void EndTransformSequence() override {}
+		virtual void ApplyRotation(const FGrabContext& GC, float AngleRad, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
+		virtual void ApplyScale(const FVector& ScaleMultiplier, bool bUsingLocalSpace) override;
+		virtual void ApplyTranslation(const FVector& LocalDelta, bool bUsingLocalSpace) override;
+		virtual void ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
+		virtual void ForEachElementTransform(TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const override;
 		virtual bool ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale) override;
 		// ~FVirtualPivotBase interface
 

@@ -13,7 +13,6 @@ namespace BlenderControls
 
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
-		virtual void UpdateHud() override;
 		virtual void OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition) override;
@@ -23,11 +22,11 @@ namespace BlenderControls
 		FVector PivotStartPosition;
 		FVector2D PivotViewportPosition;
 		FVector StartScale;
-		FVector PreviousScaleMultiplier;
 		FVector2D InitialMousePosition;
 		float InitialMouseToPivotDistance;
 		float CurrentMouseToPivotDistance;
 		float ScaleFactor = 1.0f;
+		FVector CurrentScaleMultiplier = FVector::OneVector;
 
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
 

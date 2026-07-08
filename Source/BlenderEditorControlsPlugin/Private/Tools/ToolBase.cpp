@@ -4,9 +4,7 @@
 #include "Tools/ToolBase.h"
 #include "Editor.h"
 #include "EditorModeManager.h"
-#include "LevelEditorViewport.h"
 #include "TransformSession.h"
-#include "BaseGizmos/TransformProxy.h"
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "BlenderControlsSettings.h"
@@ -244,7 +242,7 @@ namespace BlenderControls
 
 			// Highlight the gizmo for the "Active Element" while dimming others to mimic Blender's 
 			// visual feedback when transforming multiple objects in local space.
-			if (bIsActiveElement || !Session->IsUsingLocalSpace())
+			if (bIsActiveElement)
 			{
 				Color = BaseColor * 2.0f;
 				Color.A = 1.0f;
@@ -293,8 +291,10 @@ namespace BlenderControls
 		{
 			if (VirtualPivot.IsValid())
 			{
-				const FTransform StartTransform = VirtualPivot->GetActiveElementStartTransform();
-				AddAxisForLock(Session->LockedAxis, &StartTransform, true);
+				VirtualPivot->ForEachElementTransform([&](const FTransform& StartTransform, bool bIsActive)
+				{
+					AddAxisForLock(Session->LockedAxis, &StartTransform, bIsActive);
+				});
 			}
 		}
 		else

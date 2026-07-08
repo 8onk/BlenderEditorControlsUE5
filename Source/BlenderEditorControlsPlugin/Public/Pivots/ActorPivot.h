@@ -37,6 +37,11 @@ namespace BlenderControls
 		virtual bool IsValid() const override { return Children.Num() > 0; }
 		virtual void BeginTransformSequence() override;
 		virtual void EndTransformSequence() override;
+		virtual void ApplyRotation(const FGrabContext& GC, float AngleRad, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
+		virtual void ApplyScale(const FVector& ScaleMultiplier, bool bUsingLocalSpace) override;
+		virtual void ApplyTranslation(const FVector& LocalDelta, bool bUsingLocalSpace) override;
+		virtual void ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
+		virtual void ForEachElementTransform(TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const override;
 		// ~FVirtualPivotBase interface
 
 		const FTransform& GetStartTransform() const { return StartPivotTransform; }

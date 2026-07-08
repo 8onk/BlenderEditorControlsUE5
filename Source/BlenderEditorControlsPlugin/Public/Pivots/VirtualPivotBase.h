@@ -4,6 +4,9 @@
 
 namespace BlenderControls
 {
+	struct FGrabContext;
+	enum class EAxisLock : uint8;
+
 	/**
 	 * Abstract base class for handling selection state and reverting transformations.
 	 * Now that InputWidgetDelta handles the actual transformation math, the pivot classes
@@ -32,8 +35,32 @@ namespace BlenderControls
 		// Intercepts the delta for manual application if a Pivot doesn't support InputWidgetDelta natively
 		virtual bool ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale) { return false; }
 
+		virtual void ApplyRotation(const FGrabContext& GC, float AngleRad, bool bUsingLocalSpace, EAxisLock LockedAxis) {}
+		virtual void ApplyScale(const FVector& ScaleMultiplier, bool bUsingLocalSpace) {}
+
+		/**
+		 * Applies a local-space numeric translation delta directly.
+		 * Used primarily for numeric keyboard input.
+		 * 
+		 * @param LocalDelta The unrotated local translation vector (e.g. [10, 0, 0] to translate 10 units on the active axis).
+		 * @param bUsingLocalSpace If true, translates each element along its own individual local rotation axes.
+		 */
+		virtual void ApplyTranslation(const FVector& LocalDelta, bool bUsingLocalSpace) {}
+
+		/**
+		 * Applies a world-space translation delta derived from mouse drag interactions.
+		 * Used primarily for viewport dragging and mouse movement interaction.
+		 * 
+		 * @param WorldDelta The absolute world-space translation delta.
+		 * @param bUsingLocalSpace If true, converts the active element's world delta to local space and maps it to other elements' local coordinate axes.
+		 * @param LockedAxis The locked transformation axis or plane restriction.
+		 */
+		virtual void ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis) {}
+
 		// Optional: hooks for transform start/end tracking
 		virtual void BeginTransformSequence() {}
 		virtual void EndTransformSequence() {}
+
+		virtual void ForEachElementTransform(TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const = 0;
 	};
 }

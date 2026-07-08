@@ -1,6 +1,4 @@
 #include "Tools/ScaleTool.h"
-
-#include "LevelEditorViewport.h"
 #include "TransformSession.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Input/Numeric/NumericInputStructs.h"
@@ -8,7 +6,6 @@
 #include "Style.h"
 #include "Pivots/VirtualPivotBase.h"
 #include "UI/TransformHUD.h"
-#include "ControlRig/ControlRigSelectionHelper.h"
 
 // NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling unlike this tool
 
@@ -40,7 +37,7 @@ namespace BlenderControls
 		InitialMousePosition = GetSession()->GetVirtualMousePos();
 		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(InitialMousePosition, PivotViewportPosition);
 		StartScale = GetActiveElementStartTransform().GetScale3D();
-		PreviousScaleMultiplier = FVector::OneVector;
+		CurrentScaleMultiplier = FVector::OneVector;
 
 		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
 		ViewportClient->Invalidate();
@@ -119,29 +116,11 @@ namespace BlenderControls
 			SnappedScaleMultiplier.Z = FMath::GridSnap(FinalScaleMultiplier.Z, SnappingIncrement);
 		}
 
-		FVector FrameScaleDelta = SnappedScaleMultiplier - PreviousScaleMultiplier;
-		if (FrameScaleDelta.IsNearlyZero())
-		{
-			return;
-		}
-
-		FVector Drag = FVector::ZeroVector;
-		FRotator Rot = FRotator::ZeroRotator;
-		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
-		ViewportClient->SetCurrentWidgetAxis(Axis);
-
-		bool bHandledManually = false;
 		if (VirtualPivot.IsValid())
 		{
-			bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, FrameScaleDelta);
+			VirtualPivot->ApplyScale(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
 		}
-		
-		if (!bHandledManually)
-		{
-			ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
-		}
-
-		PreviousScaleMultiplier = SnappedScaleMultiplier;
+		CurrentScaleMultiplier = SnappedScaleMultiplier;
 		UpdateHud();
 	}
 
@@ -203,31 +182,12 @@ namespace BlenderControls
 			break;
 		}
 
-		FVector FrameScaleDelta = ScaleMultiplier - PreviousScaleMultiplier;
-		if (FrameScaleDelta.IsNearlyZero()) return;
-
-		FVector Drag = FVector::ZeroVector;
-		FRotator Rot = FRotator::ZeroRotator;
-		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
-		ViewportClient->SetCurrentWidgetAxis(Axis);
-
-		bool bHandledManually = false;
 		if (VirtualPivot.IsValid())
 		{
-			bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, FrameScaleDelta);
+			VirtualPivot->ApplyScale(ScaleMultiplier, Session->IsUsingLocalSpace());
 		}
-		
-		if (!bHandledManually)
-		{
-			ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
-		}
-
-		PreviousScaleMultiplier = ScaleMultiplier;
-	}
-
-	void FScaleTool::UpdateHud()
-	{
-		FToolBase::UpdateHud();
+		CurrentScaleMultiplier = ScaleMultiplier;
+		UpdateHud();
 	}
 
 	void FScaleTool::OnEnd(const bool bApply)
@@ -415,7 +375,7 @@ namespace BlenderControls
 			return FText::GetEmpty();
 		}
 
-		FVector LiveScale = PreviousScaleMultiplier;
+		FVector LiveScale = CurrentScaleMultiplier;
 
 		FNumberFormattingOptions NumFmt;
 		NumFmt.MaximumFractionalDigits = 3;

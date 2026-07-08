@@ -33,7 +33,7 @@ public:
 		// FallbackMatPersp = LoadObject<UMaterialInterface>(
 		// 	nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
 		FallbackMatPersp = LoadObject<UMaterialInterface>(
-			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
+			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
 		FallbackMatOrtho = LoadObject<UMaterialInterface>(
 			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
 

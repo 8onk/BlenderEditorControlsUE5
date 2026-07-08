@@ -15,7 +15,6 @@ namespace BlenderControls
 
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
-		virtual void UpdateHud() override;
 
 		virtual void OnBegin() override;
 		virtual FText GetNumericHudText() const override;
@@ -32,6 +31,7 @@ namespace BlenderControls
 	private:
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
 		FVector GetSnapOffset(const FVector LiveDelta) const;
+		void ApplyTranslationInternal(const FVector& TotalDelta, bool bIsNumeric);
 
 		FVector StartActiveLocation;
 		FVector StartVirtualPivotLocation;
