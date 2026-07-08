@@ -81,7 +81,8 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"AnimationCore",
 				"SubobjectEditor",
 				"Kismet",
-				"BlueprintGraph"
+				"BlueprintGraph",
+				"SubobjectDataInterface"
 			}
 		);
 

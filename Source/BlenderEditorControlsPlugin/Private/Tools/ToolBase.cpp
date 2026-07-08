@@ -1,3 +1,6 @@
+// #TODO CONTROL RIG SELECTION GETS DESELECTED WHEN CANCELING / ACCEPTING A TRANSFORMATION. 
+// #TODO abandon InputWidgetDelta() 
+
 #include "Tools/ToolBase.h"
 #include "Editor.h"
 #include "EditorModeManager.h"
@@ -132,25 +135,18 @@ namespace BlenderControls
 
 			ViewportClient->TrackingStopped();
 
-			if (!bApply)
+			if (!bApply && VirtualPivot.IsValid())
 			{
-				if (Session->GetSelectionType() == ESelectionType::SCSTreeNodes)
-				{
-					// For SCS Editor, the internal transaction is committed by TrackingStopped().
-					// We undo it immediately to revert to start state.
-					GEditor->UndoTransaction();
-				}
-				else if (VirtualPivot.IsValid())
-				{
-					// For Actors and Control Rig, manually revert back to the start transform 
-					// to be perfectly safe before the session kills the transaction.
-					VirtualPivot->RevertToStartState();
-				}
+				// Manually revert elements to start state on cancel. 
+				// For SCS Editor, this natively resets both the Template and Preview instances perfectly.
+				// For Actors/ControlRig, this ensures everything snaps back cleanly before the transaction closes.
+				VirtualPivot->RevertToStartState();
 			}
 
 			// Force viewport redraw
 			GEditor->NoteSelectionChange(true);
 			GEditor->RedrawLevelEditingViewports(true);
+			Viewport->Invalidate();
 		}
 
 		// End transform proxy sequence for actor-based transforms

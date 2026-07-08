@@ -3,7 +3,11 @@
 #include "CoreMinimal.h"
 #include "Pivots/VirtualPivotBase.h"
 
+struct FSubobjectData;
 class USceneComponent;
+
+class FBlueprintEditor;
+class FSubobjectEditorTreeNode;
 
 namespace BlenderControls
 {
@@ -14,7 +18,7 @@ namespace BlenderControls
 	class FSCSPivot : public FVirtualPivotBase
 	{
 	public:
-		explicit FSCSPivot(const TArray<USceneComponent*>& InSelection);
+		FSCSPivot(FBlueprintEditor* InBlueprintEditor, const TArray<TSharedPtr<FSubobjectEditorTreeNode>>& InNodes);
 		virtual ~FSCSPivot() override = default;
 
 		// FVirtualPivotBase interface
@@ -22,22 +26,23 @@ namespace BlenderControls
 		virtual FTransform GetActiveElementStartTransform() const override { return ActiveComponentStartTransform; }
 		virtual FVector GetActiveElementCurrentLocation() const override;
 		virtual void RevertToStartState() override;
-		virtual bool IsValid() const override { return Components.Num() > 0; }
+		virtual bool IsValid() const override { return Nodes.Num() > 0; }
 		// ~FVirtualPivotBase interface
 
 	private:
 		void ComputeMedianPivot();
 		void ComputeActiveElementPivot();
 
-		struct FComponentInfo
+		struct FSCSNodeInfo
 		{
-			USceneComponent* Component;
+			const FSubobjectData* CachedData = nullptr;
 			FTransform StartTransform;
 		};
 
 		FTransform StartPivotTransform = FTransform::Identity;
 		FTransform ActiveComponentStartTransform = FTransform::Identity;
-		USceneComponent* ActiveComponent = nullptr;
-		TArray<FComponentInfo> Components;
+		const FSubobjectData* ActiveCachedData = nullptr;
+		TArray<FSCSNodeInfo> Nodes;
+		FBlueprintEditor* BlueprintEditorPtr = nullptr;
 	};
 } // namespace BlenderControls

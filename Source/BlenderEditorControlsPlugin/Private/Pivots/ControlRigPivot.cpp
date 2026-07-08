@@ -76,4 +76,34 @@ namespace BlenderControls
 			FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, Element.StartTransform, true);
 		}
 	}
+
+	bool FControlRigPivot::ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale)
+	{
+		if (Elements.Num() == 0) return false;
+
+		for (const FControlRigElementInfo& Element : Elements)
+		{
+			FTransform CurrentTransform = FControlRigSelectionHelper::GetElementGlobalTransform(Element.ElementKey);
+			FTransform NewTransform = CurrentTransform;
+			
+			// Apply Translation (incremental)
+			NewTransform.SetLocation(CurrentTransform.GetLocation() + InDrag);
+
+			// Apply Rotation (incremental)
+			if (!InRot.IsZero())
+			{
+				NewTransform.SetRotation(InRot.Quaternion() * CurrentTransform.GetRotation());
+			}
+
+			// Apply Scale (incremental)
+			if (!InScale.IsNearlyZero())
+			{
+				NewTransform.SetScale3D(CurrentTransform.GetScale3D() + InScale);
+			}
+
+			FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+		}
+
+		return true;
+	}
 } // namespace BlenderControls

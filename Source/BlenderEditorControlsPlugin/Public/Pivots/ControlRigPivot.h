@@ -26,6 +26,7 @@ namespace BlenderControls
 		virtual FVector GetActiveElementCurrentLocation() const override { return FControlRigSelectionHelper::GetElementGlobalTransform(ActiveElement.ElementKey).GetLocation(); }
 		virtual void RevertToStartState() override;
 		virtual bool IsValid() const override { return Elements.Num() > 0; }
+		virtual bool ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale) override;
 		// ~FVirtualPivotBase interface
 
 		const FTransform& GetStartTransform() const { return StartPivotTransform; }

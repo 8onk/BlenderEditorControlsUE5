@@ -98,7 +98,17 @@ namespace BlenderControls
 
 				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
 				ViewportClient->SetCurrentWidgetAxis(Axis);
-				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				
+				bool bHandledManually = false;
+				if (VirtualPivot.IsValid())
+				{
+					bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, Scale);
+				}
+				
+				if (!bHandledManually)
+				{
+					ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				}
 			}
 
 			PreviousTrackballMouseDelta = TrackballMouseDelta;
@@ -146,15 +156,15 @@ namespace BlenderControls
 				EAxisLock LockedAxis = Session->GetLockedAxis();
 				if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ)
 				{
-					Rot.Roll = FrameAngleDeg;
+					Rot.Roll = -FrameAngleDeg;
 				}
 				else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
 				{
-					Rot.Pitch = FrameAngleDeg;
+					Rot.Pitch = -FrameAngleDeg;
 				}
 				else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
 				{
-					Rot.Yaw = FrameAngleDeg;
+					Rot.Yaw = -FrameAngleDeg;
 				}
 				else
 				{
@@ -165,7 +175,17 @@ namespace BlenderControls
 
 				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
 				ViewportClient->SetCurrentWidgetAxis(Axis);
-				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				
+				bool bHandledManually = false;
+				if (VirtualPivot.IsValid())
+				{
+					bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, Scale);
+				}
+				
+				if (!bHandledManually)
+				{
+					ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				}
 			}
 
 			PreviousAngleRad = AngleToApplyRad;
@@ -218,7 +238,17 @@ namespace BlenderControls
 
 				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
 				ViewportClient->SetCurrentWidgetAxis(Axis);
-				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				
+				bool bHandledManually = false;
+				if (VirtualPivot.IsValid())
+				{
+					bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, Scale);
+				}
+				
+				if (!bHandledManually)
+				{
+					ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				}
 			}
 
 			PreviousTrackballMouseDelta = NumericTrackballDelta;
@@ -263,7 +293,17 @@ namespace BlenderControls
 
 				const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
 				ViewportClient->SetCurrentWidgetAxis(Axis);
-				ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				
+				bool bHandledManually = false;
+				if (VirtualPivot.IsValid())
+				{
+					bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, Scale);
+				}
+				
+				if (!bHandledManually)
+				{
+					ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, Scale);
+				}
 			}
 
 			PreviousAngleRad = RadiansToRotate;

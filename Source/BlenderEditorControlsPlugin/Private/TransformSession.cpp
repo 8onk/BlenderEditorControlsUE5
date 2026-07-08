@@ -252,39 +252,16 @@ namespace BlenderControls
 			// Create the Control Rig pivot for transformations
 			VirtualPivot = MakeShared<FControlRigPivot>(SelectedRigElements, PivotMode);
 		}
-		//Selected components in blueprint editor graph
 		else if (SelectionType == ESelectionType::SCSTreeNodes)
 		{
-			const FBlueprintEditor* BPEditor = GetActiveBlueprintEditor();
+			FBlueprintEditor* BPEditor = GetActiveBlueprintEditor();
 			if (!BPEditor)
 			{
 				return;
 			}
 
-			TArray<USceneComponent*> SelectedComponents;
-			for (const TSharedPtr<FSubobjectEditorTreeNode>& Node : BPEditor->GetSelectedSubobjectEditorTreeNodes())
-			{
-				if (!Node.IsValid())
-				{
-					continue;
-				}
-
-				const UObject* UnderlyingObject = Node->GetObject();
-				if (USceneComponent* SceneComponent = const_cast<USceneComponent*>(Cast<USceneComponent>(
-					UnderlyingObject)))
-				{
-					SelectedComponents.Add(SceneComponent);
-				}
-				else if (AActor* Actor = const_cast<AActor*>(Cast<AActor>(UnderlyingObject)))
-				{
-					if (USceneComponent* RootComp = Actor->GetRootComponent())
-					{
-						SelectedComponents.Add(RootComp);
-					}
-				}
-			}
-
-			VirtualPivot = MakeShared<FSCSPivot>(SelectedComponents);
+			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->GetSelectedSubobjectEditorTreeNodes();
+			VirtualPivot = MakeShared<FSCSPivot>(BPEditor, SelectedNodes);
 		}
 		//Actors selected in standard level viewport
 		else

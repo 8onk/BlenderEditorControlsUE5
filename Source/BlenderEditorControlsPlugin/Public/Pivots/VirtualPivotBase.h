@@ -29,6 +29,9 @@ namespace BlenderControls
 		// Returns true if there are elements selected
 		virtual bool IsValid() const = 0;
 
+		// Intercepts the delta for manual application if a Pivot doesn't support InputWidgetDelta natively
+		virtual bool ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale) { return false; }
+
 		// Optional: hooks for transform start/end tracking
 		virtual void BeginTransformSequence() {}
 		virtual void EndTransformSequence() {}

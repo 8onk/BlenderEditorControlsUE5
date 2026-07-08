@@ -139,7 +139,16 @@ namespace BlenderControls
 		ViewportClient->SetCurrentWidgetAxis(Axis);
 
 		// Let the active polymorphic ViewportClient (Level, SCS, etc.) handle the drag delta
-		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
+		bool bHandledManually = false;
+		if (VirtualPivot.IsValid())
+		{
+			bHandledManually = VirtualPivot->ApplyManualTransformDelta(FrameDelta, Rot, Scale);
+		}
+
+		if (!bHandledManually)
+		{
+			ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, FrameDelta, Rot, Scale);
+		}
 
 		PreviousFrameTotalDelta = LiveDelta;
 		UpdateHud();

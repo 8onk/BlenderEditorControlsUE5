@@ -130,7 +130,16 @@ namespace BlenderControls
 		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
 		ViewportClient->SetCurrentWidgetAxis(Axis);
 
-		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
+		bool bHandledManually = false;
+		if (VirtualPivot.IsValid())
+		{
+			bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, FrameScaleDelta);
+		}
+		
+		if (!bHandledManually)
+		{
+			ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
+		}
 
 		PreviousScaleMultiplier = SnappedScaleMultiplier;
 		UpdateHud();
@@ -202,7 +211,16 @@ namespace BlenderControls
 		const EAxisList::Type Axis = Session->GetResolvedWidgetAxis();
 		ViewportClient->SetCurrentWidgetAxis(Axis);
 
-		ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
+		bool bHandledManually = false;
+		if (VirtualPivot.IsValid())
+		{
+			bHandledManually = VirtualPivot->ApplyManualTransformDelta(Drag, Rot, FrameScaleDelta);
+		}
+		
+		if (!bHandledManually)
+		{
+			ViewportClient->InputWidgetDelta(ViewportClient->Viewport, Axis, Drag, Rot, FrameScaleDelta);
+		}
 
 		PreviousScaleMultiplier = ScaleMultiplier;
 	}
