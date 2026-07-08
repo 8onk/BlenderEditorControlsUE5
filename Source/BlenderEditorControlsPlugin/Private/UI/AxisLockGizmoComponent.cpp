@@ -1,4 +1,4 @@
-﻿#include "UI/AxisLockGizmoComponent.h"
+#include "UI/AxisLockGizmoComponent.h"
 #include "PrimitiveSceneProxy.h"
 #include "DynamicMeshBuilder.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
@@ -22,6 +22,7 @@ public:
 		  , LineLength(Comp->LineLength)
 		  , Color(Comp->AxisColor)
 		  , ThicknessPx(Comp->ThicknessPx)
+		  , bIsWireframeView(Comp->bIsWireframeView)
 	{
 		const ERHIFeatureLevel::Type FL = GetScene().GetFeatureLevel();
 
@@ -69,9 +70,9 @@ public:
 			UMaterialInterface* ActiveMat =
 				DrawMaterialFromComponent
 					? DrawMaterialFromComponent
-					: (View->IsPerspectiveProjection()
-						   ? FallbackMatPersp
-						   : FallbackMatOrtho);
+					: (bIsWireframeView
+						   ? FallbackMatOrtho
+						   : FallbackMatPersp);
 
 			if (!ActiveMat) { ActiveMat = UMaterial::GetDefaultMaterial(EMaterialDomain::MD_Surface); }
 
@@ -105,6 +106,7 @@ private:
 	FLinearColor Color;
 	float ThicknessPx = 2.0f;
 	bool bDashed;
+	bool bIsWireframeView;
 	const FMaterialRenderProxy* MaterialProxy = nullptr;
 	UMaterialInterface* DrawMaterial = nullptr;
 	FMaterialRelevance MaterialRelevance;

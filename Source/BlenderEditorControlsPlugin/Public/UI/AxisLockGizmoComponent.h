@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Components/PrimitiveComponent.h"
 #include "AxisLockGizmoComponent.generated.h"
 
@@ -17,6 +17,7 @@ public:
 	UMaterialInterface* AxisMaterial = nullptr;
 	UMaterialInstanceDynamic* AxisMID = nullptr;
 	FLinearColor AxisColor = FLinearColor::Red; // default
+	bool bIsWireframeView = false;
 	void SetAxisColor(const FLinearColor& InColor);
 
 	virtual void OnRegister() override;
