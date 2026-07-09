@@ -142,7 +142,6 @@ namespace BlenderControls
 			}
 
 			// Force viewport redraw
-			GEditor->NoteSelectionChange(true);
 			GEditor->RedrawLevelEditingViewports(true);
 			Viewport->Invalidate();
 		}
