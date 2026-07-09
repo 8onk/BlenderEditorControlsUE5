@@ -10,36 +10,48 @@
 
 namespace BlenderControls
 {
-	FSCSPivot::FSCSPivot(FBlueprintEditor* InBlueprintEditor, const TArray<TSharedPtr<FSubobjectEditorTreeNode>>& InNodes)
+	FSCSPivot::FSCSPivot(FBlueprintEditor* InBlueprintEditor,
+	                     const TArray<TSharedPtr<FSubobjectEditorTreeNode>>& InNodes)
 		: BlueprintEditorPtr(InBlueprintEditor)
 	{
-		if (!BlueprintEditorPtr) return;
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
 
 		for (const TSharedPtr<FSubobjectEditorTreeNode>& Node : InNodes)
 		{
-			if (!Node.IsValid()) continue;
+			if (!Node.IsValid())
+			{
+				continue;
+			}
 
 			const FSubobjectData* Data = Node->GetDataSource();
-			if (!Data) continue;
+			if (!Data)
+			{
+				continue;
+			}
 
 			FSCSNodeInfo Info;
 			Info.CachedData = Data;
 
-			// We still need to fetch once here to get the StartTransform
-			USceneComponent* TemplateComponent = const_cast<USceneComponent*>(Data->GetObjectForBlueprint<USceneComponent>(Blueprint));
-			USceneComponent* PreviewInstance = const_cast<USceneComponent*>(Cast<USceneComponent>(Data->FindComponentInstanceInActor(PreviewActor)));
+			USceneComponent* PreviewInstance =
+				const_cast<USceneComponent*>(Cast<USceneComponent>(Data->FindComponentInstanceInActor(PreviewActor)));
+			USceneComponent* TemplateComponent =
+				const_cast<USceneComponent*>(Data->GetObjectForBlueprint<USceneComponent>(Blueprint));
 
-			if (TemplateComponent)
-			{
-				Info.StartTransform = TemplateComponent->GetComponentTransform();
-				Nodes.Add(Info);
-			}
-			else if (PreviewInstance)
+			if (PreviewInstance)
 			{
 				Info.StartTransform = PreviewInstance->GetComponentTransform();
+				Nodes.Add(Info);
+			}
+			// Resort to template component in case PreviewInstance fails. 
+			else if (TemplateComponent)
+			{
+				Info.StartTransform = TemplateComponent->GetComponentTransform();
 				Nodes.Add(Info);
 			}
 		}
@@ -57,7 +69,8 @@ namespace BlenderControls
 		if (BlueprintEditorPtr && ActiveCachedData)
 		{
 			AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
-			if (USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(ActiveCachedData->FindComponentInstanceInActor(PreviewActor))))
+			if (USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
+				ActiveCachedData->FindComponentInstanceInActor(PreviewActor))))
 			{
 				return LivePreview->GetComponentLocation();
 			}
@@ -67,16 +80,22 @@ namespace BlenderControls
 
 	void FSCSPivot::RevertToStartState()
 	{
-		if (!BlueprintEditorPtr) return;
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
 
 		for (const FSCSNodeInfo& Info : Nodes)
 		{
-			if (!Info.CachedData) continue;
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 
-			// 1. DYNAMICALLY re-fetch the Template
+			// DYNAMICALLY re-fetch the Template
 			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(
 				Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
 
@@ -85,7 +104,7 @@ namespace BlenderControls
 				LiveTemplate->SetWorldTransform(Info.StartTransform);
 			}
 
-			// 2. DYNAMICALLY re-fetch the Preview Instance (this guarantees we get the newly spawned one)
+			// DYNAMICALLY re-fetch the Preview Instance (this guarantees we get the newly spawned one)
 			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
 				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 
@@ -95,11 +114,11 @@ namespace BlenderControls
 			}
 		}
 
-		// 3. Force viewport redraw
 		if (GEditor)
 		{
 			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient()))
+			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
+				->GetClient()))
 			{
 				ViewportClient->Invalidate();
 			}
@@ -135,7 +154,8 @@ namespace BlenderControls
 		}
 	}
 
-	void FSCSPivot::ApplyRotation(const FGrabContext& GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis)
+	void FSCSPivot::ApplyRotation(const FGrabContext& GC, float AngleToRotateRad, bool bUsingLocalSpace,
+	                              EAxisLock LockedAxis)
 	{
 		if (!BlueprintEditorPtr) return;
 
@@ -165,13 +185,20 @@ namespace BlenderControls
 				FVector LocalRotationAxis;
 				switch (LockedAxis)
 				{
-				case EAxisLock::X: LocalRotationAxis = X; break;
-				case EAxisLock::Y: LocalRotationAxis = Y; break;
-				case EAxisLock::Z: LocalRotationAxis = Z; break;
-				case EAxisLock::XY: LocalRotationAxis = Z; break;
-				case EAxisLock::YZ: LocalRotationAxis = X; break;
-				case EAxisLock::XZ: LocalRotationAxis = Y; break;
-				case EAxisLock::All: LocalRotationAxis = GC.ViewForward; break;
+				case EAxisLock::X: LocalRotationAxis = X;
+					break;
+				case EAxisLock::Y: LocalRotationAxis = Y;
+					break;
+				case EAxisLock::Z: LocalRotationAxis = Z;
+					break;
+				case EAxisLock::XY: LocalRotationAxis = Z;
+					break;
+				case EAxisLock::YZ: LocalRotationAxis = X;
+					break;
+				case EAxisLock::XZ: LocalRotationAxis = Y;
+					break;
+				case EAxisLock::All: LocalRotationAxis = GC.ViewForward;
+					break;
 				default: LocalRotationAxis = FVector::ZeroVector;
 				}
 
@@ -189,24 +216,28 @@ namespace BlenderControls
 			else
 			{
 				const FVector CurrentLocation = Info.StartTransform.GetLocation();
-				const FVector NewLocation = PivotPosition + TargetRotation.RotateVector(CurrentLocation - PivotPosition);
+				const FVector NewLocation = PivotPosition + TargetRotation.
+					RotateVector(CurrentLocation - PivotPosition);
 				const FQuat NewRotation = (TargetRotation * Info.StartTransform.GetRotation()).GetNormalized();
 
 				NewTransform.SetLocation(NewLocation);
 				NewTransform.SetRotation(NewRotation);
 			}
 
-			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
+			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+				USceneComponent>(Blueprint));
 			if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
 
-			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
+			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
+				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 		}
 
 		if (GEditor)
 		{
 			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient()))
+			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
+				->GetClient()))
 			{
 				ViewportClient->Invalidate();
 			}
@@ -234,7 +265,8 @@ namespace BlenderControls
 			{
 				const FVector LocalPivotToComponentVec = ComponentRotation.UnrotateVector(PivotToComponentVec);
 				const FVector ScaledLocalPivotToComponentVec = LocalPivotToComponentVec * ScaleMultiplier;
-				const FVector GlobalPivotToComponentVec = ComponentRotation.RotateVector(ScaledLocalPivotToComponentVec);
+				const FVector GlobalPivotToComponentVec = ComponentRotation.
+					RotateVector(ScaledLocalPivotToComponentVec);
 				NewPosition = GetStartLocation() + GlobalPivotToComponentVec;
 
 				NewScale = ComponentInitialTransform.GetScale3D() * ScaleMultiplier;
@@ -263,24 +295,28 @@ namespace BlenderControls
 			NewTransform.SetLocation(NewPosition);
 			NewTransform.SetScale3D(NewScale);
 
-			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
+			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+				USceneComponent>(Blueprint));
 			if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
 
-			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
+			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
+				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 		}
 
 		if (GEditor)
 		{
 			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient()))
+			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
+				->GetClient()))
 			{
 				ViewportClient->Invalidate();
 			}
 		}
 	}
 
-	void FSCSPivot::ForEachElementTransform(TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const
+	void FSCSPivot::ForEachElementTransform(
+		TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const
 	{
 		for (const FSCSNodeInfo& Info : Nodes)
 		{
@@ -309,17 +345,20 @@ namespace BlenderControls
 			FTransform NewTransform = Info.StartTransform;
 			NewTransform.SetLocation(Info.StartTransform.GetLocation() + WorldSpaceOffset);
 
-			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
+			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+				USceneComponent>(Blueprint));
 			if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
 
-			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
+			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
+				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 		}
 
 		if (GEditor)
 		{
 			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient()))
+			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
+				->GetClient()))
 			{
 				ViewportClient->Invalidate();
 			}
@@ -354,10 +393,12 @@ namespace BlenderControls
 					NewTransform.SetLocation(WorldOffset);
 				}
 
-				USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
+				USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+					USceneComponent>(Blueprint));
 				if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
 
-				USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
+				USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
+					Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 				if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 			}
 		}
@@ -370,10 +411,12 @@ namespace BlenderControls
 				FTransform NewTransform = Info.StartTransform;
 				NewTransform.SetLocation(Info.StartTransform.GetLocation() + WorldDelta);
 
-				USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
+				USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+					USceneComponent>(Blueprint));
 				if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
 
-				USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
+				USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
+					Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 				if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 			}
 		}
@@ -381,7 +424,8 @@ namespace BlenderControls
 		if (GEditor)
 		{
 			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient()))
+			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
+				->GetClient()))
 			{
 				ViewportClient->Invalidate();
 			}
