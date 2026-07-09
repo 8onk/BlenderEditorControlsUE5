@@ -50,13 +50,13 @@ public:
 
 	// --- VISUALS (Cursors & HUD) ---
 	UPROPERTY(EditAnywhere, config, Category = "Visuals | Axis Colors")
-	FLinearColor AxisColorX = FLinearColor(FColor::FromHex(TEXT("9D1E00FF")));
+	FLinearColor AxisColorX = FLinearColor(FColor::FromHex(TEXT("FA3500FF")));
 
 	UPROPERTY(EditAnywhere, config, Category = "Visuals | Axis Colors")
-	FLinearColor AxisColorY = FLinearColor(FColor::FromHex(TEXT("5B9400FF")));
+	FLinearColor AxisColorY = FLinearColor(FColor::FromHex(TEXT("9BF700FF")));
 
 	UPROPERTY(EditAnywhere, config, Category = "Visuals | Axis Colors")
-	FLinearColor AxisColorZ = FLinearColor(FColor::FromHex(TEXT("004B9BFF")));
+	FLinearColor AxisColorZ = FLinearColor(FColor::FromHex(TEXT("007BF6FF")));
 
 	UPROPERTY(EditAnywhere, config, Category = "Visuals | Gizmos", meta = (ClampMin = "0.5", ClampMax = "5.0"))
 	float AxisLineThickness = 2.5f;
