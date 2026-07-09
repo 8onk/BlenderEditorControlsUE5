@@ -26,6 +26,7 @@
 #include "Utils/MathHelpers.h"
 #include "ControlRig/ControlRigSelectionHelper.h"
 #include "BlueprintEditor.h"
+#include "SEditorViewport.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTransformSession, Log, All);
 
@@ -85,36 +86,33 @@ namespace BlenderControls
 				return ViewportClient;
 			}
 		}
-		return nullptr;
-	}
-
-	bool GetActiveTabName(FName& OutTabName)
+	FEditorViewportClient* GetHoveredViewportClient()
 	{
-		TSharedPtr<SDockTab> ActiveTab = FGlobalTabmanager::Get()->GetActiveTab();
-		if (ActiveTab.IsValid())
+		FWidgetPath WidgetPath = FSlateApplication::Get().LocateWindowUnderMouse(
+			FSlateApplication::Get().GetCursorPos(), 
+			FSlateApplication::Get().GetInteractiveTopLevelWindows()
+		);
+
+		if (WidgetPath.IsValid())
 		{
-			OutTabName = ActiveTab->GetLayoutIdentifier().TabType;
-			UE_LOG(LogTransformSession, Log, TEXT("Active tab: %s"), *OutTabName.ToString());
-			return true;
+			for (FEditorViewportClient* ViewportClient : GEditor->GetAllViewportClients())
+			{
+				if (!ViewportClient) continue;
+
+				TSharedPtr<SEditorViewport> ViewportWidget = ViewportClient->GetEditorViewportWidget();
+				if (ViewportWidget.IsValid() && WidgetPath.ContainsWidget(ViewportWidget.Get()))
+				{
+					return ViewportClient;
+				}
+			}
 		}
 
-		return false;
+		return nullptr;
 	}
 
 	FBlueprintEditor* FTransformSession::GetActiveBlueprintEditor()
 	{
 		if (!GEditor)
-		{
-			return nullptr;
-		}
-
-		FName ActiveTabName;
-		if (!GetActiveTabName(ActiveTabName))
-		{
-			return nullptr;
-		}
-
-		if (ActiveTabName != TEXT("SCSViewport"))
 		{
 			return nullptr;
 		}
@@ -154,53 +152,43 @@ namespace BlenderControls
 			return false;
 		}
 
-		//Is any viewport focused?
-		ActiveViewportClient = GetFocusedViewportClient();
+		//Is any viewport focused or hovered?
+		ActiveViewportClient = GetHoveredViewportClient();
 		if (!ActiveViewportClient)
 		{
 			return false;
 		}
 
-		if (const FBlueprintEditor* BPEditor = GetActiveBlueprintEditor())
+		if (ActiveViewportClient->IsLevelEditorClient())
 		{
-			if (BPEditor->GetSelectedSubobjectEditorTreeNodes().Num())
+			const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
+			const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
+			const int32 ActorCount = GEditor->GetSelectedActorCount();
+			
+			if (bControlRigModeActive && bHasRigElements)
 			{
-				SelectionType = ESelectionType::SCSTreeNodes;
+				SelectionType = ESelectionType::ControlRig;
+				return true;
+			}
+			
+			if (ActorCount > 0)
+			{
+				SelectionType = ESelectionType::Actors;
 				return true;
 			}
 		}
-
-		const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
-		const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
-		const int32 ActorCount = GEditor->GetSelectedActorCount();
-
-		if (ActorCount > 0)
+		else
 		{
-			USelection* ActorSelection = GEditor->GetSelectedActors();
-			for (FSelectionIterator It(*ActorSelection); It; ++It)
+			if (const FBlueprintEditor* BPEditor = GetActiveBlueprintEditor())
 			{
-				if (AActor* Actor = Cast<AActor>(*It))
+				if (BPEditor->GetSelectedSubobjectEditorTreeNodes().Num())
 				{
-					UE_LOG(LogTransformSession, Warning, TEXT("  Selected Actor: %s (Class: %s)"),
-					       *Actor->GetName(), *Actor->GetClass()->GetName());
+					SelectionType = ESelectionType::SCSTreeNodes;
+					return true;
 				}
 			}
 		}
 
-		// First, check if we have Control Rig elements selected (Animation Mode + Control Rig)
-		// This takes priority because the user might have both actors and rig elements selected
-		if (bControlRigModeActive && bHasRigElements)
-		{
-			SelectionType = ESelectionType::ControlRig;
-			return true;
-		}
-
-		// Fall back to standard actor selection
-		if (ActorCount > 0)
-		{
-			SelectionType = ESelectionType::Actors;
-			return true;
-		}
 
 		SelectionType = ESelectionType::None;
 		return false;
