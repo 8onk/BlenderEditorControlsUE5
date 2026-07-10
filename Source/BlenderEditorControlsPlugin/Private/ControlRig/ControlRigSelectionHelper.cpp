@@ -165,9 +165,19 @@ namespace BlenderControls
 		}
 
 		FTransform HostingActorTransform = FTransform::Identity;
-		if (AActor* HostingActor = ControlRig->GetHostingActor())
+		if (TSharedPtr<IControlRigObjectBinding> ObjectBinding = ControlRig->GetObjectBinding())
 		{
-			HostingActorTransform = HostingActor->GetActorTransform();
+			if (AActor* BoundActor = ObjectBinding->GetHostingActor())
+			{
+				HostingActorTransform = BoundActor->GetActorTransform();
+			}
+		}
+		if (HostingActorTransform.Equals(FTransform::Identity))
+		{
+			if (const AActor* HostingActor = ControlRig->GetTypedOuter<AActor>())
+			{
+				HostingActorTransform = HostingActor->GetActorTransform();
+			}
 		}
 		const FTransform RigSpaceTransform = NewTransform.GetRelativeTransform(HostingActorTransform);
 
@@ -221,28 +231,21 @@ namespace BlenderControls
 
 		const FTransform RigSpaceTransform = Hierarchy->GetGlobalTransform(ElementKey);
 		FTransform HostingActorTransform = FTransform::Identity;
-		if (AActor* HostingActor = ControlRig->GetHostingActor())
+		if (TSharedPtr<IControlRigObjectBinding> ObjectBinding = ControlRig->GetObjectBinding())
 		{
-			HostingActorTransform = HostingActor->GetActorTransform();
+			if (AActor* BoundActor = ObjectBinding->GetHostingActor())
+			{
+				HostingActorTransform = BoundActor->GetActorTransform();
+			}
+		}
+		if (HostingActorTransform.Equals(FTransform::Identity))
+		{
+			if (const AActor* HostingActor = ControlRig->GetTypedOuter<AActor>())
+			{
+				HostingActorTransform = HostingActor->GetActorTransform();
+			}
 		}
 		return RigSpaceTransform * HostingActorTransform;
-	}
-
-	FVector FControlRigSelectionHelper::ComputeMedianPivotLocation()
-	{
-		TArray<FControlRigElementInfo> Elements;
-		if (!GetSelectedRigElements(Elements) || Elements.Num() == 0)
-		{
-			return FVector::ZeroVector;
-		}
-
-		FVector Accum = FVector::ZeroVector;
-		for (const FControlRigElementInfo& Element : Elements)
-		{
-			Accum += Element.StartTransform.GetLocation();
-		}
-
-		return Accum / Elements.Num();
 	}
 
 	void FControlRigSelectionHelper::BeginTransaction(const FText& TransactionName)
