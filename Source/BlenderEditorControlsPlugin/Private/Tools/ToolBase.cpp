@@ -141,7 +141,13 @@ namespace BlenderControls
 				VirtualPivot->RevertToStartState();
 			}
 
-			// Force viewport redraw
+			// NoteSelectionChange, updates the gizmo to render at the object's new position. However, for control
+			// rig selection, this has unintended effect of resetting selection. Ignoring this call, does not
+			// result in a stale gizmo however, therefore can be safely bypassed. 
+			if (!Session->IsControlRigSelection())
+			{
+				GEditor->NoteSelectionChange(true);
+			}
 			GEditor->RedrawLevelEditingViewports(true);
 			Viewport->Invalidate();
 		}
