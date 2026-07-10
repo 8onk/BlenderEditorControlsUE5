@@ -7,7 +7,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 2 || ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
 #include "Brushes/SlateRoundedBoxBrush.h"
 #endif
 

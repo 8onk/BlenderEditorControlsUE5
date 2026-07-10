@@ -1,5 +1,4 @@
 // #TODO CONTROL RIG SELECTION GETS DESELECTED WHEN CANCELING / ACCEPTING A TRANSFORMATION. 
-// #TODO abandon InputWidgetDelta() 
 
 #include "Tools/ToolBase.h"
 #include "Editor.h"
@@ -135,9 +134,6 @@ namespace BlenderControls
 
 			if (!bApply && VirtualPivot.IsValid())
 			{
-				// Manually revert elements to start state on cancel. 
-				// For SCS Editor, this natively resets both the Template and Preview instances perfectly.
-				// For Actors/ControlRig, this ensures everything snaps back cleanly before the transaction closes.
 				VirtualPivot->RevertToStartState();
 			}
 
@@ -218,28 +214,35 @@ namespace BlenderControls
 	void FToolBase::RedrawAxisLines()
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return;
+		}
 
 		ClearAxisGizmos();
 
 		// Lambda for adding axis gizmos - works with optional transform info
 		auto AddAxisWithTransform = [&](EAxisLock Axis, const FTransform* ElementTransform, bool bIsActiveElement)
 		{
-			FVector Origin, AxisDir;
+			FVector GizmoOriginPoint, GizmoDir;
+			// For local space, draw gizmo aligned with the local axis' of the object. 
 			if (ElementTransform && Session->bUsingLocalSpace)
 			{
-				Origin = ElementTransform->GetLocation();
+				GizmoOriginPoint = ElementTransform->GetLocation();
 				const FVector Local =
 					(Axis == EAxisLock::X)
 						? FVector::XAxisVector
 						: (Axis == EAxisLock::Y)
 						? FVector::YAxisVector
 						: FVector::ZAxisVector;
-				AxisDir = ElementTransform->TransformVectorNoScale(Local);
+				GizmoDir = ElementTransform->TransformVectorNoScale(Local);
 			}
+			// For global space axis lock, use the shared pivot position. 
 			else
 			{
-				Origin = GetPivotStartLocation();
-				AxisDir = GetAxisVector(Axis);
+				GizmoOriginPoint = GetPivotStartLocation();
+				UE_LOG(LogTemp, Log, TEXT("Gizmo global space axis lock Origin: %s"), *GizmoOriginPoint.ToString());
+				GizmoDir = GetAxisVector(Axis);
 			}
 
 			FLinearColor Color;
@@ -260,7 +263,7 @@ namespace BlenderControls
 
 			constexpr float Length = WORLD_MAX;
 
-			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(Origin, AxisDir, Color,
+			if (UAxisLockGizmoComponent* Comp = SpawnAxisGizmo(GizmoOriginPoint, GizmoDir, Color,
 			                                                   GetDefault<UBlenderControlsSettings>()->
 			                                                   AxisLineThickness, Length))
 			{
@@ -374,6 +377,10 @@ namespace BlenderControls
 	FVector FToolBase::GetAxisVector(const EAxisLock InAxis) const
 	{
 		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return FVector::ZeroVector;
+		}
 
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
@@ -560,11 +567,6 @@ namespace BlenderControls
 
 		const FVector2D CurrentGlobalPos = FSlateApplication::Get().GetCursorPos();
 		const FVector2D TrueMouseDelta = CurrentGlobalPos - Session->GlobalCursorAnchor;
-
-		// UE_LOG(LogTemp, Warning, TEXT("[HandleMouseMovement] GlobalPos: %s | GlobalAnchor: %s | TrueDelta: %s"),
-		//        *CurrentGlobalPos.ToString(),
-		//        *Session->GlobalCursorAnchor.ToString(),
-		//        *TrueMouseDelta.ToString());
 
 		if (TrueMouseDelta.IsNearlyZero())
 		{
@@ -779,5 +781,4 @@ namespace BlenderControls
 		}
 		return FVector::ZeroVector;
 	}
-
 } // namespace BlenderControls

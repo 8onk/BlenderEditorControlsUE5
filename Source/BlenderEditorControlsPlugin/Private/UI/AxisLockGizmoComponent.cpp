@@ -6,7 +6,7 @@
 #else
 #endif
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION != 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 #include "Materials/MaterialRenderProxy.h"
 #include "MaterialDomain.h"
 #endif
@@ -105,10 +105,7 @@ private:
 	float LineLength;
 	FLinearColor Color;
 	float ThicknessPx = 2.0f;
-	bool bDashed;
 	bool bIsWireframeView;
-	const FMaterialRenderProxy* MaterialProxy = nullptr;
-	UMaterialInterface* DrawMaterial = nullptr;
 	FMaterialRelevance MaterialRelevance;
 	UMaterialInterface* DrawMaterialFromComponent = nullptr;
 	UMaterialInterface* FallbackMatPersp = nullptr;
@@ -208,21 +205,21 @@ private:
 			const FVector v3 = P1 + Right1 * halfW1;
 
 			// Tangents per-end (optional but good)
-			const FVector3f TangentX0 = (FVector3f)SegDir;
-			const FVector3f TangentY0 = (FVector3f)Right0;
-			const FVector3f Normal0 = (FVector3f)FVector::CrossProduct(SegDir, Right0).GetSafeNormal();
+			const FVector3f TangentX0 = FVector3f(SegDir);
+			const FVector3f TangentY0 = FVector3f(Right0);
+			const FVector3f Normal0 = FVector3f(FVector::CrossProduct(SegDir, Right0).GetSafeNormal());
 
-			const FVector3f TangentX1 = (FVector3f)SegDir;
-			const FVector3f TangentY1 = (FVector3f)Right1;
-			const FVector3f Normal1 = (FVector3f)FVector::CrossProduct(SegDir, Right1).GetSafeNormal();
+			const FVector3f TangentX1 = FVector3f(SegDir);
+			const FVector3f TangentY1 = FVector3f(Right1);
+			const FVector3f Normal1 = FVector3f(FVector::CrossProduct(SegDir, Right1).GetSafeNormal());
 
-			const int32 i0 = MeshBuilder.AddVertex((FVector3f)v0, FVector2f(0, 0), TangentX0, TangentY0, Normal0,
+			const int32 i0 = MeshBuilder.AddVertex(FVector3f(v0), FVector2f(0, 0), TangentX0, TangentY0, Normal0,
 			                                       FColor(InColor.ToFColor(true)));
-			const int32 i1 = MeshBuilder.AddVertex((FVector3f)v1, FVector2f(1, 0), TangentX0, TangentY0, Normal0,
+			const int32 i1 = MeshBuilder.AddVertex(FVector3f(v1), FVector2f(1, 0), TangentX0, TangentY0, Normal0,
 			                                       FColor(InColor.ToFColor(true)));
-			const int32 i2 = MeshBuilder.AddVertex((FVector3f)v2, FVector2f(0, 1), TangentX1, TangentY1, Normal1,
+			const int32 i2 = MeshBuilder.AddVertex(FVector3f(v2), FVector2f(0, 1), TangentX1, TangentY1, Normal1,
 			                                       FColor(InColor.ToFColor(true)));
-			const int32 i3 = MeshBuilder.AddVertex((FVector3f)v3, FVector2f(1, 1), TangentX1, TangentY1, Normal1,
+			const int32 i3 = MeshBuilder.AddVertex(FVector3f(v3), FVector2f(1, 1), TangentX1, TangentY1, Normal1,
 			                                       FColor(InColor.ToFColor(true)));
 
 			MeshBuilder.AddTriangle(i0, i2, i1);

@@ -1,5 +1,3 @@
-// #TODO AXIS ROTATION IS INVERTED
-
 #include "TransformSession.h"
 #include "Editor.h"
 #include "Selection.h"
@@ -77,15 +75,6 @@ namespace BlenderControls
 		}
 	}
 
-	FEditorViewportClient* GetFocusedViewportClient()
-	{
-		for (FEditorViewportClient* ViewportClient : GEditor->GetAllViewportClients())
-		{
-			if (ViewportClient && ViewportClient->Viewport && ViewportClient->Viewport->HasFocus())
-			{
-				return ViewportClient;
-			}
-		}
 	FEditorViewportClient* GetHoveredViewportClient()
 	{
 		FWidgetPath WidgetPath = FSlateApplication::Get().LocateWindowUnderMouse(
@@ -123,8 +112,22 @@ namespace BlenderControls
 			return nullptr;
 		}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+		TArray<IAssetEditorInstance*> OpenEditors;
+		TArray<UObject*> EditedAssets = AssetEditorSubsystem->GetAllEditedAssets();
+
+		for (UObject* Asset : EditedAssets)
+		{
+			TArray<IAssetEditorInstance*> EditorsForAsset = AssetEditorSubsystem->FindEditorsForAsset(Asset);
+			for (IAssetEditorInstance* Editor : EditorsForAsset)
+			{
+				OpenEditors.AddUnique(Editor);
+			}
+		}
+#else
 		//Seems like this is the only straightforward route to get a hold of FBlueprintEditor* (ie by iterating over all open editors)
 		const TArray<IAssetEditorInstance*> OpenEditors = AssetEditorSubsystem->GetAllOpenEditors();
+#endif
 
 		FBlueprintEditor* FocusedBPEditor = nullptr;
 		double MaxLastActivationTime = 0.0;
@@ -188,8 +191,7 @@ namespace BlenderControls
 				}
 			}
 		}
-
-
+		
 		SelectionType = ESelectionType::None;
 		return false;
 	}
@@ -234,10 +236,8 @@ namespace BlenderControls
 
 		if (SelectionType == ESelectionType::ControlRig)
 		{
-			// Get Control Rig element selection
 			FControlRigSelectionHelper::GetSelectedRigElements(SelectedRigElements);
 
-			// Create the Control Rig pivot for transformations
 			VirtualPivot = MakeShared<FControlRigPivot>(SelectedRigElements, PivotMode);
 		}
 		else if (SelectionType == ESelectionType::SCSTreeNodes)
@@ -248,10 +248,10 @@ namespace BlenderControls
 				return;
 			}
 
-			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->GetSelectedSubobjectEditorTreeNodes();
+			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->
+				GetSelectedSubobjectEditorTreeNodes();
 			VirtualPivot = MakeShared<FSCSPivot>(BPEditor, SelectedNodes);
 		}
-		//Actors selected in standard level viewport
 		else
 		{
 			USelection* ActorSelection = GEditor->GetSelectedActors();
@@ -263,7 +263,6 @@ namespace BlenderControls
 				}
 			}
 
-			//Create the pivot for selected actors (holds the selected actors and transform related functions).
 			VirtualPivot = MakeShared<FActorPivot>(SelectedActors, PivotMode);
 		}
 	}
@@ -316,7 +315,6 @@ namespace BlenderControls
 		FBlenderNumericState OldState;
 		if (CurrentTool.IsValid())
 		{
-			// Revert the appropriate pivot type
 			if (VirtualPivot.IsValid())
 			{
 				VirtualPivot->RevertToStartState();

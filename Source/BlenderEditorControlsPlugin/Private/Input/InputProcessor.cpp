@@ -1,3 +1,7 @@
+//#TODO perhaps we need to route the GetHoveredWindow() function logic from TransformSession.cpp to 
+// ensure that, we intercept the regular g key when not over a viewport window, otherwise g can hide the editor
+// gizmos, but then pressing it again will do nothing. This is quite annoying. 
+
 #include "Input/InputProcessor.h"
 #include "TransformSession.h"
 #include "BlenderControlsCommands.h"
@@ -153,7 +157,7 @@ namespace BlenderControls
 
 	bool FInputProcessor::ShouldHandleHotkeys(FSlateApplication& SlateApp) const
 	{
-		if (!IsMouseOverAnyViewport() || SlateApp.AnyMenusVisible())
+		if (SlateApp.AnyMenusVisible())
 		{
 			return false;
 		}
