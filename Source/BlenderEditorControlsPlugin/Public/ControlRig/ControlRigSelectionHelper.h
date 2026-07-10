@@ -17,10 +17,16 @@ namespace BlenderControls
 	{
 		FRigElementKey ElementKey;
 		TWeakObjectPtr<UControlRig> OwningControlRig;
-		
+
 		/** World-space transform captured when the operation began */
 		FTransform StartTransform;
 		FQuat StartRotation;
+
+		/** 
+		 * The exact local value of the control captured when the operation began. Necessary to revert transforms on cancel,
+		 * as using world-space transform values seem to be order-dependant (Parent must be restored first, then child etc.) 
+		 */
+		FRigControlValue StartLocalValue;
 
 		bool IsValid() const { return OwningControlRig.IsValid() && ElementKey.IsValid(); }
 	};
@@ -35,7 +41,7 @@ namespace BlenderControls
 		static bool IsControlRigEditModeActive();
 		static int32 GetSelectedRigElementCount();
 		static bool HasSelectedRigElements();
-		
+
 		/**
 		 * Populates OutElements with all selected Control Rig elements and their cached transforms.
 		 * @return True if any elements were found.
@@ -54,10 +60,15 @@ namespace BlenderControls
 			const FTransform& NewTransform,
 			bool bInitial = false);
 
+		/**
+		 * Sets the local control value of a rig element. Useful for reverting safely.
+		 */
+		static void SetElementLocalValue(
+			const FRigElementKey& ElementKey,
+			const FRigControlValue& LocalValue);
+
 		/** Returns the world-space transform of the element. */
 		static FTransform GetElementGlobalTransform(const FRigElementKey& ElementKey);
-
-		static FVector ComputeMedianPivotLocation();
 
 		/**
 		 * Marks the Control Rig as modified for undo. Call within an FScopedTransaction.

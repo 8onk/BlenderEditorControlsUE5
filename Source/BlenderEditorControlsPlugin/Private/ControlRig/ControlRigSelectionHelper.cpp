@@ -4,7 +4,12 @@
 #include "ControlRig.h"
 #include "Rigs/RigHierarchy.h"
 #include "Rigs/RigHierarchyElements.h"
-#include "EditMode/ControlRigEditMode.h" 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+#include "ControlRigEditor/Private/EditMode/ControlRigEditMode.h"
+#else
+#include "EditMode/ControlRigEditMode.h"
+#endif
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogControlRigHelper, Log, All);
 
@@ -18,9 +23,65 @@ namespace BlenderControls
 		}
 
 		FEditorModeTools& ModeTools = GLevelEditorModeTools();
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+		// Bypass LNK2001 by using the hardcoded string since ModeName is unexported
+		FEdMode* ActiveMode = ModeTools.GetActiveMode(TEXT("EditMode.ControlRig"));
+#else
 		FEdMode* ActiveMode = ModeTools.GetActiveMode(FControlRigEditMode::ModeName);
-		
+#endif
+
 		return ActiveMode ? static_cast<FControlRigEditMode*>(ActiveMode) : nullptr;
+	}
+
+	UControlRig* FControlRigSelectionHelper::GetActiveControlRig()
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+		FControlRigEditMode* EditMode = GetControlRigEditMode();
+		if (!EditMode)
+		{
+			return nullptr;
+		}
+
+		// Bypass LNK2019: FControlRigEditMode is unexported; we cannot call GetControlRig().
+		// Workaround: Find the active UControlRig currently in memory.
+		UControlRig* FallbackRig = nullptr;
+		for (TObjectIterator<UControlRig> It; It; ++It)
+		{
+			UControlRig* Rig = *It;
+			if (IsValid(Rig) && !Rig->HasAnyFlags(RF_ClassDefaultObject | RF_Transient))
+			{
+				// The active rig being manipulated in the editor will have an active selection
+				if (Rig->CurrentControlSelection().Num() > 0)
+				{
+					return Rig;
+				}
+
+				// Store a fallback in case there is no selection yet
+				if (Rig->GetWorld() && (Rig->GetWorld()->WorldType == EWorldType::Editor || Rig->GetWorld()->WorldType
+					== EWorldType::PIE))
+				{
+					FallbackRig = Rig;
+				}
+			}
+		}
+		return FallbackRig;
+#else
+		FControlRigEditMode* EditMode = GetControlRigEditMode();
+		if (!EditMode)
+		{
+			return nullptr;
+		}
+
+		TArrayView<TWeakObjectPtr<UControlRig>> ControlRigs = EditMode->GetControlRigs();
+
+		if (ControlRigs.Num() > 0 && ControlRigs[0].IsValid())
+		{
+			return ControlRigs[0].Get();
+		}
+
+		return nullptr;
+#endif
 	}
 
 	bool FControlRigSelectionHelper::IsControlRigEditModeActive()
@@ -30,45 +91,101 @@ namespace BlenderControls
 
 	int32 FControlRigSelectionHelper::GetSelectedRigElementCount()
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+		const UControlRig* ControlRig = GetActiveControlRig();
+		return ControlRig ? ControlRig->CurrentControlSelection().Num() : 0;
+#else
 		FControlRigEditMode* EditMode = GetControlRigEditMode();
-		if (!EditMode)
-		{
-			return 0;
-		}
+		if (!EditMode) return 0;
 
 		TMap<UControlRig*, TArray<FRigElementKey>> SelectedControls;
 		EditMode->GetAllSelectedControls(SelectedControls);
-		
+
 		int32 TotalCount = 0;
 		for (const auto& Pair : SelectedControls)
 		{
 			TotalCount += Pair.Value.Num();
 		}
 		return TotalCount;
+#endif
 	}
 
 	bool FControlRigSelectionHelper::HasSelectedRigElements()
 	{
-		FControlRigEditMode* EditMode = GetControlRigEditMode();
-		if (!EditMode)
+		UControlRig* ControlRig = GetActiveControlRig();
+		if (!ControlRig)
 		{
 			return false;
 		}
 
-		UControlRig* ControlRig = GetActiveControlRig();
-		if (ControlRig)
-		{
-			// ValidControlTypeMask filters to Control-type elements only (excludes bones, nulls, etc.)
-			return EditMode->AreRigElementsSelected(FControlRigEditMode::ValidControlTypeMask(), ControlRig);
-		}
-
-		return false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+		return ControlRig->CurrentControlSelection().Num() > 0;
+#else
+		FControlRigEditMode* EditMode = GetControlRigEditMode();
+		return EditMode
+			       ? EditMode->AreRigElementsSelected(FControlRigEditMode::ValidControlTypeMask(), ControlRig)
+			       : false;
+#endif
 	}
 
 	bool FControlRigSelectionHelper::GetSelectedRigElements(TArray<FControlRigElementInfo>& OutElements)
 	{
 		OutElements.Empty();
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+		UControlRig* ControlRig = GetActiveControlRig();
+		if (!ControlRig)
+		{
+			return false;
+		}
+
+		URigHierarchy* Hierarchy = ControlRig->GetHierarchy();
+		if (!Hierarchy)
+		{
+			return false;
+		}
+
+		FTransform HostingActorTransform = FTransform::Identity;
+		if (TSharedPtr<IControlRigObjectBinding> ObjectBinding = ControlRig->GetObjectBinding())
+		{
+			if (AActor* BoundActor = ObjectBinding->GetHostingActor())
+			{
+				HostingActorTransform = BoundActor->GetActorTransform();
+			}
+		}
+		if (HostingActorTransform.Equals(FTransform::Identity))
+		{
+			if (AActor* HostingActor = ControlRig->GetTypedOuter<AActor>())
+			{
+				HostingActorTransform = HostingActor->GetActorTransform();
+			}
+		}
+
+		TArray<FName> SelectedNames = ControlRig->CurrentControlSelection();
+		for (const FName& Name : SelectedNames)
+		{
+			FRigElementKey Key(Name, ERigElementType::Control);
+			if (const FRigControlElement* ControlElement = Hierarchy->Find<FRigControlElement>(Key))
+			{
+				ERigControlType ControlType = ControlElement->Settings.ControlType;
+				if (ControlType == ERigControlType::Transform || ControlType == ERigControlType::TransformNoScale || 
+					ControlType == ERigControlType::EulerTransform || ControlType == ERigControlType::Position || 
+					ControlType == ERigControlType::Rotator)
+				{
+					FControlRigElementInfo ElementInfo;
+					ElementInfo.ElementKey = Key;
+					ElementInfo.OwningControlRig = ControlRig;
+
+					const FTransform RigSpaceTransform = Hierarchy->GetGlobalTransform(ElementInfo.ElementKey);
+					ElementInfo.StartTransform = RigSpaceTransform * HostingActorTransform;
+					ElementInfo.StartRotation = ElementInfo.StartTransform.GetRotation();
+					ElementInfo.StartLocalValue = Hierarchy->GetControlValue(Key, ERigControlValueType::Current);
+
+					OutElements.Add(ElementInfo);
+				}
+			}
+		}
+#else
 		FControlRigEditMode* EditMode = GetControlRigEditMode();
 		if (!EditMode)
 		{
@@ -77,7 +194,7 @@ namespace BlenderControls
 
 		TMap<UControlRig*, TArray<FRigElementKey>> SelectedControls;
 		EditMode->GetAllSelectedControls(SelectedControls);
-		
+
 		for (const auto& Pair : SelectedControls)
 		{
 			UControlRig* ControlRig = Pair.Key;
@@ -92,11 +209,20 @@ namespace BlenderControls
 				continue;
 			}
 
-			// Control Rig transforms are in rig-local space; we need world space for tools
 			FTransform HostingActorTransform = FTransform::Identity;
-			if (AActor* HostingActor = ControlRig->GetHostingActor())
+			if (TSharedPtr<IControlRigObjectBinding> ObjectBinding = ControlRig->GetObjectBinding())
 			{
-				HostingActorTransform = HostingActor->GetActorTransform();
+				if (AActor* BoundActor = ObjectBinding->GetHostingActor())
+				{
+					HostingActorTransform = BoundActor->GetActorTransform();
+				}
+			}
+			if (HostingActorTransform.Equals(FTransform::Identity))
+			{
+				if (const AActor* HostingActor = ControlRig->GetTypedOuter<AActor>())
+				{
+					HostingActorTransform = HostingActor->GetActorTransform();
+				}
 			}
 
 			for (const FRigElementKey& Key : Pair.Value)
@@ -116,33 +242,16 @@ namespace BlenderControls
 						const FTransform RigSpaceTransform = Hierarchy->GetGlobalTransform(Key);
 						ElementInfo.StartTransform = RigSpaceTransform * HostingActorTransform;
 						ElementInfo.StartRotation = ElementInfo.StartTransform.GetRotation();
+						ElementInfo.StartLocalValue = Hierarchy->GetControlValue(Key, ERigControlValueType::Current);
 
 						OutElements.Add(ElementInfo);
 					}
 				}
 			}
 		}
+#endif
 
 		return OutElements.Num() > 0;
-	}
-
-	UControlRig* FControlRigSelectionHelper::GetActiveControlRig()
-	{
-		FControlRigEditMode* EditMode = GetControlRigEditMode();
-		if (!EditMode)
-		{
-			return nullptr;
-		}
-
-		// Multiple Control Rigs can be active simultaneously; we use the first one
-		TArrayView<TWeakObjectPtr<UControlRig>> ControlRigs = EditMode->GetControlRigs();
-		
-		if (ControlRigs.Num() > 0 && ControlRigs[0].IsValid())
-		{
-			return ControlRigs[0].Get();
-		}
-
-		return nullptr;
 	}
 
 	URigHierarchy* FControlRigSelectionHelper::GetRigHierarchy()
@@ -198,13 +307,23 @@ namespace BlenderControls
 			FRigControlModifiedContext Context;
 			Context.SetKey = EControlRigSetKey::DoNotCare;
 			Context.KeyMask = (uint32)EControlRigContextChannelToKey::AllTransform;
-			
+
 			const bool bNotify = true;
 			const bool bSetupUndo = false; // Undo handled by FScopedTransaction in calling code
 			const bool bPrintPythonCommands = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+			ControlRig->SetControlGlobalTransform(
+				ElementKey.Name,
+				RigSpaceTransform,
+				bNotify,
+				Context,
+				bSetupUndo,
+				bPrintPythonCommands
+			);
+#else
 			// bFixEulerFlips helps with rotation continuity for EulerTransform controls
 			const bool bFixEulerFlips = true;
-			
+
 			ControlRig->SetControlGlobalTransform(
 				ElementKey.Name,
 				RigSpaceTransform,
@@ -214,12 +333,56 @@ namespace BlenderControls
 				bPrintPythonCommands,
 				bFixEulerFlips
 			);
+#endif
 		}
 		else
 		{
 			const bool bAffectChildren = true;
 			const bool bPropagate = true;
 			Hierarchy->SetGlobalTransform(ElementKey, RigSpaceTransform, bInitial, bAffectChildren, bPropagate);
+		}
+	}
+
+	void FControlRigSelectionHelper::SetElementLocalValue(
+		const FRigElementKey& ElementKey,
+		const FRigControlValue& LocalValue)
+	{
+		UControlRig* ControlRig = GetActiveControlRig();
+		if (!ControlRig) return;
+
+		URigHierarchy* Hierarchy = ControlRig->GetHierarchy();
+		if (!Hierarchy) return;
+
+		if (ElementKey.Type == ERigElementType::Control)
+		{
+			FRigControlModifiedContext Context;
+			Context.SetKey = EControlRigSetKey::DoNotCare;
+			Context.KeyMask = (uint32)EControlRigContextChannelToKey::AllTransform;
+
+			const bool bNotify = true;
+			const bool bSetupUndo = false;
+			const bool bPrintPythonCommands = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+			ControlRig->SetControlValue(
+				ElementKey.Name,
+				LocalValue,
+				bNotify,
+				Context,
+				bSetupUndo,
+				bPrintPythonCommands
+			);
+#else
+			const bool bFixEulerFlips = true;
+			ControlRig->SetControlValue(
+				ElementKey.Name,
+				LocalValue,
+				bNotify,
+				Context,
+				bSetupUndo,
+				bPrintPythonCommands,
+				bFixEulerFlips
+			);
+#endif
 		}
 	}
 

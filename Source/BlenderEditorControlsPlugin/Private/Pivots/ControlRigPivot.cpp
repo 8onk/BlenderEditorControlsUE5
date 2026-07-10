@@ -1,3 +1,4 @@
+//#TODO Control rig translation seems overly laggy. Also, we seem to never use InputWidgetDelta() in @ToolBase, as bhandled is never false?
 #include "Pivots/ControlRigPivot.h"
 #include "Enums.h"
 #include "Tools/GrabContext.h"
@@ -8,6 +9,14 @@ namespace BlenderControls
 	FControlRigPivot::FControlRigPivot(const TArray<FControlRigElementInfo>& InSelection, const EPivotMode PivotMode)
 	{
 		Elements = InSelection;
+
+		for (const FControlRigElementInfo& Element : Elements)
+		{
+			UE_LOG(LogTemp, Log, TEXT("ControlRigPivot: Element %s StartTransform Location: %s, Rotation: %s"), 
+				*Element.ElementKey.Name.ToString(), 
+				*Element.StartTransform.GetLocation().ToString(), 
+				*Element.StartTransform.GetRotation().Rotator().ToString());
+		}
 
 		if (Elements.Num() > 0)
 		{
@@ -73,7 +82,7 @@ namespace BlenderControls
 	{
 		for (const FControlRigElementInfo& Element : Elements)
 		{
-			FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, Element.StartTransform, true);
+			FControlRigSelectionHelper::SetElementLocalValue(Element.ElementKey, Element.StartLocalValue);
 		}
 	}
 
@@ -86,16 +95,13 @@ namespace BlenderControls
 			FTransform CurrentTransform = FControlRigSelectionHelper::GetElementGlobalTransform(Element.ElementKey);
 			FTransform NewTransform = CurrentTransform;
 			
-			// Apply Translation (incremental)
 			NewTransform.SetLocation(CurrentTransform.GetLocation() + InDrag);
 
-			// Apply Rotation (incremental)
 			if (!InRot.IsZero())
 			{
 				NewTransform.SetRotation(InRot.Quaternion() * CurrentTransform.GetRotation());
 			}
 
-			// Apply Scale (incremental)
 			if (!InScale.IsNearlyZero())
 			{
 				NewTransform.SetScale3D(CurrentTransform.GetScale3D() + InScale);
