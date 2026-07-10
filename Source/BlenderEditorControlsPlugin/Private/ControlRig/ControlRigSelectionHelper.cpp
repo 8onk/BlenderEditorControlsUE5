@@ -101,15 +101,25 @@ namespace BlenderControls
 
 			for (const FRigElementKey& Key : Pair.Value)
 			{
-				FControlRigElementInfo ElementInfo;
-				ElementInfo.ElementKey = Key;
-				ElementInfo.OwningControlRig = ControlRig;
-				
-				const FTransform RigSpaceTransform = Hierarchy->GetGlobalTransform(Key);
-				ElementInfo.StartTransform = RigSpaceTransform * HostingActorTransform;
-				ElementInfo.StartRotation = ElementInfo.StartTransform.GetRotation();
-				
-				OutElements.Add(ElementInfo);
+				if (const FRigControlElement* ControlElement = Hierarchy->Find<FRigControlElement>(Key))
+				{
+					// Filter selection to prevent attributes from changing on transformation 
+					ERigControlType ControlType = ControlElement->Settings.ControlType;
+					if (ControlType == ERigControlType::Transform || ControlType == ERigControlType::TransformNoScale || 
+						ControlType == ERigControlType::EulerTransform || ControlType == ERigControlType::Position || 
+						ControlType == ERigControlType::Rotator)
+					{
+						FControlRigElementInfo ElementInfo;
+						ElementInfo.ElementKey = Key;
+						ElementInfo.OwningControlRig = ControlRig;
+
+						const FTransform RigSpaceTransform = Hierarchy->GetGlobalTransform(Key);
+						ElementInfo.StartTransform = RigSpaceTransform * HostingActorTransform;
+						ElementInfo.StartRotation = ElementInfo.StartTransform.GetRotation();
+
+						OutElements.Add(ElementInfo);
+					}
+				}
 			}
 		}
 
