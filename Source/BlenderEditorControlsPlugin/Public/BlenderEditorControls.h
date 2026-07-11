@@ -26,6 +26,10 @@ namespace BlenderControls
 		void RegisterInputProcessor();
 		void UnregisterInputProcessor();
 
+		void OnEditorInitialized(double InTime);
+		void OnMainFrameCreationFinished(TSharedPtr<SWindow> InRootWindow, bool bIsNewProjectWindow);
+		void ShowWelcomeWindow(TSharedPtr<SWindow> ParentWindow);
+
 		//Bindable keybindings implemented by the plugin
 		TSharedPtr<FUICommandList> CommandList;
 		TSharedPtr<class FInputProcessor> InputProcessor;

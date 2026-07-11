@@ -74,7 +74,6 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"InteractiveToolsFramework",
 				"EditorInteractiveToolsFramework",
 				"ComponentVisualizers",
-				// Control Rig support for bone/control selection
 				"ControlRig",
 				"ControlRigEditor",
 				"RigVM",
@@ -82,7 +81,8 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"SubobjectEditor",
 				"Kismet",
 				"BlueprintGraph",
-				"SubobjectDataInterface"
+				"SubobjectDataInterface",
+				"MainFrame"
 			}
 		);
 
