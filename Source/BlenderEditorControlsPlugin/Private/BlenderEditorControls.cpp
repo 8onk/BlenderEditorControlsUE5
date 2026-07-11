@@ -7,14 +7,10 @@
 #include "Input/InputProcessor.h"
 #include "Editor.h"
 #include "Misc/ConfigCacheIni.h"
-#include "Widgets/SWindow.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SButton.h"
 #include "Framework/Application/SlateApplication.h"
-#include "Styling/AppStyle.h"
 #include "HAL/IConsoleManager.h"
 #include "Interfaces/IMainFrameModule.h"
+#include "SWelcomeWindow.h"
 DEFINE_LOG_CATEGORY(LogBlenderEditorControls);
 
 namespace BlenderControls
@@ -130,61 +126,11 @@ namespace BlenderControls
 
 	void FBlenderEditorControlsPluginModule::ShowWelcomeWindow(TSharedPtr<SWindow> ParentWindow)
 	{
-		TSharedRef<SWindow> WelcomeWindow = SNew(SWindow)
-			.Title(FText::FromString("BlenderEditorControls"))
-			.AutoCenter(EAutoCenter::PrimaryWorkArea)
-			.ClientSize(FVector2D(800, 450))
-			.SupportsMaximize(false)
-			.SupportsMinimize(false)
-			.SizingRule(ESizingRule::FixedSize);
-
-		WelcomeWindow->SetContent(
-			SNew(SBorder)
-			.Padding(FMargin(20.0f))
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-			[
-				SNew(SVerticalBox)
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0, 0, 0, 15)
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString("Thank you for installing!"))
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 18))
-				]
-
-				+ SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				.VAlign(VAlign_Top)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString(
-						"Blender Controls provides seamless shortcuts and workflows inspired by Blender directly inside Unreal Engine.\n\nYou can always customize these bindings by going to Edit > Editor Preferences > Keyboard Shortcuts."))
-					.AutoWrapText(true)
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-				.Padding(0, 20, 0, 0)
-				[
-					SNew(SButton)
-					.ContentPadding(FMargin(15, 5))
-					.Text(FText::FromString("Get Started"))
-					.OnClicked_Lambda([WelcomeWindow]() -> FReply
-					{
-						WelcomeWindow->RequestDestroyWindow();
-						return FReply::Handled();
-					})
-				]
-			]
-		);
+		TSharedRef<SWelcomeWindow> WelcomeWindow = SNew(SWelcomeWindow);
 
 		if (ParentWindow.IsValid())
 		{
-			FSlateApplication::Get().AddModalWindow(WelcomeWindow, ParentWindow, false);
+			FSlateApplication::Get().AddWindowAsNativeChild(WelcomeWindow, ParentWindow.ToSharedRef());
 		}
 		else
 		{
