@@ -13,7 +13,7 @@ namespace BlenderControls
 		{
 			return;
 		}
-		TransformProxy->AddToRoot(); //Prevents garbage collection
+		TransformProxy->AddToRoot();
 
 		for (const TWeakObjectPtr<AActor>& ActorPtr : InSelection)
 		{
@@ -212,7 +212,15 @@ namespace BlenderControls
 			}
 
 			NewTransform.SetLocation(NewPosition);
-			NewTransform.SetScale3D(NewScale);
+
+			if (!NewScale.IsNearlyZero())
+			{
+				NewTransform.SetScale3D(NewScale);
+			}
+			else
+			{
+				return;
+			}
 
 			Child.Actor->SetActorTransform(NewTransform);
 		}
