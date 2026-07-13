@@ -62,6 +62,14 @@ namespace BlenderControls
 			FSlateApplication::Get().GetPlatformApplication()->SetHighPrecisionMouseMode(
 				true, SlateWindow->GetNativeWindow());
 		}
+		Viewport->CaptureMouse(true);
+		Viewport->LockMouseToViewport(true);
+
+		if (Session->IsControlRigSelection())
+		{
+			GEditor->NoteSelectionChange(true);
+		}
+		
 		ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), true,
 		                                false);
 		Viewport->CaptureMouse(true);
@@ -70,7 +78,6 @@ namespace BlenderControls
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		//#TODO HAS VALID PIVOT INTERNAL BREAKS SCSEDITOR (MOUSE MOVEMENT IS SKIPPED FOR IT). Do Something about it
 		if (!bIsToolActive || !GetSession().IsValid() || !ViewportClient)
 		{
 			return;
@@ -81,6 +88,12 @@ namespace BlenderControls
 
 	void FToolBase::OnEnd(const bool bApply)
 	{
+		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!Session.IsValid())
+		{
+			return;
+		}
+
 		bIsToolActive = false;
 
 		if (HudWidget.IsValid())
@@ -90,15 +103,16 @@ namespace BlenderControls
 
 		ClearDrawnAxisLines();
 
-		if (ViewportClient)
+		if (!ViewportClient || !Viewport)
 		{
-			ViewportClient->Viewport->CaptureMouse(false);
-			ViewportClient->Viewport->LockMouseToViewport(false);
-			ViewportClient->SetWidgetMode(InitialWidgetMode);
-			ViewportClient->ShowWidget(true);
-			ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
-			ViewportClient->Invalidate();
+			return;
 		}
+		ViewportClient->Viewport->CaptureMouse(false);
+		ViewportClient->Viewport->LockMouseToViewport(false);
+		ViewportClient->SetWidgetMode(InitialWidgetMode);
+		ViewportClient->ShowWidget(true);
+		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
+		ViewportClient->Invalidate();
 
 		if (FSlateApplication::IsInitialized())
 		{
@@ -106,31 +120,22 @@ namespace BlenderControls
 			FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(true);
 		}
 
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (Session.IsValid() && Session->GetNumericInputProcessor())
+		if (Session->GetNumericInputProcessor())
 		{
 			Session->GetNumericInputProcessor()->OnExitNumericMode.Unbind();
 		}
 
 		bPrecisionModeActive = false;
 		CurrentPrecisionFactor = 1.0f;
-		MouseDelta = FVector2D::ZeroVector;
 		CurrentMousePosition = FVector2D::ZeroVector;
 
-		if (!Session.IsValid())
+		if (!Session->GetWrappedCursorPos().IsNearlyZero())
 		{
-			return;
+			Viewport->SetMouse(static_cast<int32>(Session->GetWrappedCursorPos().X),
+			                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
 		}
 
-		if (GEditor)
-		{
-			if (!Session->GetWrappedCursorPos().IsNearlyZero() && Viewport)
-			{
-				Viewport->SetMouse(static_cast<int32>(Session->GetWrappedCursorPos().X),
-				                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
-			}
-
-			ViewportClient->TrackingStopped();
+		ViewportClient->TrackingStopped();
 
 			if (!bApply && VirtualPivot.IsValid())
 			{
@@ -140,15 +145,29 @@ namespace BlenderControls
 			// NoteSelectionChange, updates the gizmo to render at the object's new position. However, for control
 			// rig selection, this has unintended effect of resetting selection. Ignoring this call, does not
 			// result in a stale gizmo however, therefore can be safely bypassed. 
+		if (!bApply && VirtualPivot.IsValid())
+		{
+			VirtualPivot->RevertToStartState();
+		}
+		
+		// NoteSelectionChange, updates the gizmo to render at the object's new position. However, for control
+		// rig selection, this has unintended effect of resetting selection. Ignoring this call, does not
+		// result in a stale gizmo however, therefore can be safely bypassed. 
+		if (Session->IsControlRigSelection())
+		{
+			FControlRigSelectionHelper::RestoreSelection(Session->GetSelectedRigElements());
+		}
+
+		if (GEditor)
+		{
 			if (!Session->IsControlRigSelection())
 			{
 				GEditor->NoteSelectionChange(true);
 			}
 			GEditor->RedrawLevelEditingViewports(true);
-			Viewport->Invalidate();
 		}
+		Viewport->Invalidate();
 
-		// End transform proxy sequence for actor-based transforms
 		if (VirtualPivot.IsValid())
 		{
 			VirtualPivot->EndTransformSequence();
@@ -481,11 +500,6 @@ namespace BlenderControls
 
 	void FToolBase::InitializeGrabContext()
 	{
-		// if (!HasValidPivotInternal())
-		// {
-		// 	return;
-		// }
-
 		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (!Session.IsValid())
 		{
@@ -617,11 +631,6 @@ namespace BlenderControls
 		{
 			ViewportClient->TrackingStopped();
 			ViewportClient->Invalidate();
-		}
-
-		if (GEditor)
-		{
-			GEditor->NoteSelectionChange(true);
 		}
 	}
 

@@ -441,4 +441,26 @@ namespace BlenderControls
 	{
 		// FScopedTransaction in calling code handles commit/cancel
 	}
+
+	void FControlRigSelectionHelper::RestoreSelection(const TArray<FControlRigElementInfo>& ElementsToSelect)
+	{
+		UControlRig* ControlRig = GetActiveControlRig();
+		if (!ControlRig) return;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+		for (const FControlRigElementInfo& Element : ElementsToSelect)
+		{
+			ControlRig->SelectControl(Element.ElementKey.Name, true);
+		}
+#else
+		FControlRigEditMode* EditMode = GetControlRigEditMode();
+		if (EditMode)
+		{
+			for (const FControlRigElementInfo& Element : ElementsToSelect)
+			{
+				EditMode->SetRigElementSelection(ControlRig, Element.ElementKey.Type, Element.ElementKey.Name, true);
+			}
+		}
+#endif
+	}
 } // namespace BlenderControls
