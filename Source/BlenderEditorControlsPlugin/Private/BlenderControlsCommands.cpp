@@ -29,8 +29,8 @@ namespace BlenderControls
 		           EUserInterfaceActionType::RadioButton, FInputChord(EKeys::G));
 		UI_COMMAND(CommandRotate, "Rotate", "Switch to rotation mode (R)", EUserInterfaceActionType::RadioButton,
 		           FInputChord(EKeys::R));
-		UI_COMMAND(CommandScale, "Scale", "Switch to scale mode (S)", EUserInterfaceActionType::RadioButton,
-		           FInputChord(EKeys::S));
+		UI_COMMAND(CommandScale, "Scale", "Switch to scale mode (T)", EUserInterfaceActionType::RadioButton,
+		           FInputChord(EKeys::T));
 
 		// --- Axis constraint commands ---
 		UI_COMMAND(CommandAxisX, "X Axis", "Constrain to X axis (X)", EUserInterfaceActionType::RadioButton,
