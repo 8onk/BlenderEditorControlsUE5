@@ -112,20 +112,7 @@ namespace BlenderControls
 
 	bool FControlRigSelectionHelper::HasSelectedRigElements()
 	{
-		UControlRig* ControlRig = GetActiveControlRig();
-		if (!ControlRig)
-		{
-			return false;
-		}
-
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
-		return ControlRig->CurrentControlSelection().Num() > 0;
-#else
-		FControlRigEditMode* EditMode = GetControlRigEditMode();
-		return EditMode
-			       ? EditMode->AreRigElementsSelected(FControlRigEditMode::ValidControlTypeMask(), ControlRig)
-			       : false;
-#endif
+		return GetSelectedRigElementCount() > 0;
 	}
 
 	bool FControlRigSelectionHelper::GetSelectedRigElements(TArray<FControlRigElementInfo>& OutElements)
@@ -168,8 +155,8 @@ namespace BlenderControls
 			if (const FRigControlElement* ControlElement = Hierarchy->Find<FRigControlElement>(Key))
 			{
 				ERigControlType ControlType = ControlElement->Settings.ControlType;
-				if (ControlType == ERigControlType::Transform || ControlType == ERigControlType::TransformNoScale || 
-					ControlType == ERigControlType::EulerTransform || ControlType == ERigControlType::Position || 
+				if (ControlType == ERigControlType::Transform || ControlType == ERigControlType::TransformNoScale ||
+					ControlType == ERigControlType::EulerTransform || ControlType == ERigControlType::Position ||
 					ControlType == ERigControlType::Rotator)
 				{
 					FControlRigElementInfo ElementInfo;
@@ -231,8 +218,8 @@ namespace BlenderControls
 				{
 					// Filter selection to prevent attributes from changing on transformation 
 					ERigControlType ControlType = ControlElement->Settings.ControlType;
-					if (ControlType == ERigControlType::Transform || ControlType == ERigControlType::TransformNoScale || 
-						ControlType == ERigControlType::EulerTransform || ControlType == ERigControlType::Position || 
+					if (ControlType == ERigControlType::Transform || ControlType == ERigControlType::TransformNoScale ||
+						ControlType == ERigControlType::EulerTransform || ControlType == ERigControlType::Position ||
 						ControlType == ERigControlType::Rotator)
 					{
 						FControlRigElementInfo ElementInfo;
@@ -265,11 +252,11 @@ namespace BlenderControls
 	}
 
 	void FControlRigSelectionHelper::SetElementGlobalTransform(
+		UControlRig* ControlRig,
 		const FRigElementKey& ElementKey,
 		const FTransform& NewTransform,
 		bool bInitial)
 	{
-		UControlRig* ControlRig = GetActiveControlRig();
 		if (!ControlRig)
 		{
 			UE_LOG(LogControlRigHelper, Warning, TEXT("SetElementGlobalTransform: No Control Rig available"));
@@ -308,7 +295,7 @@ namespace BlenderControls
 			Context.SetKey = EControlRigSetKey::DoNotCare;
 			Context.KeyMask = (uint32)EControlRigContextChannelToKey::AllTransform;
 
-			const bool bNotify = true;
+			const bool bNotify = false;
 			const bool bSetupUndo = false; // Undo handled by FScopedTransaction in calling code
 			const bool bPrintPythonCommands = false;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
@@ -344,10 +331,10 @@ namespace BlenderControls
 	}
 
 	void FControlRigSelectionHelper::SetElementLocalValue(
+		UControlRig* ControlRig,
 		const FRigElementKey& ElementKey,
 		const FRigControlValue& LocalValue)
 	{
-		UControlRig* ControlRig = GetActiveControlRig();
 		if (!ControlRig) return;
 
 		URigHierarchy* Hierarchy = ControlRig->GetHierarchy();
@@ -359,7 +346,7 @@ namespace BlenderControls
 			Context.SetKey = EControlRigSetKey::DoNotCare;
 			Context.KeyMask = (uint32)EControlRigContextChannelToKey::AllTransform;
 
-			const bool bNotify = true;
+			const bool bNotify = false;
 			const bool bSetupUndo = false;
 			const bool bPrintPythonCommands = false;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
@@ -386,9 +373,8 @@ namespace BlenderControls
 		}
 	}
 
-	FTransform FControlRigSelectionHelper::GetElementGlobalTransform(const FRigElementKey& ElementKey)
+	FTransform FControlRigSelectionHelper::GetElementGlobalTransform(UControlRig* ControlRig, const FRigElementKey& ElementKey)
 	{
-		UControlRig* ControlRig = GetActiveControlRig();
 		if (!ControlRig)
 		{
 			UE_LOG(LogControlRigHelper, Warning, TEXT("GetElementGlobalTransform: No Control Rig available"));

@@ -1,4 +1,3 @@
-//#TODO Control rig translation seems overly laggy. Also, we seem to never use InputWidgetDelta() in @ToolBase, as bhandled is never false?
 #include "Pivots/ControlRigPivot.h"
 #include "Enums.h"
 #include "Tools/GrabContext.h"
@@ -9,14 +8,6 @@ namespace BlenderControls
 	FControlRigPivot::FControlRigPivot(const TArray<FControlRigElementInfo>& InSelection, const EPivotMode PivotMode)
 	{
 		Elements = InSelection;
-
-		for (const FControlRigElementInfo& Element : Elements)
-		{
-			UE_LOG(LogTemp, Log, TEXT("ControlRigPivot: Element %s StartTransform Location: %s, Rotation: %s"), 
-				*Element.ElementKey.Name.ToString(), 
-				*Element.StartTransform.GetLocation().ToString(), 
-				*Element.StartTransform.GetRotation().Rotator().ToString());
-		}
 
 		if (Elements.Num() > 0)
 		{
@@ -82,7 +73,7 @@ namespace BlenderControls
 	{
 		for (const FControlRigElementInfo& Element : Elements)
 		{
-			FControlRigSelectionHelper::SetElementLocalValue(Element.ElementKey, Element.StartLocalValue);
+			FControlRigSelectionHelper::SetElementLocalValue(Element.OwningControlRig.Get(), Element.ElementKey, Element.StartLocalValue);
 		}
 	}
 
@@ -92,7 +83,7 @@ namespace BlenderControls
 
 		for (const FControlRigElementInfo& Element : Elements)
 		{
-			FTransform CurrentTransform = FControlRigSelectionHelper::GetElementGlobalTransform(Element.ElementKey);
+			FTransform CurrentTransform = FControlRigSelectionHelper::GetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey);
 			FTransform NewTransform = CurrentTransform;
 			
 			NewTransform.SetLocation(CurrentTransform.GetLocation() + InDrag);
@@ -107,7 +98,7 @@ namespace BlenderControls
 				NewTransform.SetScale3D(CurrentTransform.GetScale3D() + InScale);
 			}
 
-			FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+			FControlRigSelectionHelper::SetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey, NewTransform, true);
 		}
 
 		return true;
@@ -115,7 +106,7 @@ namespace BlenderControls
 
 	FVector FControlRigPivot::GetActiveElementCurrentLocation() const
 	{
-		return FControlRigSelectionHelper::GetElementGlobalTransform(ActiveElement.ElementKey).GetLocation();
+		return FControlRigSelectionHelper::GetElementGlobalTransform(ActiveElement.OwningControlRig.Get(), ActiveElement.ElementKey).GetLocation();
 	}
 
 	void FControlRigPivot::ApplyRotation(const FGrabContext& GC, float AngleToRotateRad, bool bUsingLocalSpace, EAxisLock LockedAxis)
@@ -161,7 +152,7 @@ namespace BlenderControls
 				NewTransform.SetLocation(NewLocation);
 				NewTransform.SetRotation(NewRotation);
 
-				FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+				FControlRigSelectionHelper::SetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey, NewTransform, true);
 			}
 		}
 		else
@@ -177,7 +168,7 @@ namespace BlenderControls
 				NewTransform.SetLocation(NewLocation);
 				NewTransform.SetRotation(NewRotation);
 
-				FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+				FControlRigSelectionHelper::SetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey, NewTransform, true);
 			}
 		}
 	}
@@ -226,7 +217,7 @@ namespace BlenderControls
 			NewTransform.SetLocation(NewPosition);
 			NewTransform.SetScale3D(NewScale);
 
-			FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+			FControlRigSelectionHelper::SetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey, NewTransform, true);
 		}
 	}
 
@@ -254,7 +245,7 @@ namespace BlenderControls
 			FTransform NewTransform = Element.StartTransform;
 			NewTransform.SetLocation(Element.StartTransform.GetLocation() + WorldSpaceOffset);
 
-			FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+			FControlRigSelectionHelper::SetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey, NewTransform, true);
 		}
 	}
 
@@ -280,7 +271,7 @@ namespace BlenderControls
 					NewTransform.SetLocation(WorldOffset);
 				}
 
-				FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+				FControlRigSelectionHelper::SetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey, NewTransform, true);
 			}
 		}
 		else
@@ -289,7 +280,7 @@ namespace BlenderControls
 			{
 				FTransform NewTransform = Element.StartTransform;
 				NewTransform.SetLocation(Element.StartTransform.GetLocation() + WorldDelta);
-				FControlRigSelectionHelper::SetElementGlobalTransform(Element.ElementKey, NewTransform, true);
+				FControlRigSelectionHelper::SetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey, NewTransform, true);
 			}
 		}
 	}

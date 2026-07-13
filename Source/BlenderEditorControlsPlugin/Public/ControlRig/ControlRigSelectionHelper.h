@@ -56,6 +56,7 @@ namespace BlenderControls
 		 * internally and uses the appropriate API for Control vs non-Control elements.
 		 */
 		static void SetElementGlobalTransform(
+			UControlRig* ControlRig,
 			const FRigElementKey& ElementKey,
 			const FTransform& NewTransform,
 			bool bInitial = false);
@@ -64,6 +65,7 @@ namespace BlenderControls
 		 * Sets the local control value of a rig element. Useful for reverting safely.
 		 */
 		static void SetElementLocalValue(
+			UControlRig* ControlRig,
 			const FRigElementKey& ElementKey,
 			const FRigControlValue& LocalValue);
 
