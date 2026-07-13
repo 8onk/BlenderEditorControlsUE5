@@ -90,6 +90,7 @@ namespace BlenderControls
 		                                        float LineLength) const;
 
 	protected:
+		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const = 0;
 		FVector GetAxisVector(EAxisLock InAxis) const;
 
 		/** Returns the display string for the HUD during mouse-driven movement (e.g., "D: 12.45cm along Global X"). */
@@ -144,7 +145,6 @@ namespace BlenderControls
 		FEditorViewportClient* ViewportClient = nullptr;
 		bool bLocalSpaceDefault;
 		FGrabContext GrabContext;
-		FVector2D MouseDelta = FVector2D::ZeroVector;
 		FVector ViewUp;
 		FVector ViewRight;
 		FVector ViewLocation;

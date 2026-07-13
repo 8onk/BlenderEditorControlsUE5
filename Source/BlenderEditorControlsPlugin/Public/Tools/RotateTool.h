@@ -22,6 +22,9 @@ namespace BlenderControls
 		virtual void Tick() override;
 		virtual void HandleAxisLock(EAxisLock AxisPressed) override;
 
+	protected:
+		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const override { return UE::Widget::WM_Rotate; }
+
 	private:
 		FVector2D StartDragVector;
 		FVector2D LastDragVector;

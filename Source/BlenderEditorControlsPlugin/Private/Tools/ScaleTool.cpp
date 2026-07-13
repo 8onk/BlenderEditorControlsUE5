@@ -6,8 +6,8 @@
 #include "Style.h"
 #include "Pivots/VirtualPivotBase.h"
 #include "UI/TransformHUD.h"
+#include "BlenderControlsSettings.h"
 
-// NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling unlike this tool
 
 namespace BlenderControls
 {
@@ -16,6 +16,7 @@ namespace BlenderControls
 	{
 	}
 
+	// NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling
 	void FScaleTool::OnBegin()
 	{
 		FToolBase::OnBegin();
@@ -33,19 +34,21 @@ namespace BlenderControls
 		PivotStartPosition = GetPivotStartLocation();
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
+		// Initialize scale factor to no scaling. 
 		ScaleFactor = 1.0f;
-		InitialMousePosition = GetSession()->GetVirtualMousePos();
+		InitialMousePosition = GetSession()->GetStartMousePos();
 		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(InitialMousePosition, PivotViewportPosition);
 		StartScale = GetActiveElementStartTransform().GetScale3D();
 		CurrentScaleMultiplier = FVector::OneVector;
 
-		ViewportClient->SetWidgetMode(UE::Widget::WM_Scale);
-		ViewportClient->Invalidate();
 		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 
+		const float CursorScale = GetDefault<UBlenderControlsSettings>()->CustomCursorScale;
+
 		HudWidget->SetCursorBrush(CursorBrush);
-		HudWidget->SetCursorHotspot(FVector2D(16, 16));
+		HudWidget->SetCursorSize(FVector2D(32 * CursorScale, 32 * CursorScale));
+		HudWidget->SetCursorHotspot(FVector2D(16 * CursorScale, 16 * CursorScale));
 		HudWidget->SetCursorOrientation(ECursorOrient::AlongLineToOrigin);
 	}
 
@@ -64,7 +67,7 @@ namespace BlenderControls
 			return;
 		}
 
-		const FVector2D ScaledVirtualMousePosition = InitialMousePosition + MouseDelta;
+		const FVector2D ScaledVirtualMousePosition = InitialMousePosition + Session->GetAccumulatedMouseDelta();
 		CurrentMouseToPivotDistance = UKismetMathLibrary::Distance2D(ScaledVirtualMousePosition, PivotViewportPosition);
 
 		if (InitialMouseToPivotDistance > KINDA_SMALL_NUMBER)

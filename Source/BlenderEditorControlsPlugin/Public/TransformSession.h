@@ -77,6 +77,7 @@ namespace BlenderControls
 		const FVector2D& GetVirtualMousePos() const { return VirtualMousePosition; }
 		const FVector2D& GetWrappedCursorPos() const { return WrappedMousePosition; }
 		const FVector2D& GetStartMousePos() const { return StartMousePos; }
+		const FVector2D& GetAccumulatedMouseDelta() const { return AccumulatedMouseDelta; }
 
 		// Selection Type Accessors
 		bool IsControlRigSelection() const { return SelectionType == ESelectionType::ControlRig; }
@@ -123,6 +124,7 @@ namespace BlenderControls
 		/** Position of the mouse in viewport */
 		FVector2D WrappedMousePosition = FVector2D::ZeroVector;
 		FVector2D StartMousePos = FVector2D::ZeroVector;
+		FVector2D AccumulatedMouseDelta = FVector2D::ZeroVector;
 
 		// --- Selection Type ---
 		ESelectionType SelectionType = ESelectionType::None;

@@ -36,19 +36,19 @@ namespace BlenderControls
 		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
-		StartDragVector = GetSession()->GetVirtualMousePos() - PivotViewportPosition;
+		StartDragVector = GetSession()->GetStartMousePos() - PivotViewportPosition;
 		LastDragVector = StartDragVector;
 
-		ViewportClient->SetWidgetMode(UE::Widget::WM_Rotate);
-		ViewportClient->Invalidate();
 		AccumulatedAngleRad = 0.0f;
 		TrackballMouseDelta = FVector2D::ZeroVector;
 		AngleToApplyRad = 0.0f;
 
 		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
+		const float CursorScale = GetDefault<UBlenderControlsSettings>()->CustomCursorScale;
 		HudWidget->SetCursorBrush(CursorBrush);
-		HudWidget->SetCursorHotspot(FVector2D(16, 16));
+		HudWidget->SetCursorSize(FVector2D(32 * CursorScale, 32 * CursorScale));
+		HudWidget->SetCursorHotspot(FVector2D(16 * CursorScale, 16 * CursorScale));
 		HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
 	}
 
@@ -70,7 +70,7 @@ namespace BlenderControls
 		if (bTrackballModeEnabled)
 		{
 			const float MouseDeltaSensitivity = GetDefault<UBlenderControlsSettings>()->TrackballSensitivity;
-			TrackballMouseDelta = FVector2D(MouseDelta.X, MouseDelta.Y) * MouseDeltaSensitivity;
+			TrackballMouseDelta = FVector2D(Session->GetAccumulatedMouseDelta().X, Session->GetAccumulatedMouseDelta().Y) * MouseDeltaSensitivity;
 
 			if (bSnappingEnabled)
 			{

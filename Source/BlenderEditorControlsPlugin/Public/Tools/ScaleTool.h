@@ -31,6 +31,7 @@ namespace BlenderControls
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
 
 	protected:
+		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const override { return UE::Widget::WM_Scale; }
 		virtual FText GetNumericHudText() const override;
 		virtual FText GetLiveHudText() const override;
 		FText BuildFreeformHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;

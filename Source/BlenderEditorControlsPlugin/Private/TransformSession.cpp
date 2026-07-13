@@ -78,7 +78,7 @@ namespace BlenderControls
 	FEditorViewportClient* GetHoveredViewportClient()
 	{
 		FWidgetPath WidgetPath = FSlateApplication::Get().LocateWindowUnderMouse(
-			FSlateApplication::Get().GetCursorPos(), 
+			FSlateApplication::Get().GetCursorPos(),
 			FSlateApplication::Get().GetInteractiveTopLevelWindows()
 		);
 
@@ -96,6 +96,7 @@ namespace BlenderControls
 			}
 		}
 
+		UE_LOG(LogTemp, Log, TEXT("WidgetPath NULL"));
 		return nullptr;
 	}
 
@@ -166,14 +167,14 @@ namespace BlenderControls
 		{
 			const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
 			const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
-			const int32 ActorCount = GEditor->GetSelectedActorCount();
-			
+
 			if (bControlRigModeActive && bHasRigElements)
 			{
 				SelectionType = ESelectionType::ControlRig;
 				return true;
 			}
-			
+
+			const int32 ActorCount = GEditor->GetSelectedActorCount();
 			if (ActorCount > 0)
 			{
 				SelectionType = ESelectionType::Actors;
@@ -191,7 +192,7 @@ namespace BlenderControls
 				}
 			}
 		}
-		
+
 		SelectionType = ESelectionType::None;
 		return false;
 	}
@@ -223,6 +224,7 @@ namespace BlenderControls
 			WrappedMousePosition = StartMousePos;
 		}
 
+		AccumulatedMouseDelta = FVector2D::ZeroVector;
 		GlobalCursorAnchor = FSlateApplication::Get().GetCursorPos();
 	}
 

@@ -34,6 +34,11 @@ namespace BlenderControls
 			return;
 		}
 
+		if (!GEditor)
+		{
+			return;
+		}
+
 		Viewport = ViewportClient->Viewport;
 		if (!Viewport)
 		{
@@ -70,10 +75,9 @@ namespace BlenderControls
 			GEditor->NoteSelectionChange(true);
 		}
 		
+		ViewportClient->SetWidgetMode(GetDesiredWidgetMode());
 		ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), true,
 		                                false);
-		Viewport->CaptureMouse(true);
-		Viewport->LockMouseToViewport(true);
 	}
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -137,14 +141,6 @@ namespace BlenderControls
 
 		ViewportClient->TrackingStopped();
 
-			if (!bApply && VirtualPivot.IsValid())
-			{
-				VirtualPivot->RevertToStartState();
-			}
-
-			// NoteSelectionChange, updates the gizmo to render at the object's new position. However, for control
-			// rig selection, this has unintended effect of resetting selection. Ignoring this call, does not
-			// result in a stale gizmo however, therefore can be safely bypassed. 
 		if (!bApply && VirtualPivot.IsValid())
 		{
 			VirtualPivot->RevertToStartState();
@@ -580,14 +576,14 @@ namespace BlenderControls
 		}
 
 		const FVector2D CurrentGlobalPos = FSlateApplication::Get().GetCursorPos();
-		const FVector2D TrueMouseDelta = CurrentGlobalPos - Session->GlobalCursorAnchor;
+		const FVector2D CurrentMouseDelta = CurrentGlobalPos - Session->GlobalCursorAnchor;
 
-		if (TrueMouseDelta.IsNearlyZero())
+		if (CurrentMouseDelta.IsNearlyZero())
 		{
 			return;
 		}
 
-		Session->VirtualMousePosition += TrueMouseDelta;
+		Session->VirtualMousePosition += CurrentMouseDelta;
 
 		// Force the hardware cursor back globally to perfectly lock it
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->SetPosition(
@@ -615,7 +611,7 @@ namespace BlenderControls
 			HudWidget->SetVirtualCursorPos(Session->WrappedMousePosition);
 		}
 
-		MouseDelta += TrueMouseDelta * CurrentPrecisionFactor;
+		Session->AccumulatedMouseDelta += CurrentMouseDelta * CurrentPrecisionFactor;
 	}
 
 	void FToolBase::OnSwitch()

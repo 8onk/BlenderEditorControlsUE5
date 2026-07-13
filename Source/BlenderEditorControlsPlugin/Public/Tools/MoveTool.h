@@ -20,6 +20,7 @@ namespace BlenderControls
 		virtual FText GetNumericHudText() const override;
 
 	protected:
+		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const override { return UE::Widget::WM_Translate; }
 		virtual FText GetLiveHudText() const override;
 		FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
 		                           const FText& MagText) const;

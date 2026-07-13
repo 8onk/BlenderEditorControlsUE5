@@ -431,4 +431,74 @@ namespace BlenderControls
 			}
 		}
 	}
+
+	bool FSCSPivot::ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale)
+	{
+		if (!BlueprintEditorPtr) return false;
+
+		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
+		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
+
+		for (const FSCSNodeInfo& Info : Nodes)
+		{
+			if (!Info.CachedData) continue;
+
+			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(
+				Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
+
+			USceneComponent* LivePreview = const_cast<USceneComponent*>(
+				Cast<USceneComponent>(Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
+
+			if (LiveTemplate)
+			{
+				FTransform CurrentTransform = LiveTemplate->GetComponentTransform();
+
+				if (!InDrag.IsNearlyZero())
+				{
+					CurrentTransform.SetLocation(CurrentTransform.GetLocation() + InDrag);
+				}
+				if (!InRot.IsNearlyZero())
+				{
+					CurrentTransform.SetRotation((InRot.Quaternion() * CurrentTransform.GetRotation()).GetNormalized());
+				}
+				if (!InScale.IsNearlyZero())
+				{
+					CurrentTransform.SetScale3D(CurrentTransform.GetScale3D() + InScale);
+				}
+
+				LiveTemplate->SetWorldTransform(CurrentTransform);
+			}
+
+			if (LivePreview)
+			{
+				FTransform CurrentTransform = LivePreview->GetComponentTransform();
+
+				if (!InDrag.IsNearlyZero())
+				{
+					CurrentTransform.SetLocation(CurrentTransform.GetLocation() + InDrag);
+				}
+				if (!InRot.IsNearlyZero())
+				{
+					CurrentTransform.SetRotation((InRot.Quaternion() * CurrentTransform.GetRotation()).GetNormalized());
+				}
+				if (!InScale.IsNearlyZero())
+				{
+					CurrentTransform.SetScale3D(CurrentTransform.GetScale3D() + InScale);
+				}
+
+				LivePreview->SetWorldTransform(CurrentTransform);
+			}
+		}
+
+		if (GEditor)
+		{
+			GEditor->RedrawLevelEditingViewports();
+			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient()))
+			{
+				ViewportClient->Invalidate();
+			}
+		}
+
+		return true;
+	}
 } // namespace BlenderControls

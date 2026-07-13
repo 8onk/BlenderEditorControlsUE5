@@ -6,6 +6,7 @@
 #include "Pivots/VirtualPivotBase.h"
 #include "UI/TransformHUD.h"
 #include "Utils/MathHelpers.h"
+#include "BlenderControlsSettings.h"
 
 namespace BlenderControls
 {
@@ -18,15 +19,14 @@ namespace BlenderControls
 	{
 		FToolBase::OnBegin();
 
-		ViewportClient->SetWidgetMode(UE::Widget::WM_Translate);
-		ViewportClient->Invalidate();
-
 		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.Move"));
 
+		const float CursorScale = GetDefault<UBlenderControlsSettings>()->CustomCursorScale;
+
 		HudWidget->SetCursorBrush(CursorBrush);
-		HudWidget->SetCursorSize(FVector2D(24, 24));
-		HudWidget->SetCursorHotspot(FVector2D(12, 12));
+		HudWidget->SetCursorSize(FVector2D(24 * CursorScale, 24 * CursorScale));
+		HudWidget->SetCursorHotspot(FVector2D(12 * CursorScale, 12 * CursorScale));
 		HudWidget->SetCursorOrientation(ECursorOrient::None);
 	}
 
@@ -62,8 +62,9 @@ namespace BlenderControls
 		FVector FinalTotalDelta;
 		if (CosAngle <= ParallelCos) //Standard Projection (View is sufficiently angled relative to the axis/plane)
 		{
-			const FVector UnconstrainedMouseDelta3d = (ViewRight * MouseDelta.X * GrabContext.ScreenToWorldScale) +
-				(-ViewUp * MouseDelta.Y * GrabContext.ScreenToWorldScale);
+			const FVector UnconstrainedMouseDelta3d = (ViewRight * Session->GetAccumulatedMouseDelta().X * GrabContext.
+					ScreenToWorldScale) +
+				(-ViewUp * Session->GetAccumulatedMouseDelta().Y * GrabContext.ScreenToWorldScale);
 
 			const FVector ActiveObjectStartLocation = GetActiveElementStartLocation();
 
@@ -111,7 +112,7 @@ namespace BlenderControls
 		else
 		{
 			const FVector2D ScreenUpVector(0.0f, -1.0f);
-			const float ScreenSpaceFactor = FVector2D::DotProduct(MouseDelta, ScreenUpVector);
+			const float ScreenSpaceFactor = FVector2D::DotProduct(Session->GetAccumulatedMouseDelta(), ScreenUpVector);
 			const float ScaledFactor = FMath::Sign(ScreenSpaceFactor) * FMath::Square(ScreenSpaceFactor) * 0.1f;
 
 			FinalTotalDelta = GrabContext.SingleLockAxis * ScaledFactor;
@@ -199,6 +200,8 @@ namespace BlenderControls
 			return;
 		}
 
+		// For no axis lock, we want to try to use InputWidgetDelta() where possible as it supports additional snapping settings,
+		// out of the box, but only does so as long as no axis lock is active and solely in level viewport. 
 		if (Session->GetLockedAxis() == EAxisLock::All)
 		{
 			FVector FrameDelta = TotalDelta - PreviousFrameTotalDelta;
@@ -209,7 +212,9 @@ namespace BlenderControls
 
 			ViewportClient->SetCurrentWidgetAxis(Axis);
 
-			// Fallback to InputWidgetDelta() as it handles additional natively supported snapping features. 
+			// SCS viewport and control rig selection will fallback to InputWidgetDelta() as it does not override ApplyManualTransformDelta()
+			// The base implementation returns false. The additional snapping settings provided by InputWidgetDelta()
+			// are not supported in blueprint viewport. 
 			bool bHandledManually = false;
 			if (VirtualPivot.IsValid())
 			{
@@ -466,7 +471,7 @@ namespace BlenderControls
 			return FText::GetEmpty();
 		}
 
-		const FVector LiveDelta = GetActiveElementCurrentLocation() - GetPivotStartLocation();
+		const FVector LiveDelta = GetActiveElementCurrentLocation() - GetActiveElementStartLocation();
 
 		FNumberFormattingOptions NumFmt;
 		NumFmt.MaximumFractionalDigits = 3;

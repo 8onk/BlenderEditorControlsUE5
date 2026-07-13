@@ -34,6 +34,7 @@ namespace BlenderControls
 		virtual void ApplyTranslation(const FVector& LocalDelta, bool bUsingLocalSpace) override;
 		virtual void ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
 		virtual void ForEachElementTransform(TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const override;
+		virtual bool ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale) override;
 		// ~FVirtualPivotBase interface
 
 	private:
