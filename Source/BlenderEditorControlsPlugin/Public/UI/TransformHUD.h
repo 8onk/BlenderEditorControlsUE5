@@ -80,6 +80,11 @@ namespace BlenderControls
 		                      const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	private:
+		float GetCappedHudScale() const;
+		FSlateFontInfo GetDynamicFont() const;
+		FMargin GetDynamicPaddingUE5() const;
+		FMargin GetDynamicPaddingLegacy() const;
+
 		TSharedPtr<STextBlock> ReadoutText;
 		TSharedPtr<STextBlock> NumericText;
 

@@ -6,6 +6,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Slate/SceneViewport.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
 #include "Brushes/SlateRoundedBoxBrush.h"
@@ -14,6 +15,49 @@
 
 namespace BlenderControls
 {
+	float STransformHUD::GetCappedHudScale() const
+	{
+		const float RequestedScale = GetDefault<UBlenderControlsSettings>()->HudScale;
+
+		float ViewportWidth = 1920.f;
+		if (AttachedViewport.IsValid())
+		{
+			TSharedPtr<FSceneViewport> SceneVP = AttachedViewport.Pin()->GetSceneViewport();
+			if (SceneVP.IsValid())
+			{
+				ViewportWidth = SceneVP->GetSizeXY().X;
+			}
+		}
+
+		const float MarginLeft = GetDefault<UBlenderControlsSettings>()->MarginLeft;
+		constexpr float BaseMaxTextWidth = 500.f;
+		const float AvailableSpace = ViewportWidth - MarginLeft - 20.f;
+
+		const float MaxAllowedScale = FMath::Max(0.1f, AvailableSpace / BaseMaxTextWidth);
+
+		return FMath::Min(RequestedScale, MaxAllowedScale);
+	}
+
+	FSlateFontInfo STransformHUD::GetDynamicFont() const
+	{
+		const float Scale = GetCappedHudScale();
+		FSlateFontInfo FontInfo = FAppStyle::Get().GetFontStyle("NormalFont");
+		FontInfo.Size = FMath::RoundToInt(FontInfo.Size * Scale);
+		return FontInfo;
+	}
+
+	FMargin STransformHUD::GetDynamicPaddingUE5() const
+	{
+		const float Scale = GetCappedHudScale();
+		return FMargin(10.f * Scale, 4.f * Scale);
+	}
+
+	FMargin STransformHUD::GetDynamicPaddingLegacy() const
+	{
+		const float Scale = GetCappedHudScale();
+		return FMargin(12.f * Scale, 5.5f * Scale);
+	}
+
 	void STransformHUD::Construct(const FArguments&)
 	{
 		//UE5.6 introduced a new UI layout for level viewport
@@ -21,14 +65,14 @@ namespace BlenderControls
 		ChildSlot
 		[
 			SNew(SBorder)
-			.Padding(FMargin(10.f, 4.f))
+			.Padding(this, &STransformHUD::GetDynamicPaddingUE5)
 			.BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
 			[
 				SNew(SOverlay)
 				+ SOverlay::Slot()
 				[
 					SAssignNew(ReadoutText, STextBlock)
-					.Font(FAppStyle::Get().GetFontStyle("NormalFont"))
+					.Font(this, &STransformHUD::GetDynamicFont)
 					.ColorAndOpacity(FStyleColors::Foreground)
 					.ShadowOffset(FVector2D(1, 1))
 				]
@@ -49,12 +93,12 @@ namespace BlenderControls
 			             .BorderImage(&PillBrush)
 			// Remove the manual background color override since the brush handles it
 			//.BorderBackgroundColor(...) 
-			             .Padding(FMargin(12.f, 5.5f)) // Increased side padding for pill look
+			             .Padding(this, &STransformHUD::GetDynamicPaddingLegacy) // Increased side padding for pill look
 			             .HAlign(HAlign_Center)
 			             .VAlign(VAlign_Center)
 			[
 				SAssignNew(ReadoutText, STextBlock)
-				.Font(FAppStyle::Get().GetFontStyle("NormalFont"))
+				.Font(this, &STransformHUD::GetDynamicFont)
 				.ColorAndOpacity(FLinearColor::White)
 			]
 		];
@@ -237,15 +281,18 @@ namespace BlenderControls
 
 		if (bShowDash)
 		{
-			constexpr float DashLength = 7.5f;
+			const float DashScale = GetDefault<UBlenderControlsSettings>()->DashLineScale;
+			const float ScaledDashThickness = DashThickness * DashScale;
+			constexpr float BaseDashScale = 7.5f;
+			const float ScaledDashLength = BaseDashScale * DashScale;
 			constexpr float GapRatio = 0.3f;
-			constexpr float DashDistance = DashLength * GapRatio;
-			float NumTotalLines = LineVector.Size() / (DashLength + DashDistance);
+			const float ScaledDashDistance = ScaledDashLength * GapRatio;
+			float NumTotalLines = LineVector.Size() / (ScaledDashLength + ScaledDashDistance);
 			FVector2f Direction = LineVector.GetSafeNormal();
 			int NumFittingLines = FMath::CeilToFloat(NumTotalLines);
 
 			FVector2f DashStart = LineStart;
-			FVector2f DashEnd = LineStart + LineVector.GetSafeNormal() * DashLength;
+			FVector2f DashEnd = LineStart + LineVector.GetSafeNormal() * ScaledDashLength;
 			for (int i = 0; i < NumFittingLines; ++i)
 			{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
@@ -267,13 +314,13 @@ namespace BlenderControls
 #endif
 
 				FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), Pts,
-				                             ESlateDrawEffect::None, FLinearColor::White, bUseAA, DashThickness);
+				                             ESlateDrawEffect::None, FLinearColor::White, bUseAA, ScaledDashThickness);
 
-				DashStart = DashEnd + (Direction * DashDistance);
+				DashStart = DashEnd + (Direction * ScaledDashDistance);
 				float DistToOrigin = (LineEnd - DashStart).Size();
-				if (DistToOrigin > DashLength)
+				if (DistToOrigin > ScaledDashLength)
 				{
-					DashEnd = DashStart + (Direction * DashLength);
+					DashEnd = DashStart + (Direction * ScaledDashLength);
 				}
 				else
 				{
