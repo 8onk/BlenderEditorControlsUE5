@@ -39,9 +39,11 @@ public:
 			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
 
 		FMaterialRelevance R;
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		if (DrawMaterialFromComponent) { R |= DrawMaterialFromComponent->GetRelevance_Concurrent(FL); }
 		if (FallbackMatPersp) { R |= FallbackMatPersp->GetRelevance_Concurrent(FL); }
 		if (FallbackMatOrtho) { R |= FallbackMatOrtho->GetRelevance_Concurrent(FL); }
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		MaterialRelevance = R;
 
 		bWillEverBeLit = false;
