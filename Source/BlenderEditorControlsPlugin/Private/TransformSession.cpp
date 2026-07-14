@@ -25,6 +25,20 @@
 #include "ControlRig/ControlRigSelectionHelper.h"
 #include "BlueprintEditor.h"
 #include "SEditorViewport.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+
+// Dummy class to bypass the 'protected' access modifier for bIsTracking. 
+// Not the cleanest solution, but this seems to be the only way (that I could think of) to make it such that 
+// auto save is pending until a transform session is complete, vs aborting it altogether. 
+class FViewportClientExposer : public FEditorViewportClient
+{
+public:
+	static void SetTracking(FEditorViewportClient* Client, bool bInTracking)
+	{
+		// Cast the client to our exposer so we can write to the protected variable
+		static_cast<FViewportClientExposer*>(Client)->bIsTracking = bInTracking;
+	}
+};
 
 DEFINE_LOG_CATEGORY_STATIC(LogTransformSession, Log, All);
 
@@ -53,10 +67,20 @@ namespace BlenderControls
 		InitializeMouseState();
 
 		NumericInputProcessor = MakeUnique<FNumericInputProcessor>();
+
+		if (ActiveViewportClient && GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable)
+		{
+			FViewportClientExposer::SetTracking(ActiveViewportClient, true);
+		}
 	}
 
 	FTransformSession::~FTransformSession()
 	{
+		if (ActiveViewportClient)
+		{
+			FViewportClientExposer::SetTracking(ActiveViewportClient, false);
+		}
+
 		if (CurrentTool.IsValid())
 		{
 			CurrentTool->OnEnd(/*bApply=*/false);

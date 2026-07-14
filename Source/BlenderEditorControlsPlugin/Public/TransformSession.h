@@ -137,6 +137,7 @@ namespace BlenderControls
 		bool bIsSwitchingTools = false;
 		bool bHasSessionTerminated = false;
 		bool bStartedWithDuplicate = false;
+		bool bWasAutoSaveEnabled = true;
 
 		FVector2D PendingMousePosition = FVector2D::ZeroVector;
 		bool bHasPendingMouseMovement = false;
