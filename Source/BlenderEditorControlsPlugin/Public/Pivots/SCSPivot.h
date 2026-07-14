@@ -27,8 +27,8 @@ namespace BlenderControls
 		virtual FVector GetActiveElementCurrentLocation() const override;
 		virtual void RevertToStartState() override;
 		virtual bool IsValid() const override { return Nodes.Num() > 0; }
-		virtual void BeginTransformSequence() override {}
-		virtual void EndTransformSequence() override {}
+		virtual void BeginTransformSequence() override;
+		virtual void EndTransformSequence() override;
 		virtual void ApplyRotation(const FGrabContext& GC, float AngleRad, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
 		virtual void ApplyScale(const FVector& ScaleMultiplier, bool bUsingLocalSpace) override;
 		virtual void ApplyTranslation(const FVector& LocalDelta, bool bUsingLocalSpace) override;
@@ -45,6 +45,9 @@ namespace BlenderControls
 		{
 			const FSubobjectData* CachedData = nullptr;
 			FTransform StartTransform;
+			FVector OldRelativeLocation = FVector::ZeroVector;
+			FRotator OldRelativeRotation = FRotator::ZeroRotator;
+			FVector OldRelativeScale3D = FVector::OneVector;
 		};
 
 		FTransform StartPivotTransform = FTransform::Identity;

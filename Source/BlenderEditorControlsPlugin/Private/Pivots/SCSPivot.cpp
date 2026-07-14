@@ -7,6 +7,8 @@
 #include "EditorViewportClient.h"
 #include "Enums.h"
 #include "Tools/GrabContext.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "ObjectTools.h"
 
 namespace BlenderControls
 {
@@ -21,6 +23,13 @@ namespace BlenderControls
 
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
+		
+		if (PreviewActor)
+		{
+			// Force update transforms so ComponentToWorld is valid before we capture it, 
+			// preventing issues where uninitialized scales (1,1,1) are grabbed on first open.
+			PreviewActor->UpdateComponentTransforms();
+		}
 
 		for (const TSharedPtr<FSubobjectEditorTreeNode>& Node : InNodes)
 		{
@@ -449,26 +458,6 @@ namespace BlenderControls
 			USceneComponent* LivePreview = const_cast<USceneComponent*>(
 				Cast<USceneComponent>(Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 
-			if (LiveTemplate)
-			{
-				FTransform CurrentTransform = LiveTemplate->GetComponentTransform();
-
-				if (!InDrag.IsNearlyZero())
-				{
-					CurrentTransform.SetLocation(CurrentTransform.GetLocation() + InDrag);
-				}
-				if (!InRot.IsNearlyZero())
-				{
-					CurrentTransform.SetRotation((InRot.Quaternion() * CurrentTransform.GetRotation()).GetNormalized());
-				}
-				if (!InScale.IsNearlyZero())
-				{
-					CurrentTransform.SetScale3D(CurrentTransform.GetScale3D() + InScale);
-				}
-
-				LiveTemplate->SetWorldTransform(CurrentTransform);
-			}
-
 			if (LivePreview)
 			{
 				FTransform CurrentTransform = LivePreview->GetComponentTransform();
@@ -487,18 +476,148 @@ namespace BlenderControls
 				}
 
 				LivePreview->SetWorldTransform(CurrentTransform);
+
+				if (LiveTemplate)
+				{
+					LiveTemplate->SetRelativeLocation(LivePreview->GetRelativeLocation());
+					LiveTemplate->SetRelativeRotation(LivePreview->GetRelativeRotation());
+					LiveTemplate->SetRelativeScale3D(LivePreview->GetRelativeScale3D());
+				}
 			}
 		}
 
 		if (GEditor)
 		{
 			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient()))
+			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
+				->GetClient()))
 			{
 				ViewportClient->Invalidate();
 			}
 		}
 
 		return true;
+	}
+
+	void FSCSPivot::BeginTransformSequence()
+	{
+		if (!BlueprintEditorPtr) return;
+		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
+
+		for (FSCSNodeInfo& Info : Nodes) // Removed const so we can store old values
+		{
+			if (!Info.CachedData) continue;
+
+			if (USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+				USceneComponent>(Blueprint)))
+			{
+				// Track the undo state when a sequence begins since we bypassed InputWidgetDelta transactions
+				LiveTemplate->SetFlags(RF_Transactional);
+				LiveTemplate->Modify();
+
+				// Store old relative transforms for propagation
+				Info.OldRelativeLocation = LiveTemplate->GetRelativeLocation();
+				Info.OldRelativeRotation = LiveTemplate->GetRelativeRotation();
+				Info.OldRelativeScale3D = LiveTemplate->GetRelativeScale3D();
+			}
+		}
+	}
+
+	void FSCSPivot::EndTransformSequence()
+	{
+		if (!BlueprintEditorPtr) return;
+		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
+
+		TArray<UObject*> ArchetypeSearchObjects;
+		ArchetypeSearchObjects.Reserve(Nodes.Num());
+
+		for (const FSCSNodeInfo& Info : Nodes)
+		{
+			if (!Info.CachedData) continue;
+
+			if (USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+				USceneComponent>(Blueprint)))
+			{
+				// Notify the editor that the property has changed so it updates internal state
+				LiveTemplate->PostEditChange();
+
+				// Add to the list of objects we need to search for archetypes
+				if (LiveTemplate->HasAnyFlags(RF_ArchetypeObject))
+				{
+					ArchetypeSearchObjects.Add(LiveTemplate);
+				}
+				else if (UObject* Outer = LiveTemplate->GetOuter())
+				{
+					ArchetypeSearchObjects.Add(Outer);
+				}
+				else
+				{
+					ArchetypeSearchObjects.Add(nullptr);
+				}
+			}
+			else
+			{
+				ArchetypeSearchObjects.Add(nullptr);
+			}
+		}
+
+		// Get the list of active archetype instances for each moved object, in bulk for efficiency
+		TArray<TArray<UObject*>> ArchetypeInstancesList;
+		ObjectTools::BatchGetArchetypeInstances(ArchetypeSearchObjects, ArchetypeInstancesList);
+
+		// Propagate the change(s) to the matching component instance
+		for (int32 ObjectIndex = 0; ObjectIndex < Nodes.Num(); ObjectIndex++)
+		{
+			const FSCSNodeInfo& Info = Nodes[ObjectIndex];
+			if (!Info.CachedData) continue;
+
+			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+				USceneComponent>(Blueprint));
+			if (!LiveTemplate) continue;
+
+			TArray<UObject*>& ArchetypeInstances = ArchetypeInstancesList[ObjectIndex];
+			if (ArchetypeInstances.Num() > 0)
+			{
+				if (LiveTemplate->HasAnyFlags(RF_ArchetypeObject))
+				{
+					for (int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
+					{
+						USceneComponent* SceneComp = Cast<USceneComponent>(ArchetypeInstances[InstanceIndex]);
+						if (SceneComp != nullptr)
+						{
+							FComponentEditorUtils::ApplyDefaultValueChange(
+								SceneComp, SceneComp->GetRelativeLocation_DirectMutable(), Info.OldRelativeLocation,
+								LiveTemplate->GetRelativeLocation());
+							FComponentEditorUtils::ApplyDefaultValueChange(
+								SceneComp, SceneComp->GetRelativeRotation_DirectMutable(), Info.OldRelativeRotation,
+								LiveTemplate->GetRelativeRotation());
+							FComponentEditorUtils::ApplyDefaultValueChange(
+								SceneComp, SceneComp->GetRelativeScale3D_DirectMutable(), Info.OldRelativeScale3D,
+								LiveTemplate->GetRelativeScale3D());
+						}
+					}
+				}
+				else
+				{
+					for (int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
+					{
+						USceneComponent* SceneComp = static_cast<USceneComponent*>(FindObjectWithOuter(
+							ArchetypeInstances[InstanceIndex], LiveTemplate->GetClass(), LiveTemplate->GetFName()));
+						if (SceneComp)
+						{
+							FComponentEditorUtils::ApplyDefaultValueChange(
+								SceneComp, SceneComp->GetRelativeLocation_DirectMutable(), Info.OldRelativeLocation,
+								LiveTemplate->GetRelativeLocation());
+							FComponentEditorUtils::ApplyDefaultValueChange(
+								SceneComp, SceneComp->GetRelativeRotation_DirectMutable(), Info.OldRelativeRotation,
+								LiveTemplate->GetRelativeRotation());
+							FComponentEditorUtils::ApplyDefaultValueChange(
+								SceneComp, SceneComp->GetRelativeScale3D_DirectMutable(), Info.OldRelativeScale3D,
+								LiveTemplate->GetRelativeScale3D());
+						}
+					}
+				}
+			}
+		}
 	}
 } // namespace BlenderControls
