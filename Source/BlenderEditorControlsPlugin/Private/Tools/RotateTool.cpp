@@ -428,6 +428,10 @@ namespace BlenderControls
 		{
 			ApplyNumeric();
 		}
+		else
+		{
+			OnActive(CurrentViewportMousePos);
+		}
 
 		UpdateHud();
 	}
