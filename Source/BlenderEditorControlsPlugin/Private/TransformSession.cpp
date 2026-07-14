@@ -101,9 +101,11 @@ namespace BlenderControls
 
 	FEditorViewportClient* GetHoveredViewportClient()
 	{
-		FWidgetPath WidgetPath = FSlateApplication::Get().LocateWindowUnderMouse(
+		constexpr bool bIgnoreEnabledStatus = true;
+		const FWidgetPath WidgetPath = FSlateApplication::Get().LocateWindowUnderMouse(
 			FSlateApplication::Get().GetCursorPos(),
-			FSlateApplication::Get().GetInteractiveTopLevelWindows()
+			FSlateApplication::Get().GetInteractiveTopLevelWindows(),
+			bIgnoreEnabledStatus
 		);
 
 		if (WidgetPath.IsValid())
@@ -124,12 +126,14 @@ namespace BlenderControls
 		return nullptr;
 	}
 
-	FBlueprintEditor* FTransformSession::GetActiveBlueprintEditor()
+	FBlueprintEditor* FTransformSession::GetActiveBlueprintEditor() const
 	{
-		if (!GEditor)
+		if (!GEditor || !ActiveViewportClient)
 		{
 			return nullptr;
 		}
+
+		UWorld* ViewportWorld = ActiveViewportClient->GetWorld();
 
 		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
 		if (!AssetEditorSubsystem)
@@ -154,23 +158,23 @@ namespace BlenderControls
 		const TArray<IAssetEditorInstance*> OpenEditors = AssetEditorSubsystem->GetAllOpenEditors();
 #endif
 
-		FBlueprintEditor* FocusedBPEditor = nullptr;
-		double MaxLastActivationTime = 0.0;
-
 		for (IAssetEditorInstance* Editor : OpenEditors)
 		{
 			if (Editor && Editor->GetEditorName() == TEXT("BlueprintEditor"))
 			{
-				// The editor with the highest activation time is the active/focused one
-				if (Editor->GetLastActivationTime() > MaxLastActivationTime)
+				// Find the Blueprint Editor that owns the preview world matching our hovered viewport
+				FBlueprintEditor* BPEditor = static_cast<FBlueprintEditor*>(Editor);
+				if (AActor* PreviewActor = BPEditor->GetPreviewActor())
 				{
-					MaxLastActivationTime = Editor->GetLastActivationTime();
-					FocusedBPEditor = static_cast<FBlueprintEditor*>(Editor);
+					if (PreviewActor->GetWorld() == ViewportWorld)
+					{
+						return BPEditor;
+					}
 				}
 			}
 		}
 
-		return FocusedBPEditor;
+		return nullptr;
 	}
 
 	bool FTransformSession::ValidateEditorState()
