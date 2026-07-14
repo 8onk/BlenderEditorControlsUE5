@@ -1,5 +1,3 @@
-// #TODO CONTROL RIG SELECTION GETS DESELECTED WHEN CANCELING / ACCEPTING A TRANSFORMATION. 
-
 #include "Tools/ToolBase.h"
 #include "Editor.h"
 #include "EditorModeManager.h"
@@ -72,7 +70,10 @@ namespace BlenderControls
 
 		if (Session->IsControlRigSelection())
 		{
-			GEditor->NoteSelectionChange(true);
+			if (!GetDefault<UBlenderControlsSettings>()->bKeepControlRigSelectionActive)
+			{
+				GEditor->NoteSelectionChange(true);
+			}
 		}
 		
 		ViewportClient->SetWidgetMode(GetDesiredWidgetMode());
@@ -86,6 +87,7 @@ namespace BlenderControls
 		{
 			return;
 		}
+		
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		HandleMouseMovement(CurrentViewportMousePosition);
 	}
@@ -151,7 +153,10 @@ namespace BlenderControls
 		// result in a stale gizmo however, therefore can be safely bypassed. 
 		if (Session->IsControlRigSelection())
 		{
-			FControlRigSelectionHelper::RestoreSelection(Session->GetSelectedRigElements());
+			if (!GetDefault<UBlenderControlsSettings>()->bKeepControlRigSelectionActive)
+			{
+				FControlRigSelectionHelper::RestoreSelection(Session->GetSelectedRigElements());
+			}
 		}
 
 		if (GEditor)
@@ -625,7 +630,6 @@ namespace BlenderControls
 
 		if (ViewportClient)
 		{
-			ViewportClient->TrackingStopped();
 			ViewportClient->Invalidate();
 		}
 	}
