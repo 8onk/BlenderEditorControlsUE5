@@ -555,14 +555,6 @@ namespace BlenderControls
 		MathHelper::GetMousePosToViewportPos(FSlateApplication::Get().GetCursorPos(),
 		                                     CurrentViewportMousePosition);
 
-		// Add a sensitivity multiplier for ue 5.7, because ue 5.7 uses raw input, as mouse acceleration
-		// doesn't kick in for some reason in ue 5.7...
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		FVector2D RawDelta = CurrentViewportMousePosition - CursorAnchorPoint;
-		CurrentViewportMousePosition = CursorAnchorPoint + (RawDelta * GetDefault<UBlenderControlsSettings>()->
-			MouseSensitivity);
-#endif
-
 		PendingMousePosition = CurrentViewportMousePosition;
 		bHasPendingMouseMovement = true;
 
