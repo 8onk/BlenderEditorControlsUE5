@@ -220,7 +220,24 @@ namespace BlenderControls
 		{
 			if (const FBlueprintEditor* BPEditor = GetActiveBlueprintEditor())
 			{
-				if (BPEditor->GetSelectedSubobjectEditorTreeNodes().Num())
+				const auto& SelectedNodes = BPEditor->GetSelectedSubobjectEditorTreeNodes();
+				bool bHasValidComponentNode = false;
+
+				for (const auto& Node : SelectedNodes)
+				{
+					// We must ignore root actor selection (as it cannot be transformed since it has no editor gizmo). 
+					if (Node.IsValid() && Node->IsComponentNode())
+					{
+						// Also exclude default scene root as it is not supposed to be transformed (it only has scale). 
+						if (Node->GetVariableName() != FName("DefaultSceneRoot"))
+						{
+							bHasValidComponentNode = true;
+							break;
+						}
+					}
+				}
+
+				if (bHasValidComponentNode)
 				{
 					SelectionType = ESelectionType::SCSTreeNodes;
 					return true;
@@ -286,18 +303,6 @@ namespace BlenderControls
 				return;
 			}
 
-			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->
-				GetSelectedSubobjectEditorTreeNodes();
-			VirtualPivot = MakeShared<FSCSPivot>(BPEditor, SelectedNodes);
-		}
-		else
-		{
-			USelection* ActorSelection = GEditor->GetSelectedActors();
-			for (FSelectionIterator It(*ActorSelection); It; ++It)
-			{
-				if (AActor* Actor = Cast<AActor>(*It))
-				{
-					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
 			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->GetSelectedSubobjectEditorTreeNodes();
 			
 			// Filter out the DefaultSceneRoot before passing to FSCSPivot (its transform is not supposed to change, 
