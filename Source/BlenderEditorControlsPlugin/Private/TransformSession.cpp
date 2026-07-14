@@ -202,6 +202,13 @@ namespace BlenderControls
 				return true;
 			}
 
+			const int32 ComponentCount = GEditor->GetSelectedComponentCount();
+			if (ComponentCount > 0)
+			{
+				SelectionType = ESelectionType::Components;
+				return true;
+			}
+
 			const int32 ActorCount = GEditor->GetSelectedActorCount();
 			if (ActorCount > 0)
 			{
@@ -260,6 +267,7 @@ namespace BlenderControls
 	{
 		SelectedActors.Empty();
 		SelectedRigElements.Empty();
+		SelectedComponents.Empty();
 		VirtualPivot.Reset();
 
 		constexpr EPivotMode PivotMode = EPivotMode::MedianPoint;
@@ -290,10 +298,51 @@ namespace BlenderControls
 				if (AActor* Actor = Cast<AActor>(*It))
 				{
 					SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
+			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->GetSelectedSubobjectEditorTreeNodes();
+			
+			// Filter out the DefaultSceneRoot before passing to FSCSPivot (its transform is not supposed to change, 
+			// but it does if it is passed in)
+			TArray<TSharedPtr<FSubobjectEditorTreeNode>> FilteredNodes;
+			for (const TSharedPtr<FSubobjectEditorTreeNode>& Node : SelectedNodes)
+			{
+				if (Node.IsValid() && Node->IsComponentNode() && Node->GetVariableName() != FName("DefaultSceneRoot"))
+				{
+					FilteredNodes.Add(Node);
 				}
 			}
 
-			VirtualPivot = MakeShared<FActorPivot>(SelectedActors, PivotMode);
+			VirtualPivot = MakeShared<FSCSPivot>(BPEditor, FilteredNodes);
+		}
+		else
+		{
+			if (SelectionType == ESelectionType::Components)
+			{
+				USelection* ComponentSelection = GEditor->GetSelectedComponents();
+				for (FSelectionIterator It(*ComponentSelection); It; ++It)
+				{
+					if (USceneComponent* Comp = Cast<USceneComponent>(*It))
+					{
+						SelectedComponents.Add(TWeakObjectPtr<USceneComponent>(Comp));
+					}
+				}
+			}
+			else
+			{
+				USelection* ActorSelection = GEditor->GetSelectedActors();
+				for (FSelectionIterator It(*ActorSelection); It; ++It)
+				{
+					if (AActor* Actor = Cast<AActor>(*It))
+					{
+						SelectedActors.Add(TWeakObjectPtr<AActor>(Actor));
+						if (USceneComponent* RootComp = Actor->GetRootComponent())
+						{
+							SelectedComponents.Add(TWeakObjectPtr<USceneComponent>(RootComp));
+						}
+					}
+				}
+			}
+
+			VirtualPivot = MakeShared<FActorPivot>(SelectedComponents, PivotMode);
 		}
 	}
 
@@ -325,12 +374,25 @@ namespace BlenderControls
 		}
 		else
 		{
-			// Standard actor modification - call Modify() to register with OUR transaction
-			for (auto Actor : SelectedActors)
+			if (SelectionType == ESelectionType::Components)
 			{
-				if (Actor.IsValid())
+				for (auto CompPtr : SelectedComponents)
 				{
-					Actor->Modify();
+					if (USceneComponent* Comp = CompPtr.Get())
+					{
+						Comp->Modify();
+					}
+				}
+			}
+			else
+			{
+				// Standard actor modification - call Modify() to register with OUR transaction
+				for (auto Actor : SelectedActors)
+				{
+					if (Actor.IsValid())
+					{
+						Actor->Modify();
+					}
 				}
 			}
 		}

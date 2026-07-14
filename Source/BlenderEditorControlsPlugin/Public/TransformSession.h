@@ -23,6 +23,7 @@ namespace BlenderControls
 		None,
 		SCSTreeNodes, // Blueprint level viewport
 		Actors, // Standard AActor selection
+		Components, // Standard USceneComponent selection
 		ControlRig // Control Rig bones/controls in Animation Mode
 	};
 
@@ -117,6 +118,7 @@ namespace BlenderControls
 
 		// --- Mouse & Coordinate State ---
 		TArray<TWeakObjectPtr<AActor>> SelectedActors;
+		TArray<TWeakObjectPtr<USceneComponent>> SelectedComponents;
 		/** Position of the mouse ignoring wrapping.  */
 		FVector2D VirtualMousePosition = FVector2D::ZeroVector;
 		FVector2D CursorAnchorPoint = FVector2D::ZeroVector;

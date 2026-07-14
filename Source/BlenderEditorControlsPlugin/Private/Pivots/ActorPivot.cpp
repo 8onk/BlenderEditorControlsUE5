@@ -2,11 +2,12 @@
 #include "Enums.h"
 #include "BaseGizmos/TransformProxy.h"
 #include "Tools/GrabContext.h"
+#include "Components/SceneComponent.h"
 
 namespace BlenderControls
 {
 	//Uses median point by default for pivot
-	FActorPivot::FActorPivot(const TArray<TWeakObjectPtr<AActor>>& InSelection, const EPivotMode PivotMode)
+	FActorPivot::FActorPivot(const TArray<TWeakObjectPtr<USceneComponent>>& InSelection, const EPivotMode PivotMode)
 	{
 		TransformProxy = NewObject<UTransformProxy>();
 		if (!TransformProxy)
@@ -15,43 +16,72 @@ namespace BlenderControls
 		}
 		TransformProxy->AddToRoot();
 
-		for (const TWeakObjectPtr<AActor>& ActorPtr : InSelection)
+		for (const TWeakObjectPtr<USceneComponent>& CompPtr : InSelection)
 		{
-			if (AActor* Actor = ActorPtr.Get())
+			if (USceneComponent* Comp = CompPtr.Get())
 			{
-				const FTransform ActorTransform = Actor->GetTransform();
-				const FQuat ActorRotation = ActorTransform.GetRotation();
+				FSelection Child;
+				Child.Component = Comp;
+				Child.StartTransform = Comp->GetComponentTransform();
+				
+				if (AActor* Owner = Comp->GetOwner())
+				{
+					Child.OwnerActor = Owner;
+					Child.bIsRootComponent = (Owner->GetRootComponent() == Comp);
+				}
 
-				FChildInfo Child = {Actor, ActorTransform, ActorRotation};
 				Children.Add(Child);
 
 				constexpr bool bModifyComponentOnTransform = true;
-				TransformProxy->AddComponent(Actor->GetRootComponent(), bModifyComponentOnTransform);
-			}
-			if (Children.Num() > 0)
-			{
-				ActiveChild = Children.Last();
-				ComputePivotTransform(PivotMode);
+				TransformProxy->AddComponent(Comp, bModifyComponentOnTransform);
 			}
 		}
+
+		if (Children.Num() > 0)
+		{
+			ActiveChild = Children.Last();
+			ComputePivotTransform(PivotMode);
+		}
+	}
+
+	USceneComponent* FActorPivot::ResolveComponent(const FSelection& Child)
+	{
+		if (Child.bIsRootComponent)
+		{
+			if (const AActor* Owner = Child.OwnerActor.Get())
+			{
+				return Owner->GetRootComponent();
+			}
+		}
+		
+		return Child.Component.Get();
+	}
+
+	FVector FActorPivot::GetActiveElementCurrentLocation() const
+	{
+		if (USceneComponent* Comp = ResolveComponent(ActiveChild))
+		{
+			return Comp->GetComponentLocation();
+		}
+		return FVector::ZeroVector;
 	}
 
 	void FActorPivot::ApplyTranslation(const FVector& LocalDelta, bool bUsingLocalSpace)
 	{
-		for (const FChildInfo& Child : Children)
+		for (const FSelection& Child : Children)
 		{
 			FVector WorldSpaceOffset = LocalDelta;
 
 			if (bUsingLocalSpace)
 			{
-				const FQuat ChildStartRotation = Child.Transform.GetRotation();
+				const FQuat ChildStartRotation = Child.StartTransform.GetRotation();
 				WorldSpaceOffset = ChildStartRotation.RotateVector(LocalDelta);
 			}
 
-			const FVector StartPos = Child.Transform.GetLocation();
-			if (Child.Actor)
+			const FVector StartPos = Child.StartTransform.GetLocation();
+			if (USceneComponent* Comp = ResolveComponent(Child))
 			{
-				Child.Actor->SetActorLocation(StartPos + WorldSpaceOffset);
+				Comp->SetWorldLocation(StartPos + WorldSpaceOffset);
 			}
 		}
 	}
@@ -60,24 +90,26 @@ namespace BlenderControls
 	{
 		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
 		{
-			const FChildInfo& ActiveElement = Children.Last();
-			const FQuat ActiveObjectStartRotation = ActiveElement.Transform.GetRotation();
+			const FSelection& ActiveElement = Children.Last();
+			const FQuat ActiveObjectStartRotation = ActiveElement.StartTransform.GetRotation();
 			const FVector LocalSpaceDelta = ActiveObjectStartRotation.UnrotateVector(WorldDelta);
+			
+			USceneComponent* ActiveComp = ResolveComponent(ActiveElement);
 
-			for (const FChildInfo& Child : Children)
+			for (const FSelection& Child : Children)
 			{
-				const FTransform StartTransform = Child.Transform;
+				const FTransform StartTransform = Child.StartTransform;
 				const FVector WorldOffset = StartTransform.TransformPositionNoScale(LocalSpaceDelta);
 
-				if (Child.Actor)
+				if (USceneComponent* Comp = ResolveComponent(Child))
 				{
-					if (Child.Actor == ActiveElement.Actor)
+					if (Comp == ActiveComp)
 					{
-						Child.Actor->SetActorLocation(StartTransform.GetLocation() + WorldDelta);
+						Comp->SetWorldLocation(StartTransform.GetLocation() + WorldDelta);
 					}
 					else
 					{
-						Child.Actor->SetActorLocation(WorldOffset);
+						Comp->SetWorldLocation(WorldOffset);
 					}
 				}
 			}
@@ -85,11 +117,11 @@ namespace BlenderControls
 		else
 		{
 			const FVector NewPos = StartPivotTransform.GetLocation() + WorldDelta;
-			for (const FChildInfo& Child : Children)
+			for (const FSelection& Child : Children)
 			{
-				if (Child.Actor)
+				if (USceneComponent* Comp = ResolveComponent(Child))
 				{
-					Child.Actor->SetActorLocation(Child.Transform.GetLocation() + WorldDelta);
+					Comp->SetWorldLocation(Child.StartTransform.GetLocation() + WorldDelta);
 				}
 			}
 
@@ -116,9 +148,9 @@ namespace BlenderControls
 
 		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
 		{
-			for (FChildInfo Child : Children)
+			for (const FSelection& Child : Children)
 			{
-				const FTransform ChildTransform = Child.Transform;
+				const FTransform ChildTransform = Child.StartTransform;
 				const FVector X = ChildTransform.GetUnitAxis(EAxis::X);
 				const FVector Y = ChildTransform.GetUnitAxis(EAxis::Y);
 				const FVector Z = ChildTransform.GetUnitAxis(EAxis::Z);
@@ -153,9 +185,9 @@ namespace BlenderControls
 				NewTransform.SetScale3D(CurrentScale);
 				NewTransform.SetLocation(NewLocation);
 				NewTransform.SetRotation(NewRotation);
-				if (Child.Actor)
+				if (USceneComponent* Comp = ResolveComponent(Child))
 				{
-					Child.Actor->SetActorTransform(NewTransform);
+					Comp->SetWorldTransform(NewTransform);
 				}
 			}
 		}
@@ -171,11 +203,12 @@ namespace BlenderControls
 
 	void FActorPivot::ApplyScale(const FVector& ScaleMultiplier, bool bUsingLocalSpace)
 	{
-		for (FChildInfo Child : Children)
+		for (const FSelection& Child : Children)
 		{
-			if (!Child.Actor) continue;
+			USceneComponent* Comp = ResolveComponent(Child);
+			if (!Comp) continue;
 
-			const FTransform ActorInitialTransform = Child.Transform;
+			const FTransform ActorInitialTransform = Child.StartTransform;
 			const FQuat ActorRotation = ActorInitialTransform.GetRotation();
 			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - GetStartLocation();
 			FTransform NewTransform = ActorInitialTransform;
@@ -222,7 +255,7 @@ namespace BlenderControls
 				return;
 			}
 
-			Child.Actor->SetActorTransform(NewTransform);
+			Comp->SetWorldTransform(NewTransform);
 		}
 	}
 
@@ -271,8 +304,8 @@ namespace BlenderControls
 
 		if (Children.Num() == 1)
 		{
-			StartPivotTransform.SetRotation(Children[0].Rotation);
-			StartPivotTransform.SetScale3D(Children[0].Transform.GetScale3D());
+			StartPivotTransform.SetRotation(Children[0].StartTransform.GetRotation());
+			StartPivotTransform.SetScale3D(Children[0].StartTransform.GetScale3D());
 		}
 		else
 		{
@@ -290,7 +323,10 @@ namespace BlenderControls
 		FVector Accum = FVector::ZeroVector;
 		for (const auto& Child : Children)
 		{
-			Accum += Child.Actor->GetActorLocation();
+			if (USceneComponent* Comp = ResolveComponent(Child))
+			{
+				Accum += Comp->GetComponentLocation();
+			}
 		}
 
 		const FVector PivotLocation = Accum / Children.Num();
@@ -301,12 +337,14 @@ namespace BlenderControls
 	{
 		FBox BoundingBox(ForceInit);
 
-		for (auto& Child : Children)
+		for (const auto& Child : Children)
 		{
 			FVector Origin, Extent;
-			constexpr bool bOnlyCollidingComponents = false;
-			Child.Actor->GetActorBounds(bOnlyCollidingComponents, Origin, Extent);
-			BoundingBox += Origin;
+			if (USceneComponent* Comp = ResolveComponent(Child))
+			{
+				Comp->Bounds.GetBox().GetCenterAndExtents(Origin, Extent);
+				BoundingBox += Origin;
+			}
 		}
 
 		StartPivotTransform.SetLocation(BoundingBox.GetCenter());
@@ -314,19 +352,19 @@ namespace BlenderControls
 
 	void FActorPivot::ComputeActiveElementPivot()
 	{
-		if (Children.Last().Actor)
+		if (ResolveComponent(Children.Last()))
 		{
-			StartPivotTransform = Children.Last().Transform;
+			StartPivotTransform = Children.Last().StartTransform;
 		}
 	}
 
 	void FActorPivot::RevertToStartState()
 	{
-		for (const FChildInfo& Child : Children)
+		for (const FSelection& Child : Children)
 		{
-			if (Child.Actor)
+			if (USceneComponent* Comp = ResolveComponent(Child))
 			{
-				Child.Actor->SetActorTransform(Child.Transform);
+				Comp->SetWorldTransform(Child.StartTransform);
 			}
 		}
 
@@ -336,16 +374,16 @@ namespace BlenderControls
 		}
 	}
 
-	TArray<AActor*> FActorPivot::GetSelectedActors() const
+	TArray<USceneComponent*> FActorPivot::GetSelectedComponents() const
 	{
-		TArray<AActor*> Result;
+		TArray<USceneComponent*> Result;
 		Result.Reserve(Children.Num());
 
-		for (const FChildInfo& Child : Children)
+		for (const FSelection& Child : Children)
 		{
-			if (Child.Actor)
+			if (USceneComponent* Comp = ResolveComponent(Child))
 			{
-				Result.Add(Child.Actor);
+				Result.Add(Comp);
 			}
 		}
 
@@ -355,13 +393,15 @@ namespace BlenderControls
 	void FActorPivot::ForEachElementTransform(
 		TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const
 	{
-		const FChildInfo& ActiveElement = Children.Last();
-		for (const FChildInfo& Child : Children)
+		const FSelection& ActiveElement = Children.Last();
+		USceneComponent* ActiveComp = ResolveComponent(ActiveElement);
+		
+		for (const FSelection& Child : Children)
 		{
-			if (Child.Actor)
+			if (USceneComponent* Comp = ResolveComponent(Child))
 			{
-				const bool bIsActive = (Child.Actor == ActiveElement.Actor);
-				Callback(Child.Transform, bIsActive);
+				const bool bIsActive = (Comp == ActiveComp);
+				Callback(Child.StartTransform, bIsActive);
 			}
 		}
 	}
