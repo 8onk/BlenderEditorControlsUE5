@@ -321,8 +321,7 @@ namespace BlenderControls
 
 		if (SelectionType == ESelectionType::ControlRig)
 		{
-			// For Control Rig, mark the rig for modification
-			FControlRigSelectionHelper::BeginTransaction(TransactionName);
+			FControlRigSelectionHelper::BeginTransaction(SelectedRigElements, TransactionName);
 		}
 		else
 		{

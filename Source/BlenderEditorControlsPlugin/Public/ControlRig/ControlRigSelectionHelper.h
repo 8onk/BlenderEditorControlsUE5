@@ -48,8 +48,9 @@ namespace BlenderControls
 		 */
 		static bool GetSelectedRigElements(TArray<FControlRigElementInfo>& OutElements);
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
 		static UControlRig* GetActiveControlRig();
-		static URigHierarchy* GetRigHierarchy();
+#endif
 
 		/**
 		 * Sets the world-space transform of a rig element. Handles the rig-space conversion
@@ -78,7 +79,7 @@ namespace BlenderControls
 		/**
 		 * Marks the Control Rig as modified for undo. Call within an FScopedTransaction.
 		 */
-		static void BeginTransaction(const FText& TransactionName);
+		static void BeginTransaction(const TArray<FControlRigElementInfo>& ElementsToSelect, const FText& TransactionName);
 		static void EndTransaction(bool bApply);
 
 	private:
