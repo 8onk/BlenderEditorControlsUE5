@@ -138,65 +138,58 @@ namespace BlenderControls
 	                                EAxisLock LockedAxis)
 	{
 		const FVector PivotPosition = GetStartLocation();
-		const FVector RotationAxis = GC.SingleLockAxis;
+		const bool bIsLocalRotation = (bUsingLocalSpace && LockedAxis != EAxisLock::All);
 
-		const FQuat TargetRotation = FQuat(RotationAxis, AngleToRotateRad);
-		FTransform StartTransform = StartPivotTransform;
-		FTransform NewTransform = StartTransform;
-		FQuat ResultQuat = TargetRotation * NewTransform.GetRotation();
-		ResultQuat.Normalize();
-
-		if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
+		for (const FSelection& Child : Children)
 		{
-			for (const FSelection& Child : Children)
+			if (USceneComponent* Comp = ResolveComponent(Child))
 			{
-				const FTransform ChildTransform = Child.StartTransform;
-				const FVector X = ChildTransform.GetUnitAxis(EAxis::X);
-				const FVector Y = ChildTransform.GetUnitAxis(EAxis::Y);
-				const FVector Z = ChildTransform.GetUnitAxis(EAxis::Z);
+				const FTransform& ChildTransform = Child.StartTransform;
 
-				FVector LocalRotationAxis;
-				switch (LockedAxis)
+				// Default to the global/freeform lock axis
+				FVector Axis = GC.SingleLockAxis;
+
+				if (bIsLocalRotation)
 				{
-				case EAxisLock::X: LocalRotationAxis = X;
-					break;
-				case EAxisLock::Y: LocalRotationAxis = Y;
-					break;
-				case EAxisLock::Z: LocalRotationAxis = Z;
-					break;
-				case EAxisLock::XY: LocalRotationAxis = Z;
-					break;
-				case EAxisLock::YZ: LocalRotationAxis = X;
-					break;
-				case EAxisLock::XZ: LocalRotationAxis = Y;
-					break;
-				case EAxisLock::All: LocalRotationAxis = GC.ViewForward;
-					break;
-				default: LocalRotationAxis = FVector::ZeroVector;
+					switch (LockedAxis)
+					{
+					case EAxisLock::X:
+						Axis = ChildTransform.GetUnitAxis(EAxis::X);
+						break;
+					case EAxisLock::Y:
+						Axis = ChildTransform.GetUnitAxis(EAxis::Y);
+						break;
+					case EAxisLock::Z:
+						Axis = ChildTransform.GetUnitAxis(EAxis::Z);
+						break;
+					case EAxisLock::XY:
+						Axis = ChildTransform.GetUnitAxis(EAxis::Z);
+						break;
+					case EAxisLock::YZ:
+						Axis = ChildTransform.GetUnitAxis(EAxis::X);
+						break;
+					case EAxisLock::XZ:
+						Axis = ChildTransform.GetUnitAxis(EAxis::Y);
+						break;
+					case EAxisLock::All:
+						Axis = GC.ViewForward;
+						break;
+					default:
+						Axis = FVector::ZeroVector;
+					}
 				}
 
-				const FQuat TargetRot(LocalRotationAxis, AngleToRotateRad);
-
-				const FVector CurrentLocation = ChildTransform.GetLocation();
-				const FVector CurrentScale = ChildTransform.GetScale3D();
-				const FVector NewLocation = PivotPosition + TargetRot.RotateVector(CurrentLocation - PivotPosition);
+				const FQuat TargetRot(Axis, AngleToRotateRad);
+				const FVector OffsetVector = ChildTransform.GetLocation() - PivotPosition;
+				
+				const FVector NewLocation = PivotPosition + TargetRot.RotateVector(OffsetVector);
 				const FQuat NewRotation = (TargetRot * ChildTransform.GetRotation()).GetNormalized();
 
-				NewTransform.SetScale3D(CurrentScale);
-				NewTransform.SetLocation(NewLocation);
-				NewTransform.SetRotation(NewRotation);
-				if (USceneComponent* Comp = ResolveComponent(Child))
-				{
-					Comp->SetWorldTransform(NewTransform);
-				}
-			}
-		}
-		else
-		{
-			NewTransform.SetRotation(ResultQuat);
-			if (TransformProxy)
-			{
-				TransformProxy->SetTransform(NewTransform);
+				FTransform FinalTransform = ChildTransform;
+				FinalTransform.SetLocation(NewLocation);
+				FinalTransform.SetRotation(NewRotation);
+
+				Comp->SetWorldTransform(FinalTransform);
 			}
 		}
 	}
