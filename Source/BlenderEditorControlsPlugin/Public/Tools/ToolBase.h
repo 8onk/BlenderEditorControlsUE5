@@ -4,7 +4,6 @@
 #include "Enums.h"
 #include "GrabContext.h"
 #include "ScopedTransaction.h"
-#include "ControlRig/ControlRigSelectionHelper.h"
 
 class UAxisLockGizmoComponent;
 
@@ -30,13 +29,11 @@ namespace BlenderControls
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;
 		virtual void Accept();
 		virtual void Cancel();
-		virtual void OnBegin();
+		virtual bool OnBegin();
 		/** Fallback for mouse movement when in numeric mode. */
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
 		/** Per-frame update called by the TransformSession. */
-		virtual void Tick()
-		{
-		}
+		virtual void Tick() {}
 
 		virtual void OnEnd(bool bApply);
 
@@ -49,7 +46,7 @@ namespace BlenderControls
 
 		virtual void ApplyNumeric(double Value = 0.0f)
 		{
-			checkf(OwningSession.IsValid(), TEXT("ApplyNumeric: Session must be valid for %s"), *DisplayName);
+			checkf(Session != nullptr, TEXT("ApplyNumeric: Session must be valid for %s"), *DisplayName);
 		}
 
 		virtual void UpdateHud();
@@ -57,20 +54,14 @@ namespace BlenderControls
 
 		const FString& GetDisplayName() const { return DisplayName; }
 
-		bool InitializeEditorState();
-		void InitializePivot();
-		void CacheViewVectors();
-		void InitializeGrabContext();
-		void InitializeUI();
-		void RestorePreviousState();
-		void OnSwitch();
-
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
 		void SetSnappingEnabled(bool bNewSnappingEnabled);
 		bool IsSnappingEnabled() const { return bSnappingEnabled; }
 
 		bool IsSingleAxisLocked() const;
 		void ClearDrawnAxisLines();
+		
+		void OnSwitch();
 
 	private:
 		void RedrawAxisLines();
@@ -88,6 +79,13 @@ namespace BlenderControls
 		                                        const FLinearColor& Color,
 		                                        float ThicknessPx,
 		                                        float LineLength) const;
+		
+		bool InitializeEditorState();
+		bool InitializePivot();
+		bool CacheViewVectors();
+		bool InitializeGrabContext();
+		bool InitializeUI();
+		void RestorePreviousState();
 
 	protected:
 		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const = 0;
@@ -104,8 +102,6 @@ namespace BlenderControls
 		void UpdateAxisLock();
 
 		virtual void UpdateNumActiveSlots();
-
-		TSharedPtr<FTransformSession> GetSession() const { return OwningSession.Pin(); }
 
 		// --- Pivot Helper Methods ---
 		// These methods abstract pivot operations to work with both Actor and Control Rig selections
@@ -133,7 +129,7 @@ namespace BlenderControls
 		bool bIsToolActive = true;
 		FString HudString;
 
-		TWeakPtr<FTransformSession> OwningSession;
+		FTransformSession* Session = nullptr;
 		ETransformMode Mode;
 		FString DisplayName;
 		FViewport* Viewport = nullptr;

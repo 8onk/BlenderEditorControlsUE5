@@ -48,7 +48,7 @@ namespace BlenderControls
 		void SwitchTool(ETransformMode NewMode);
 
 		// Input Forwarding to FInputProcessor
-		void Tick(const float DeltaTime, FSlateApplication& SlateApp);
+		void Tick(const float DeltaTime, const FSlateApplication& SlateApp);
 		bool HandleKeyDownEvent(const FKeyEvent& KeyEvent);
 		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
 		bool HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent);
@@ -132,7 +132,7 @@ namespace BlenderControls
 		ESelectionType SelectionType = ESelectionType::None;
 		TArray<FControlRigElementInfo> SelectedRigElements;
 
-		static FBlueprintEditor* GetActiveBlueprintEditor();
+		FBlueprintEditor* GetActiveBlueprintEditor() const;
 
 		// --- Session Control ---
 		bool bIsFirstTool = true;

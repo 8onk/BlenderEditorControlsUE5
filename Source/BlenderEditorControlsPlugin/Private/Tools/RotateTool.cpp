@@ -17,9 +17,12 @@ namespace BlenderControls
 	{
 	}
 
-	void FRotateTool::OnBegin()
+	bool FRotateTool::OnBegin()
 	{
-		FToolBase::OnBegin();
+		if (!FToolBase::OnBegin())
+		{
+			return false;
+		}
 		bTrackballModeEnabled = false;
 
 		if (VirtualPivot.IsValid())
@@ -36,7 +39,7 @@ namespace BlenderControls
 		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
 		SceneView->WorldToPixel(PivotStartPosition, PivotViewportPosition);
 
-		StartDragVector = GetSession()->GetStartMousePos() - PivotViewportPosition;
+		StartDragVector = Session->GetStartMousePos() - PivotViewportPosition;
 		LastDragVector = StartDragVector;
 
 		AccumulatedAngleRad = 0.0f;
@@ -50,17 +53,17 @@ namespace BlenderControls
 		HudWidget->SetCursorSize(FVector2D(32 * CursorScale, 32 * CursorScale));
 		HudWidget->SetCursorHotspot(FVector2D(16 * CursorScale, 16 * CursorScale));
 		HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
+		return true;
 	}
 
 	void FRotateTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!bIsToolActive || !GetSession()->HasValidPivot())
+		if (!bIsToolActive || !Session->HasValidPivot())
 		{
 			return;
 		}
-		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!GEditor || Session->IsNumericInputActive())
 		{
@@ -109,7 +112,7 @@ namespace BlenderControls
 			//if locked axis is “backwards” relative to the camera, flip the sign
 			float SignedAccum = AccumulatedAngleRad;
 			bool bShouldFlipSign = true;
-			if (ViewportClient && !ViewportClient->IsPerspective())
+			if (!ViewportClient->IsPerspective())
 			{
 				bShouldFlipSign = false;
 			}
@@ -144,7 +147,6 @@ namespace BlenderControls
 	void FRotateTool::ApplyNumeric(const double Value)
 	{
 		FToolBase::ApplyNumeric(Value);
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 		if (!Processor)
 		{
@@ -212,12 +214,10 @@ namespace BlenderControls
 
 	void FRotateTool::Tick()
 	{
-		if (!OwningSession.IsValid() || !HudWidget.IsValid())
+		if (!HudWidget.IsValid())
 		{
 			return;
 		}
-
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
 				ViewportClient->Viewport,
@@ -250,8 +250,7 @@ namespace BlenderControls
 
 	void FRotateTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !GetSession()->HasValidPivot())
+		if (!Session->HasValidPivot())
 		{
 			return;
 		}
@@ -284,12 +283,6 @@ namespace BlenderControls
 
 	FText FRotateTool::GetNumericHudText() const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return FText::GetEmpty();
-		}
-
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 		if (!Processor)
 		{
@@ -408,9 +401,9 @@ namespace BlenderControls
 			HudWidget->SetCursorOrientation(ECursorOrient::None);
 			ClearAxisGizmos();
 			NumNumericSlots = 2;
-			GetSession()->GetNumericInputProcessor()->UpdateActiveNumSlots(NumNumericSlots);
-			CachedAxisLockPreTrackball = GetSession()->GetLockedAxis();
-			GetSession()->SetLockedAxis(EAxisLock::All);
+			Session->GetNumericInputProcessor()->UpdateActiveNumSlots(NumNumericSlots);
+			CachedAxisLockPreTrackball = Session->GetLockedAxis();
+			Session->SetLockedAxis(EAxisLock::All);
 		}
 		else
 		{
@@ -418,13 +411,11 @@ namespace BlenderControls
 				TEXT("BlenderEditorControls.Cursors.DoubleArrow"));
 			HudWidget->SetCursorBrush(CursorBrush);
 			HudWidget->SetCursorOrientation(ECursorOrient::PerpendicularCW);
-			GetSession()->SetLockedAxis(CachedAxisLockPreTrackball);
+			Session->SetLockedAxis(CachedAxisLockPreTrackball);
 			CachedAxisLockPreTrackball = EAxisLock::All;
 			UpdateAxisLock();
 		}
-
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (Session.IsValid() && Session->IsNumericInputActive())
+		if (Session->IsNumericInputActive())
 		{
 			ApplyNumeric();
 		}
@@ -455,8 +446,7 @@ namespace BlenderControls
 
 	FText FRotateTool::GetLiveHudText() const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !GetSession()->HasValidPivot())
+		if (!Session->HasValidPivot())
 		{
 			return FText::GetEmpty();
 		}
@@ -502,9 +492,6 @@ namespace BlenderControls
 
 	FText FRotateTool::BuildSingleAxisHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid()) return FText::GetEmpty();
-
 		constexpr int32 Spacing = 3;
 		const FString Gap = FString::ChrN(Spacing, ' ');
 

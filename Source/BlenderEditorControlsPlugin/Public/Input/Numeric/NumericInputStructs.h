@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "BlenderEditorControls.h"
 
 namespace BlenderControls
 {
@@ -65,7 +66,7 @@ namespace BlenderControls
 		void DebugPrint(int32 Index = -1) const
 		{
 			FString Prefix = (Index >= 0) ? FString::Printf(TEXT("Slot[%d]: "), Index) : TEXT("Slot: ");
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogBlenderEditorControls, Warning,
 			       TEXT("%sRawString='%s', Cursor=%d, BaseValue=%.3f, Additive=%d, Empty=%d, Negative=%d, Reciprocal=%d"
 			       ),
 			       *Prefix,

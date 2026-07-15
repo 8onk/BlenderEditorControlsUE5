@@ -68,7 +68,7 @@ namespace BlenderControls
 
 		NumericInputProcessor = MakeUnique<FNumericInputProcessor>();
 
-		if (ActiveViewportClient && GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable)
+		if (GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable)
 		{
 			FViewportClientExposer::SetTracking(ActiveViewportClient, true);
 		}
@@ -76,27 +76,6 @@ namespace BlenderControls
 
 	FTransformSession::~FTransformSession()
 	{
-		if (ActiveViewportClient)
-		{
-			FViewportClientExposer::SetTracking(ActiveViewportClient, false);
-		}
-
-		if (CurrentTool.IsValid())
-		{
-			CurrentTool->OnEnd(/*bApply=*/false);
-		}
-
-		NumericInputProcessor.Reset();
-
-		if (GEditor)
-		{
-			const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
-			if (StyleSettings)
-			{
-				FLinearColor DefaultSelectionColor = StyleSettings->SelectionColor;
-				GEditor->SetSelectionOutlineColor(DefaultSelectionColor);
-			}
-		}
 	}
 
 	FEditorViewportClient* GetHoveredViewportClient()
@@ -122,13 +101,13 @@ namespace BlenderControls
 			}
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("WidgetPath NULL"));
+		UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: WidgetPath NULL"), __FUNCTION__);
 		return nullptr;
 	}
 
 	FBlueprintEditor* FTransformSession::GetActiveBlueprintEditor() const
 	{
-		if (!GEditor || !ActiveViewportClient)
+		if (!GEditor)
 		{
 			return nullptr;
 		}
@@ -181,6 +160,7 @@ namespace BlenderControls
 	{
 		if (!GEditor)
 		{
+			UE_LOG(LogTransformSession, Error, TEXT("[%hs]: GEditor is null."), __FUNCTION__);
 			return false;
 		}
 
@@ -188,6 +168,8 @@ namespace BlenderControls
 		ActiveViewportClient = GetHoveredViewportClient();
 		if (!ActiveViewportClient)
 		{
+			UE_LOG(LogTransformSession, Error, TEXT("[%hs]: No active or hovered viewport client found."),
+			       __FUNCTION__);
 			return false;
 		}
 
@@ -202,8 +184,7 @@ namespace BlenderControls
 				return true;
 			}
 
-			const int32 ComponentCount = GEditor->GetSelectedComponentCount();
-			if (ComponentCount > 0)
+			if (GEditor->GetSelectedComponentCount() > 0)
 			{
 				SelectionType = ESelectionType::Components;
 				return true;
@@ -242,10 +223,24 @@ namespace BlenderControls
 					SelectionType = ESelectionType::SCSTreeNodes;
 					return true;
 				}
+				else
+				{
+					UE_LOG(LogTransformSession, Error,
+					       TEXT("[%hs]: Selected Blueprint node is invalid (Root Actor or DefaultSceneRoot)."),
+					       __FUNCTION__);
+				}
+			}
+			else
+			{
+				UE_LOG(LogTransformSession, Error, TEXT("[%hs]: Could not find active Blueprint Editor."),
+				       __FUNCTION__);
 			}
 		}
 
 		SelectionType = ESelectionType::None;
+		UE_LOG(LogTransformSession, Error,
+		       TEXT("[%hs]: No valid transformable selection found (Actors, Components, or ControlRig)."),
+		       __FUNCTION__);
 		return false;
 	}
 
@@ -255,26 +250,29 @@ namespace BlenderControls
 		// and 'Move' are part of the same Undo step.
 		InitializeTransaction(TEXT("Duplicate Selection"));
 
-		if (UWorld* World = GEditor->GetEditorWorldContext().World())
+		if (const UWorld* World = GEditor->GetEditorWorldContext().World())
 		{
 			ULevel* Level = World->GetCurrentLevel();
-			const bool bOffsetLocations = false;
+			constexpr bool bOffsetLocations = false;
 			GEditor->edactDuplicateSelected(Level, bOffsetLocations);
+		}
+		else
+		{
+			UE_LOG(LogTransformSession, Error, TEXT("[%hs]: Failed to get Editor World Context. Duplication aborted."),
+			       __FUNCTION__);
 		}
 	}
 
 	void FTransformSession::InitializeMouseState()
 	{
-		if (ActiveViewportClient && ActiveViewportClient->Viewport)
-		{
-			FIntPoint MousePosInt;
-			ActiveViewportClient->Viewport->GetMousePos(MousePosInt);
 
-			StartMousePos = FVector2D(MousePosInt);
-			CursorAnchorPoint = StartMousePos;
-			VirtualMousePosition = StartMousePos;
-			WrappedMousePosition = StartMousePos;
-		}
+		FIntPoint MousePosInt;
+		ActiveViewportClient->Viewport->GetMousePos(MousePosInt);
+
+		StartMousePos = FVector2D(MousePosInt);
+		CursorAnchorPoint = StartMousePos;
+		VirtualMousePosition = StartMousePos;
+		WrappedMousePosition = StartMousePos;
 
 		AccumulatedMouseDelta = FVector2D::ZeroVector;
 		GlobalCursorAnchor = FSlateApplication::Get().GetCursorPos();
@@ -300,11 +298,14 @@ namespace BlenderControls
 			FBlueprintEditor* BPEditor = GetActiveBlueprintEditor();
 			if (!BPEditor)
 			{
+				UE_LOG(LogTransformSession, Error,
+				       TEXT("[%hs]: Failed to get active Blueprint Editor for SCSTreeNodes."), __FUNCTION__);
 				return;
 			}
 
-			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->GetSelectedSubobjectEditorTreeNodes();
-			
+			TArray<TSharedPtr<FSubobjectEditorTreeNode>> SelectedNodes = BPEditor->
+				GetSelectedSubobjectEditorTreeNodes();
+
 			// Filter out the DefaultSceneRoot before passing to FSCSPivot (its transform is not supposed to change, 
 			// but it does if it is passed in)
 			TArray<TSharedPtr<FSubobjectEditorTreeNode>> FilteredNodes;
@@ -364,8 +365,8 @@ namespace BlenderControls
 		// We need to end it first to avoid our changes being reverted when their transaction ends.
 		if (GEditor && GEditor->IsTransactionActive())
 		{
-			UE_LOG(LogTransformSession, Warning,
-			       TEXT("InitializeTransaction: Ending existing active transaction to avoid conflict"));
+			UE_LOG(LogTransformSession, Warning, TEXT("[%hs]: Ending existing active transaction to avoid conflict"),
+			       __FUNCTION__);
 			GEditor->EndTransaction();
 		}
 
@@ -405,7 +406,10 @@ namespace BlenderControls
 
 	void FTransformSession::SwitchTool(ETransformMode NewMode)
 	{
-		if (ActiveMode == NewMode && CurrentTool.IsValid()) return;
+		if (ActiveMode == NewMode && CurrentTool.IsValid())
+		{
+			return;
+		}
 
 		//Capture OldState for NumericProcessor and EndTool 
 		FBlenderNumericState OldState;
@@ -450,7 +454,12 @@ namespace BlenderControls
 
 		if (CurrentTool.IsValid() && NumericInputProcessor.IsValid())
 		{
-			CurrentTool->OnBegin();
+			if (!CurrentTool->OnBegin())
+			{
+				CurrentTool.Reset();
+				bHasSessionTerminated = true;
+				return;
+			}
 
 			if (bIsFirstTool)
 			{
@@ -498,10 +507,25 @@ namespace BlenderControls
 		}
 
 		ScopedTransaction.Reset();
+		CurrentTool.Reset();
 		bHasSessionTerminated = true;
+
+		FViewportClientExposer::SetTracking(ActiveViewportClient, false);
+
+		NumericInputProcessor.Reset();
+
+		if (GEditor)
+		{
+			const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
+			if (StyleSettings)
+			{
+				FLinearColor DefaultSelectionColor = StyleSettings->SelectionColor;
+				GEditor->SetSelectionOutlineColor(DefaultSelectionColor);
+			}
+		}
 	}
 
-	void FTransformSession::Tick(const float DeltaTime, FSlateApplication& SlateApp)
+	void FTransformSession::Tick(const float DeltaTime, const FSlateApplication& SlateApp)
 	{
 		if (!CurrentTool.IsValid())
 		{

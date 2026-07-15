@@ -17,11 +17,12 @@ namespace BlenderControls
 	}
 
 	// NOTE gizmo automatically sets to local for scaling, since UE doesn't support global mode for scaling
-	void FScaleTool::OnBegin()
+	bool FScaleTool::OnBegin()
 	{
-		FToolBase::OnBegin();
-
-		const TSharedPtr<FTransformSession> Session = GetSession();
+		if (!FToolBase::OnBegin())
+		{
+			return false;
+		}
 		Session->GetNumericInputProcessor()->SetUniformScaleMode(true);
 
 		FSceneViewFamilyContext ViewFamily(
@@ -36,7 +37,7 @@ namespace BlenderControls
 
 		// Initialize scale factor to no scaling. 
 		ScaleFactor = 1.0f;
-		InitialMousePosition = GetSession()->GetStartMousePos();
+		InitialMousePosition = Session->GetStartMousePos();
 		InitialMouseToPivotDistance = UKismetMathLibrary::Distance2D(InitialMousePosition, PivotViewportPosition);
 		StartScale = GetActiveElementStartTransform().GetScale3D();
 		CurrentScaleMultiplier = FVector::OneVector;
@@ -50,6 +51,7 @@ namespace BlenderControls
 		HudWidget->SetCursorSize(FVector2D(32 * CursorScale, 32 * CursorScale));
 		HudWidget->SetCursorHotspot(FVector2D(16 * CursorScale, 16 * CursorScale));
 		HudWidget->SetCursorOrientation(ECursorOrient::AlongLineToOrigin);
+		return true;
 	}
 
 	void FScaleTool::OnActive(const FVector2D& CurrentViewportMousePosition)
@@ -59,8 +61,6 @@ namespace BlenderControls
 		{
 			return;
 		}
-
-		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!GEditor || Session->IsNumericInputActive())
 		{
@@ -130,7 +130,6 @@ namespace BlenderControls
 	void FScaleTool::ApplyNumeric(double Value)
 	{
 		FToolBase::ApplyNumeric(Value);
-		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 		if (!Processor) return;
@@ -209,9 +208,8 @@ namespace BlenderControls
 
 	void FScaleTool::Tick()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
 
-		if (HudWidget.IsValid() && Session.IsValid())
+		if (HudWidget.IsValid())
 		{
 			FSceneViewFamilyContext ViewFamily(
 				FSceneViewFamily::ConstructionValues(
@@ -229,8 +227,7 @@ namespace BlenderControls
 
 	void FScaleTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!GetSession().IsValid() || !GetSession()->HasValidPivot())
+		if (!Session->HasValidPivot())
 		{
 			return;
 		}
@@ -270,12 +267,6 @@ namespace BlenderControls
 
 	FText FScaleTool::GetNumericHudText() const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return FText::GetEmpty();
-		}
-
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 		if (!Processor)
 		{
@@ -372,8 +363,7 @@ namespace BlenderControls
 
 	FText FScaleTool::GetLiveHudText() const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !Session->HasValidPivot())
+		if (!Session->HasValidPivot())
 		{
 			return FText::GetEmpty();
 		}
@@ -436,7 +426,6 @@ namespace BlenderControls
 
 	FText FScaleTool::BuildSingleAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		constexpr int32 Spacing = 3;
 		const FString Gap = FString::ChrN(Spacing, ' ');
 
@@ -480,7 +469,6 @@ namespace BlenderControls
 
 	FText FScaleTool::BuildDualAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		constexpr int32 Spacing = 3;
 		const FString Gap = FString::ChrN(Spacing, ' ');
 

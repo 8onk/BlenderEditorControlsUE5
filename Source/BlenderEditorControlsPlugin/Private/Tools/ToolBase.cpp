@@ -5,6 +5,7 @@
 #include "Components/LineBatchComponent.h" //This is needed, although it's marked as unneeded mistakenly by the IDE. 
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "BlenderControlsSettings.h"
+#include "BlenderEditorControls.h"
 #include "Utils/MathHelpers.h"
 #include "Pivots/ControlRigPivot.h"
 #include "UI/AxisLockGizmoComponent.h"
@@ -15,42 +16,59 @@ namespace BlenderControls
 {
 	FToolBase::FToolBase(const TSharedRef<FTransformSession>& InSession, ETransformMode InMode,
 	                     const FString& InDisplayName)
-		: OwningSession(InSession), Mode(InMode), DisplayName(InDisplayName), NumNumericSlots(3)
+		: Session(&InSession.Get()), Mode(InMode), DisplayName(InDisplayName), NumNumericSlots(3)
 	{
+		ViewportClient = Session->GetActiveViewportClient();
+		if (!ViewportClient)
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: ViewportClient is null."), __FUNCTION__);
+		}
+		if (!ViewportClient->Viewport)
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: Viewport is null."), __FUNCTION__);
+		}
+		Viewport = ViewportClient->Viewport;
 	}
 
-	void FToolBase::OnBegin()
+	bool FToolBase::OnBegin()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
+		if (!GEditor)
 		{
-			return;
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: GEditor is null."), __FUNCTION__);
+			return false;
 		}
 
 		if (!InitializeEditorState())
 		{
-			return;
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: InitializeEditorState failed!"), __FUNCTION__);
+			return false;
 		}
 
-		if (!GEditor)
+		if (!CacheViewVectors())
 		{
-			return;
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: CacheViewVectors failed!"), __FUNCTION__);
+			return false;
 		}
-
-		Viewport = ViewportClient->Viewport;
-		if (!Viewport)
-		{
-			return;
-		}
-		CacheViewVectors();
 
 		const FVector2D MousePos = Session->StartMousePos;
 		CurrentMousePosition = MousePos;
 		CurrentViewportMousePos = MousePos;
 
-		InitializePivot();
-		InitializeGrabContext();
-		InitializeUI();
+		if (!InitializePivot())
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: InitializePivot failed!"), __FUNCTION__);
+			return false;
+		}
+		if (!InitializeGrabContext())
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: InitializeGrabContext failed!"), __FUNCTION__);
+			return false;
+		}
+		if (!InitializeUI())
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: InitializeUI failed!"), __FUNCTION__);
+			return false;
+		}
 		RestorePreviousState();
 
 		if (Session->NumericInputProcessor.IsValid())
@@ -58,15 +76,13 @@ namespace BlenderControls
 			Session->NumericInputProcessor->OnExitNumericMode.BindSP(AsShared(), &FToolBase::OnExitNumericMode);
 		}
 
-		TSharedPtr<SWindow> SlateWindow = FSlateApplication::Get().FindWidgetWindow(
+		const TSharedPtr<SWindow> SlateWindow = FSlateApplication::Get().FindWidgetWindow(
 			ViewportClient->GetEditorViewportWidget().ToSharedRef());
 		if (SlateWindow.IsValid() && SlateWindow->GetNativeWindow().IsValid())
 		{
 			FSlateApplication::Get().GetPlatformApplication()->SetHighPrecisionMouseMode(
 				true, SlateWindow->GetNativeWindow());
 		}
-		Viewport->CaptureMouse(true);
-		Viewport->LockMouseToViewport(true);
 
 		if (Session->IsControlRigSelection())
 		{
@@ -75,44 +91,52 @@ namespace BlenderControls
 				GEditor->NoteSelectionChange(true);
 			}
 		}
-		
+
+		Viewport->CaptureMouse(true);
+		Viewport->LockMouseToViewport(true);
+
 		ViewportClient->SetWidgetMode(GetDesiredWidgetMode());
-		ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), true,
-		                                false);
+		constexpr bool bIsDraggingWidget = true;
+		constexpr bool bNudge = false;
+		ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed),
+		                                bIsDraggingWidget,
+		                                bNudge);
+		return true;
 	}
 
 	void FToolBase::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
-		if (!bIsToolActive || !GetSession().IsValid() || !ViewportClient)
+		if (!bIsToolActive)
 		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: Tool inactive!"),
+			       __FUNCTION__);
 			return;
 		}
-		
+		if (!HudWidget.IsValid())
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: Invalid HudWidget!"),
+			       __FUNCTION__);
+			return;
+		}
+
 		CurrentViewportMousePos = CurrentViewportMousePosition;
 		HandleMouseMovement(CurrentViewportMousePosition);
 	}
 
 	void FToolBase::OnEnd(const bool bApply)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return;
-		}
-
 		bIsToolActive = false;
 
-		if (HudWidget.IsValid())
+		if (!HudWidget.IsValid())
 		{
-			HudWidget->Detach();
+			UE_LOG(LogBlenderEditorControls, Error,
+			       TEXT("[%hs]: Invalid HudWidget! Likely due to missed OnBegin() call"),
+			       __FUNCTION__);
 		}
 
+		HudWidget->Detach();
 		ClearDrawnAxisLines();
 
-		if (!ViewportClient || !Viewport)
-		{
-			return;
-		}
 		ViewportClient->Viewport->CaptureMouse(false);
 		ViewportClient->Viewport->LockMouseToViewport(false);
 		ViewportClient->SetWidgetMode(InitialWidgetMode);
@@ -147,7 +171,7 @@ namespace BlenderControls
 		{
 			VirtualPivot->RevertToStartState();
 		}
-		
+
 		// NoteSelectionChange, updates the gizmo to render at the object's new position. However, for control
 		// rig selection, this has unintended effect of resetting selection. Ignoring this call, does not
 		// result in a stale gizmo however, therefore can be safely bypassed. 
@@ -167,6 +191,12 @@ namespace BlenderControls
 			}
 			GEditor->RedrawLevelEditingViewports(true);
 		}
+		else
+		{
+			UE_LOG(LogBlenderEditorControls, Error,
+			       TEXT("[%hs]: GEditor not valid!"),
+			       __FUNCTION__);
+		}
 		Viewport->Invalidate();
 
 		if (VirtualPivot.IsValid())
@@ -177,8 +207,6 @@ namespace BlenderControls
 
 	void FToolBase::UpdateAxisLock()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		UpdateNumActiveSlots();
 
 		Session->GetNumericInputProcessor()->UpdateActiveNumSlots(NumNumericSlots);
@@ -199,8 +227,6 @@ namespace BlenderControls
 
 	void FToolBase::UpdateNumActiveSlots()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		switch (Session->GetLockedAxis())
 		{
 		case EAxisLock::X:
@@ -226,19 +252,17 @@ namespace BlenderControls
 	{
 		for (auto& Giz : AxisGizmos)
 		{
-			if (Giz.IsValid()) Giz->DestroyComponent();
+			if (Giz.IsValid())
+			{
+				Giz->DestroyComponent();
+			}
 		}
+
 		AxisGizmos.Empty();
 	}
 
 	void FToolBase::RedrawAxisLines()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return;
-		}
-
 		ClearAxisGizmos();
 
 		// Lambda for adding axis gizmos - works with optional transform info
@@ -261,7 +285,6 @@ namespace BlenderControls
 			else
 			{
 				GizmoOriginPoint = GetPivotStartLocation();
-				UE_LOG(LogTemp, Log, TEXT("Gizmo global space axis lock Origin: %s"), *GizmoOriginPoint.ToString());
 				GizmoDir = GetAxisVector(Axis);
 			}
 
@@ -328,7 +351,7 @@ namespace BlenderControls
 		else
 		{
 			// Global space - just add axes at pivot location
-			AddAxisForLock(Session->LockedAxis, nullptr, true);
+			AddAxisForLock(Session->LockedAxis, /*Transform=*/nullptr, /*bIsActive=*/true);
 		}
 	}
 
@@ -367,13 +390,13 @@ namespace BlenderControls
 	                                                   const FLinearColor& Color, float ThicknessPx,
 	                                                   float LineLength) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		UWorld* World = ViewportClient->GetWorld();
-		if (!World) return nullptr;
+		if (!World)
+		{
+			return nullptr;
+		}
 
-		UAxisLockGizmoComponent* Comp =
-			NewObject<UAxisLockGizmoComponent>(GetTransientPackage());
+		UAxisLockGizmoComponent* Comp = NewObject<UAxisLockGizmoComponent>(GetTransientPackage());
 
 		const EViewModeIndex ViewMode = ViewportClient->GetViewMode();
 		Comp->bIsWireframeView = (ViewMode == VMI_Wireframe || ViewMode == VMI_BrushWireframe);
@@ -396,12 +419,6 @@ namespace BlenderControls
 
 	FVector FToolBase::GetAxisVector(const EAxisLock InAxis) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return FVector::ZeroVector;
-		}
-
 		FVector AxisVector =
 			(InAxis == EAxisLock::X)
 				? FVector::XAxisVector
@@ -421,15 +438,9 @@ namespace BlenderControls
 
 	bool FToolBase::InitializeEditorState()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		ViewportClient = Session->GetActiveViewportClient();
-		if (!ViewportClient)
-		{
-			return false;
-		}
-
 		if (!GEditor)
 		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: GEditor is null."), __FUNCTION__);
 			return false;
 		}
 
@@ -443,25 +454,33 @@ namespace BlenderControls
 		return true;
 	}
 
-	void FToolBase::InitializePivot()
+	bool FToolBase::InitializePivot()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		VirtualPivot = Session->GetPivot();
 		if (VirtualPivot.IsValid())
 		{
 			VirtualPivot->BeginTransformSequence();
+			return true;
 		}
+
+		UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: VirtualPivot is invalid!"), __FUNCTION__);
+		return false;
 	}
 
-	void FToolBase::CacheViewVectors()
+	bool FToolBase::CacheViewVectors()
 	{
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
-				ViewportClient->Viewport,
+				Viewport,
 				ViewportClient->GetScene(),
 				ViewportClient->EngineShowFlags));
 
 		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+		if (!SceneView)
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: CalcSceneView returned null."), __FUNCTION__);
+			return false;
+		}
 		ViewUp = SceneView->GetViewUp();
 		ViewRight = SceneView->GetViewRight();
 		ViewLocation = SceneView->ViewLocation;
@@ -497,16 +516,12 @@ namespace BlenderControls
 				break;
 			}
 		}
+
+		return true;
 	}
 
-	void FToolBase::InitializeGrabContext()
+	bool FToolBase::InitializeGrabContext()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return;
-		}
-
 		GrabContext.ConstraintMode = FGrabContext::EHelperType::ViewPlane;
 		GrabContext.PlaneNormal = -ViewForward;
 		GrabContext.StartMousePos = Session->StartMousePos;
@@ -516,11 +531,16 @@ namespace BlenderControls
 
 		FSceneViewFamilyContext ViewFamily(
 			FSceneViewFamily::ConstructionValues(
-				ViewportClient->Viewport,
+				Viewport,
 				ViewportClient->GetScene(),
 				ViewportClient->EngineShowFlags));
 
 		const FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+		if (!SceneView)
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: CalcSceneView returned null."), __FUNCTION__);
+			return false;
+		}
 
 		FVector StartRayOrigin, StartRayDirection;
 		SceneView->DeprojectFVector2D(Session->StartMousePos, StartRayOrigin, StartRayDirection);
@@ -537,13 +557,18 @@ namespace BlenderControls
 		// Deproject two points (current mouse and mouse + 1px) to calculate the world-space size of a single pixel.
 		// This allows the tool to maintain consistent drag sensitivity/distance regardless of the user's FOV or distance from the object.
 		GrabContext.ScreenToWorldScale = FVector::Dist(MouseIntersectionA, MouseIntersectionB);
+
+		return true;
 	}
 
-	void FToolBase::InitializeUI()
+	bool FToolBase::InitializeUI()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		HudWidget = SNew(STransformHUD);
+		if (!HudWidget.IsValid())
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: HudWidget is invalid!"), __FUNCTION__);
+			return false;
+		}
 		HudWidget->Attach(ViewportClient->GetEditorViewportWidget());
 		UpdateHud();
 		UpdateNumActiveSlots();
@@ -557,12 +582,12 @@ namespace BlenderControls
 			//Needed since CurrentViewportMousePosition - Session->CursorAnchorPoint; in onactive
 			Session->VirtualMousePosition = Session->CursorAnchorPoint;
 		}
+
+		return true;
 	}
 
 	void FToolBase::RestorePreviousState()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		SetGrabContextAxisLock(Session->GetLockedAxis());
 		if (Session->GetLockedAxis() != EAxisLock::All)
 		{
@@ -574,12 +599,6 @@ namespace BlenderControls
 
 	void FToolBase::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return;
-		}
-
 		const FVector2D CurrentGlobalPos = FSlateApplication::Get().GetCursorPos();
 		const FVector2D CurrentMouseDelta = CurrentGlobalPos - Session->GlobalCursorAnchor;
 
@@ -615,23 +634,24 @@ namespace BlenderControls
 
 			HudWidget->SetVirtualCursorPos(Session->WrappedMousePosition);
 		}
+		else
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: HudWidget is invalid!"), __FUNCTION__);
+		}
 
 		Session->AccumulatedMouseDelta += CurrentMouseDelta * CurrentPrecisionFactor;
 	}
 
 	void FToolBase::OnSwitch()
 	{
+		if (!HudWidget.IsValid())
+		{
+			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: HudWidget is invalid!"), __FUNCTION__);
+			return;
+		}
 		ClearDrawnAxisLines();
-
-		if (HudWidget.IsValid())
-		{
-			HudWidget->Detach();
-		}
-
-		if (ViewportClient)
-		{
-			ViewportClient->Invalidate();
-		}
+		HudWidget->Detach();
+		ViewportClient->Invalidate();
 	}
 
 	void FToolBase::SetPrecisionModeActive(bool bNewPrecisionModeActive)
@@ -654,8 +674,6 @@ namespace BlenderControls
 
 	void FToolBase::SetSnappingEnabled(bool bNewSnappingEnabled)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		if (bSnappingEnabled == bNewSnappingEnabled)
 		{
 			return;
@@ -671,8 +689,6 @@ namespace BlenderControls
 
 	void FToolBase::StartNewLock(const EAxisLock NewAxis) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		Session->bIsAxisLockActive = true;
 		Session->bUsingLocalSpace = bLocalSpaceDefault;
 		Session->LockedAxis = NewAxis;
@@ -680,8 +696,6 @@ namespace BlenderControls
 
 	void FToolBase::HandleAxisLock(const EAxisLock AxisPressed)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		if (!Session->IsAxisLockActive() || Session->LockedAxis != AxisPressed)
 		{
 			StartNewLock(AxisPressed);
@@ -707,8 +721,6 @@ namespace BlenderControls
 
 	bool FToolBase::IsSingleAxisLocked() const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
 		if (Session->bIsAxisLockActive && GrabContext.SingleLockAxis != FVector::ZeroVector)
 		{
 			return true;
@@ -723,7 +735,7 @@ namespace BlenderControls
 
 	void FToolBase::Cancel()
 	{
-		if (!GEditor || !GetSession()->HasValidPivot())
+		if (!GEditor || !Session->HasValidPivot())
 		{
 			return;
 		}
@@ -733,15 +745,14 @@ namespace BlenderControls
 
 	void FToolBase::UpdateHud()
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !Session->NumericInputProcessor.IsValid() || !HudWidget.IsValid())
+		if (!Session->NumericInputProcessor.IsValid() || !HudWidget.IsValid())
 		{
 			return;
 		}
 
 		const TUniquePtr<FNumericInputProcessor>& Processor = Session->NumericInputProcessor;
 
-		TSharedPtr<SEditorViewport> GenericViewportWidget = ViewportClient->GetEditorViewportWidget();
+		const TSharedPtr<SEditorViewport> GenericViewportWidget = ViewportClient->GetEditorViewportWidget();
 
 		if (Processor->IsInNumericMode())
 		{

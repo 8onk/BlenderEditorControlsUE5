@@ -16,7 +16,7 @@ namespace BlenderControls
 
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value = 0.0f) override;
-		virtual void OnBegin() override;
+		virtual bool OnBegin() override;
 		virtual void OnEnd(bool bApply) override;
 		virtual FText GetNumericHudText() const override;
 		virtual void Tick() override;

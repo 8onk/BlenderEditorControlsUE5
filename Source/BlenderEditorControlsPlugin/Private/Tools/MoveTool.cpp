@@ -15,9 +15,12 @@ namespace BlenderControls
 	{
 	}
 
-	void FMoveTool::OnBegin()
+	bool FMoveTool::OnBegin()
 	{
-		FToolBase::OnBegin();
+		if (!FToolBase::OnBegin())
+		{
+			return false;
+		}
 
 		CursorBrush = FStyle::Get().GetBrush(
 			TEXT("BlenderEditorControls.Cursors.Move"));
@@ -28,18 +31,17 @@ namespace BlenderControls
 		HudWidget->SetCursorSize(FVector2D(24 * CursorScale, 24 * CursorScale));
 		HudWidget->SetCursorHotspot(FVector2D(12 * CursorScale, 12 * CursorScale));
 		HudWidget->SetCursorOrientation(ECursorOrient::None);
+		return true;
 	}
 
 	void FMoveTool::OnActive(const FVector2D& CurrentViewportMousePosition)
 	{
 		FToolBase::OnActive(CurrentViewportMousePosition);
 
-		if (!bIsToolActive || !ViewportClient)
+		if (!bIsToolActive)
 		{
 			return;
 		}
-
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		if (Session->IsNumericInputActive())
 		{
 			return;
@@ -130,8 +132,6 @@ namespace BlenderControls
 	void FMoveTool::ApplyNumeric(double Value)
 	{
 		FToolBase::ApplyNumeric(Value);
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid()) return;
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 		if (!Processor) return;
@@ -194,11 +194,6 @@ namespace BlenderControls
 
 	void FMoveTool::ApplyTranslationInternal(const FVector& TotalDelta, bool bIsNumeric)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid() || !ViewportClient)
-		{
-			return;
-		}
 
 		// For no axis lock, we want to try to use InputWidgetDelta() where possible as it supports additional snapping settings,
 		// out of the box, but only does so as long as no axis lock is active and solely in level viewport. 
@@ -246,12 +241,6 @@ namespace BlenderControls
 
 	void FMoveTool::SetGrabContextAxisLock(const EAxisLock AxisLock)
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-
-		// if (!HasValidPivotInternal())
-		// {
-		// 	return;
-		// }
 		const FTransform ActiveObjectTransform = GetActiveElementStartTransform();
 		const FVector X = Session->IsUsingLocalSpace()
 			                  ? ActiveObjectTransform.GetUnitAxis(EAxis::X)
@@ -316,7 +305,6 @@ namespace BlenderControls
 
 	FVector FMoveTool::GetSnapOffset(const FVector LiveDelta) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
 
 		if (!GEditor)
 		{
@@ -356,12 +344,6 @@ namespace BlenderControls
 
 	FText FMoveTool::GetNumericHudText() const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return FText::GetEmpty();
-		}
-
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
 
 		if (!Processor)
@@ -465,12 +447,6 @@ namespace BlenderControls
 
 	FText FMoveTool::GetLiveHudText() const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
-		if (!Session.IsValid())
-		{
-			return FText::GetEmpty();
-		}
-
 		const FVector LiveDelta = GetActiveElementCurrentLocation() - GetActiveElementStartLocation();
 
 		FNumberFormattingOptions NumFmt;
@@ -537,7 +513,6 @@ namespace BlenderControls
 	FText FMoveTool::BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
 	                                        const FText& MagText) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		constexpr int32 Spacing = 3;
 		const FString Gap = FString::ChrN(Spacing, ' ');
 
@@ -572,7 +547,6 @@ namespace BlenderControls
 	FText FMoveTool::BuildDualAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
 	                                      const FText& MagText) const
 	{
-		const TSharedPtr<FTransformSession> Session = GetSession();
 		constexpr int32 Spacing = 3;
 		const FString Gap = FString::ChrN(Spacing, ' ');
 
