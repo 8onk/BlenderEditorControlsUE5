@@ -11,6 +11,7 @@
 #include "UI/AxisLockGizmoComponent.h"
 #include "UI/TransformHUD.h"
 #include "SEditorViewport.h"
+#include "Utils/ViewportExposer.h"
 
 namespace BlenderControls
 {
@@ -84,23 +85,18 @@ namespace BlenderControls
 				true, SlateWindow->GetNativeWindow());
 		}
 
-		if (Session->IsControlRigSelection())
-		{
-			if (!GetDefault<UBlenderControlsSettings>()->bKeepControlRigSelectionActive)
-			{
-				GEditor->NoteSelectionChange(true);
-			}
-		}
-
 		Viewport->CaptureMouse(true);
 		Viewport->LockMouseToViewport(true);
 
 		ViewportClient->SetWidgetMode(GetDesiredWidgetMode());
-		constexpr bool bIsDraggingWidget = true;
-		constexpr bool bNudge = false;
-		ViewportClient->TrackingStarted(FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed),
-		                                bIsDraggingWidget,
-		                                bNudge);
+		
+		// StartTrackingDueToInput properly configures the engine's internal tracking state and MouseDeltaTracker.
+		// We bypass protected access to call it directly so our tool behaves exactly like a native editor drag, 
+		// avoiding widget desync issues. (Passing an empty SceneView reference is safe as it's unused internally).
+		FViewportClientExposer::CallStartTracking(
+			ViewportClient, 
+			FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), 
+			*static_cast<FSceneView*>(nullptr));
 		return true;
 	}
 
@@ -170,17 +166,6 @@ namespace BlenderControls
 		if (!bApply && VirtualPivot.IsValid())
 		{
 			VirtualPivot->RevertToStartState();
-		}
-
-		// NoteSelectionChange, updates the gizmo to render at the object's new position. However, for control
-		// rig selection, this has unintended effect of resetting selection. Ignoring this call, does not
-		// result in a stale gizmo however, therefore can be safely bypassed. 
-		if (Session->IsControlRigSelection())
-		{
-			if (!GetDefault<UBlenderControlsSettings>()->bKeepControlRigSelectionActive)
-			{
-				FControlRigSelectionHelper::RestoreSelection(Session->GetSelectedRigElements());
-			}
 		}
 
 		if (GEditor)

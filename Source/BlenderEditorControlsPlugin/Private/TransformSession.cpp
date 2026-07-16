@@ -29,19 +29,8 @@
 
 // Dummy class to bypass the 'protected' access modifier for bIsTracking. 
 // Not the cleanest solution, but this seems to be the only way (that I could think of) to make it such that 
-// auto save is pending until a transform session is complete, vs aborting it altogether. 
-class FViewportClientExposer : public FEditorViewportClient
-{
-public:
-	static void SetViewportState(FEditorViewportClient* Client, bool bInTracking, bool bAxisControlledByDrag)
-	{
-		// Cast the client to our exposer so we can write to the protected variable
-		static_cast<FViewportClientExposer*>(Client)->bIsTracking = bInTracking;
-		// Mitigates a known editor lag issue that can occur when moving the mouse immediately after repositioning the viewport camera.
-		// NOTE: It is related to hit proxies, specifically: HHitProxy* FViewport::GetHitProxy(int32 X,int32 Y)
-		static_cast<FViewportClientExposer*>(Client)->bWidgetAxisControlledByDrag = bAxisControlledByDrag;
-	}
-};
+// auto save is pending until a transform session is complete, vs aborting it altogether.
+#include "Utils/ViewportExposer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTransformSession, Log, All);
 
@@ -429,11 +418,7 @@ namespace BlenderControls
 				VirtualPivot->RevertToStartState();
 			}
 
-			// bIsTracking gets reset somewhere internally. Need to re-enable it 
-			const bool bAutoSaveEnable = GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable;
-			FViewportClientExposer::SetViewportState(ActiveViewportClient, /*bInTracking=*/bAutoSaveEnable,
-			                                         /*bAxisControlledByDrag=*/true);
-
+			// Clear existing HUD and axis lines. 
 			CurrentTool->OnSwitch();
 			if (NumericInputProcessor.IsValid())
 			{
@@ -593,6 +578,10 @@ namespace BlenderControls
 			}
 			bHasPendingMouseMovement = false;
 		}
+		
+		const bool bAutoSaveEnable = GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable;
+		FViewportClientExposer::SetViewportState(ActiveViewportClient, /*bInTracking=*/bAutoSaveEnable,
+												 /*bAxisControlledByDrag=*/true);
 	}
 
 	bool FTransformSession::HandleKeyDownEvent(const FKeyEvent& KeyEvent)
