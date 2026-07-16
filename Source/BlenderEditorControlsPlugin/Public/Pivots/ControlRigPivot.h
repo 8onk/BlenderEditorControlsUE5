@@ -17,10 +17,16 @@ namespace BlenderControls
 	class FControlRigPivot : public FVirtualPivotBase
 	{
 	public:
+		/** 
+		 * Constructs the pivot manager for the given Control Rig selection.
+		 * 
+		 * @param InSelection The selected rig elements to manage.
+		 * @param PivotMode The mode used to calculate the shared pivot center.
+		 */
 		explicit FControlRigPivot(const TArray<FControlRigElementInfo>& InSelection, EPivotMode PivotMode);
 		virtual ~FControlRigPivot() override = default;
 
-		// FVirtualPivotBase interface
+		//~ FVirtualPivotBase Interface
 		virtual FVector GetStartLocation() const override { return StartPivotTransform.GetLocation(); }
 		virtual FTransform GetActiveElementStartTransform() const override { return ActiveElement.StartTransform; }
 		virtual FVector GetActiveElementCurrentLocation() const override;
@@ -34,12 +40,13 @@ namespace BlenderControls
 		virtual void ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
 		virtual void ForEachElementTransform(TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const override;
 		virtual bool ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale) override;
-		// ~FVirtualPivotBase interface
 
+		//~ Pivot Accessors
 		const FTransform& GetStartTransform() const { return StartPivotTransform; }
 		const TArray<FControlRigElementInfo>& GetElements() const { return Elements; }
 
 	private:
+		//~ Internal Helpers
 		void ComputePivotTransform(EPivotMode InPivotMode);
 		void ComputeMedianPivot();
 		void ComputeActiveElementPivot();

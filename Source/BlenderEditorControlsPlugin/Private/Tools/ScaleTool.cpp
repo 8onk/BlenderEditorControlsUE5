@@ -51,6 +51,7 @@ namespace BlenderControls
 		HudWidget->SetCursorSize(FVector2D(32 * CursorScale, 32 * CursorScale));
 		HudWidget->SetCursorHotspot(FVector2D(16 * CursorScale, 16 * CursorScale));
 		HudWidget->SetCursorOrientation(ECursorOrient::AlongLineToOrigin);
+
 		return true;
 	}
 

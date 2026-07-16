@@ -8,7 +8,6 @@ public class BlenderEditorControlsPlugin : ModuleRules
 	public BlenderEditorControlsPlugin(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		OptimizeCode = ModuleRules.CodeOptimization.Never;
 
 		//Necessary to hide overlay position setting for versions older than 5.6
 		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 6)

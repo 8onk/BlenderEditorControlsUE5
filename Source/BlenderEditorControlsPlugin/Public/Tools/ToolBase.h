@@ -27,40 +27,67 @@ namespace BlenderControls
 
 		/** Primary update loop for mouse-driven transformation. */
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) = 0;
+		
+		/** Commits the current transformation and ends the tool. */
 		virtual void Accept();
+		
+		/** Aborts the transformation and reverts any changes made by this tool. */
 		virtual void Cancel();
+		
+		/** Initializes tool state when activated. @return True if initialization succeeded. */
 		virtual bool OnBegin();
+		
 		/** Fallback for mouse movement when in numeric mode. */
 		virtual void HandleMouseMovement(const FVector2D& CurrentViewportMousePosition);
+		
 		/** Per-frame update called by the TransformSession. */
 		virtual void Tick() {}
 
+		/** Called when the tool is ending, either by accepting or cancelling. */
 		virtual void OnEnd(bool bApply);
 
+		/** Toggles trackball rotation mode (Rotate tool only). */
 		virtual void SetTrackballRotationMode(const bool bEnabled)
 		{
 		}
 
+		/** @return True if trackball mode is active. */
 		virtual bool GetTrackballRotationMode() { return false; }
+		
+		/** Processes an axis constraint key press (X, Y, Z). */
 		virtual void HandleAxisLock(EAxisLock AxisPressed);
 
+		/** Applies the explicitly typed numeric value to the transform. */
 		virtual void ApplyNumeric(double Value = 0.0f)
 		{
 			checkf(Session != nullptr, TEXT("ApplyNumeric: Session must be valid for %s"), *DisplayName);
 		}
 
+		/** Updates the HUD display strings. */
 		virtual void UpdateHud();
+		
+		/** @return The display text for the HUD when in numeric input mode. */
 		virtual FText GetNumericHudText() const = 0;
 
+		/** @return The user-facing name of the tool (e.g. "Translate"). */
 		const FString& GetDisplayName() const { return DisplayName; }
 
+		/** Sets whether precision mode (slower movement) is active. */
 		void SetPrecisionModeActive(bool bNewPrecisionModeActive);
+		
+		/** Sets whether grid/angle snapping is active. */
 		void SetSnappingEnabled(bool bNewSnappingEnabled);
+		
+		/** @return True if grid/angle snapping is active. */
 		bool IsSnappingEnabled() const { return bSnappingEnabled; }
 
+		/** @return True if the transformation is constrained to exactly one axis. */
 		bool IsSingleAxisLocked() const;
+		
+		/** Removes any visible axis constraint lines from the viewport. */
 		void ClearDrawnAxisLines();
 		
+		/** Called when transitioning away from this tool to another one. */
 		void OnSwitch();
 
 	private:

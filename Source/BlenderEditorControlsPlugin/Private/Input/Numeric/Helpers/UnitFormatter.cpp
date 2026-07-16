@@ -25,7 +25,7 @@ namespace BlenderControls
 
 	FString FUnitFormatter::FormatValue(float Value, EBlenderNumericContext Context)
 	{
-		auto FormatSmart = [](float V) -> FString
+		auto FormatSmart = [](const float V) -> FString
 		{
 			FNumberFormattingOptions Opt;
 			Opt.MinimumFractionalDigits = 0;

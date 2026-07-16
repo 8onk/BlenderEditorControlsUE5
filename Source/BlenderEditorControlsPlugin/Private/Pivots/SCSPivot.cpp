@@ -362,16 +362,6 @@ namespace BlenderControls
 				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 		}
-
-		if (GEditor)
-		{
-			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
-				->GetClient()))
-			{
-				ViewportClient->Invalidate();
-			}
-		}
 	}
 
 	void FSCSPivot::ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis)
@@ -483,16 +473,6 @@ namespace BlenderControls
 					LiveTemplate->SetRelativeRotation(LivePreview->GetRelativeRotation());
 					LiveTemplate->SetRelativeScale3D(LivePreview->GetRelativeScale3D());
 				}
-			}
-		}
-
-		if (GEditor)
-		{
-			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
-				->GetClient()))
-			{
-				ViewportClient->Invalidate();
 			}
 		}
 

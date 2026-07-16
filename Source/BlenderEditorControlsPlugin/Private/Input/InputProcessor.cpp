@@ -1,7 +1,3 @@
-//#TODO perhaps we need to route the GetHoveredWindow() function logic from TransformSession.cpp to 
-// ensure that, we intercept the regular g key when not over a viewport window, otherwise g can hide the editor
-// gizmos, but then pressing it again will do nothing. This is quite annoying. 
-
 #include "Input/InputProcessor.h"
 #include "TransformSession.h"
 #include "BlenderControlsCommands.h"
@@ -13,10 +9,10 @@
 
 namespace BlenderControls
 {
-	FInputProcessor::FInputProcessor(TSharedPtr<FUICommandList> InCommandList)
+	FInputProcessor::FInputProcessor(const TSharedPtr<FUICommandList>& InCommandList)
 		: CommandList(InCommandList)
 	{
-	}
+}
 
 	void FInputProcessor::BindCommands()
 	{
@@ -55,7 +51,7 @@ namespace BlenderControls
 			return;
 		}
 
-		TSharedRef<FTransformSession> NewSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
+		const TSharedRef<FTransformSession> NewSession = MakeShared<FTransformSession>(Mode, bDuplicateSelection);
 
 		//Session is terminated if failed the initialization process during construction phase. 
 		if (NewSession->HasSessionTerminated())
@@ -111,8 +107,6 @@ namespace BlenderControls
 	bool FInputProcessor::HandleMouseMoveEvent(FSlateApplication& SlateApp,
 	                                           const FPointerEvent& MouseEvent)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("[FInputProcessor::HandleMouseMoveEvent] Delta: %s"), *MouseEvent.GetCursorDelta().ToString());
-
 		if (ActiveSession.IsValid())
 		{
 			return ActiveSession->HandleMouseMoveEvent(SlateApp, MouseEvent);

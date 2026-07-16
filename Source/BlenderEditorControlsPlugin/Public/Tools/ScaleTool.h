@@ -11,6 +11,7 @@ namespace BlenderControls
 	public:
 		explicit FScaleTool(const TSharedRef<FTransformSession>& InSession);
 
+		//~ FToolBase Interface
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
 		virtual bool OnBegin() override;
@@ -28,12 +29,15 @@ namespace BlenderControls
 		float ScaleFactor = 1.0f;
 		FVector CurrentScaleMultiplier = FVector::OneVector;
 
+		//~ FToolBase Interface
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
 
 	protected:
+		//~ FToolBase Interface
 		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const override { return UE::Widget::WM_Scale; }
 		virtual FText GetNumericHudText() const override;
 		virtual FText GetLiveHudText() const override;
+		
 		FText BuildFreeformHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
 		FText BuildSingleAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;
 		FText BuildDualAxisHudText(const FVector& LiveScale, const FNumberFormattingOptions& NumFmt) const;

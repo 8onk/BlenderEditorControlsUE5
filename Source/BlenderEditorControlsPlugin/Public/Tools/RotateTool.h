@@ -14,6 +14,7 @@ namespace BlenderControls
 	public:
 		explicit FRotateTool(const TSharedRef<FTransformSession>& InSession);
 
+		//~ FToolBase Interface
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value = 0.0f) override;
 		virtual bool OnBegin() override;
@@ -23,6 +24,7 @@ namespace BlenderControls
 		virtual void HandleAxisLock(EAxisLock AxisPressed) override;
 
 	protected:
+		//~ FToolBase Interface
 		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const override { return UE::Widget::WM_Rotate; }
 
 	private:
@@ -31,7 +33,14 @@ namespace BlenderControls
 		FVector PivotStartPosition;
 		FVector2D PivotViewportPosition;
 		FTransform StartPivotTransform;
+		
+		//~ FToolBase Interface
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
+		virtual void SetTrackballRotationMode(const bool bEnabled) override;
+		virtual bool GetTrackballRotationMode() override;
+		virtual void UpdateNumActiveSlots() override;
+		virtual FText GetLiveHudText() const override;
+
 		bool bTrackballModeEnabled;
 		EAxisLock PreviousAxisLock = EAxisLock::All;
 		float AccumulatedAngleRad;
@@ -40,12 +49,6 @@ namespace BlenderControls
 		EAxisLock CachedAxisLockPreTrackball = EAxisLock::All;
 
 		FText BuildTrackballHudText(double LiveAngleX, double LiveAngleY, const FNumberFormattingOptions& NumFmt) const;
-
-		virtual void SetTrackballRotationMode(const bool bEnabled) override;
-		virtual bool GetTrackballRotationMode() override;
-		virtual void UpdateNumActiveSlots() override;
-
-		virtual FText GetLiveHudText() const override;
 		FText BuildFreeformHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const;
 		FText BuildSingleAxisHudText(double LiveAngleDeg, const FNumberFormattingOptions& NumFmt) const;
 	};

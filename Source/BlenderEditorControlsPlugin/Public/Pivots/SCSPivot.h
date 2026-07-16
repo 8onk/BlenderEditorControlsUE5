@@ -18,10 +18,16 @@ namespace BlenderControls
 	class FSCSPivot : public FVirtualPivotBase
 	{
 	public:
+		/**
+		 * Constructs the pivot manager for the active blueprint selection.
+		 * 
+		 * @param InBlueprintEditor The editor window hosting the nodes.
+		 * @param InNodes The selected SCS tree nodes.
+		 */
 		FSCSPivot(FBlueprintEditor* InBlueprintEditor, const TArray<TSharedPtr<FSubobjectEditorTreeNode>>& InNodes);
 		virtual ~FSCSPivot() override = default;
 
-		// FVirtualPivotBase interface
+		//~ FVirtualPivotBase Interface
 		virtual FVector GetStartLocation() const override { return StartPivotTransform.GetLocation(); }
 		virtual FTransform GetActiveElementStartTransform() const override { return ActiveComponentStartTransform; }
 		virtual FVector GetActiveElementCurrentLocation() const override;
@@ -35,12 +41,13 @@ namespace BlenderControls
 		virtual void ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis) override;
 		virtual void ForEachElementTransform(TFunctionRef<void(const FTransform& StartTransform, bool bIsActive)> Callback) const override;
 		virtual bool ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale) override;
-		// ~FVirtualPivotBase interface
 
 	private:
+		//~ Internal Helpers
 		void ComputeMedianPivot();
 		void ComputeActiveElementPivot();
 
+		/** Caches the starting state of a blueprint component node. */
 		struct FSCSNodeInfo
 		{
 			const FSubobjectData* CachedData = nullptr;

@@ -22,12 +22,6 @@ namespace BlenderControls
 		RegisterCommands();
 		RegisterInputProcessor();
 
-		if (!IsRunningCommandlet())
-		{
-			FEditorDelegates::OnEditorInitialized.
-				AddRaw(this, &FBlenderEditorControlsPluginModule::OnEditorInitialized);
-		}
-
 		// [DEBUG] TEMPORARY: Register console command to show the popup at will
 		IConsoleManager::Get().RegisterConsoleCommand(
 			TEXT("BlenderControls.ShowWelcome"),
@@ -79,36 +73,22 @@ namespace BlenderControls
 
 	void FBlenderEditorControlsPluginModule::OnEditorInitialized(double InTime)
 	{
-		bool bHasSeenWelcome = false;
+		IMainFrameModule* MainFrame = FModuleManager::GetModulePtr<IMainFrameModule>("MainFrame");
 
-		if (GConfig)
+		if (MainFrame && MainFrame->GetParentWindow().IsValid())
 		{
-			GConfig->GetBool(TEXT("BlenderControlsPlugin"), TEXT("bHasSeenWelcome"), bHasSeenWelcome,
-			                 GEditorPerProjectIni);
+			ShowWelcomeWindow(MainFrame->GetParentWindow());
 		}
-
-		// [DEBUG] TEMPORARY: Force popup to always show on launch for testing.
-		bHasSeenWelcome = false;
-
-		if (!bHasSeenWelcome)
+		else if (MainFrame)
 		{
-			IMainFrameModule* MainFrame = FModuleManager::GetModulePtr<IMainFrameModule>("MainFrame");
-
-			if (MainFrame && MainFrame->GetParentWindow().IsValid())
-			{
-				ShowWelcomeWindow(MainFrame->GetParentWindow());
-			}
-			else if (MainFrame)
-			{
-				MainFrame->OnMainFrameCreationFinished().AddRaw(
-					this, &FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
-			}
-			else
-			{
-				IMainFrameModule& LoadedMainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
-				LoadedMainFrame.OnMainFrameCreationFinished().AddRaw(
-					this, &FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
-			}
+			MainFrame->OnMainFrameCreationFinished().AddRaw(
+				this, &FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
+		}
+		else
+		{
+			IMainFrameModule& LoadedMainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+			LoadedMainFrame.OnMainFrameCreationFinished().AddRaw(
+				this, &FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
 		}
 	}
 

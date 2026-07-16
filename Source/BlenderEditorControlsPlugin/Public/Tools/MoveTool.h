@@ -13,15 +13,17 @@ namespace BlenderControls
 	public:
 		FMoveTool(const TSharedRef<FTransformSession>& InSession);
 
+		//~ FToolBase Interface
 		virtual void OnActive(const FVector2D& CurrentViewportMousePosition) override;
 		virtual void ApplyNumeric(double Value) override;
-
 		virtual bool OnBegin() override;
 		virtual FText GetNumericHudText() const override;
 
 	protected:
+		//~ FToolBase Interface
 		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const override { return UE::Widget::WM_Translate; }
 		virtual FText GetLiveHudText() const override;
+		
 		FText BuildFreeformHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
 		                           const FText& MagText) const;
 		FText BuildSingleAxisHudText(const FVector& LiveDelta, const FNumberFormattingOptions& NumFmt,
@@ -30,7 +32,9 @@ namespace BlenderControls
 		                           const FText& MagText) const;
 
 	private:
+		//~ FToolBase Interface
 		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
+		
 		FVector GetSnapOffset(const FVector LiveDelta) const;
 		void ApplyTranslationInternal(const FVector& TotalDelta, bool bIsNumeric);
 
