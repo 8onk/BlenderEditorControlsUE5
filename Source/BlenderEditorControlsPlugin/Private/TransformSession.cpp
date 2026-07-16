@@ -33,10 +33,13 @@
 class FViewportClientExposer : public FEditorViewportClient
 {
 public:
-	static void SetTracking(FEditorViewportClient* Client, bool bInTracking)
+	static void SetViewportState(FEditorViewportClient* Client, bool bInTracking, bool bAxisControlledByDrag)
 	{
 		// Cast the client to our exposer so we can write to the protected variable
 		static_cast<FViewportClientExposer*>(Client)->bIsTracking = bInTracking;
+		// Mitigates a known editor lag issue that can occur when moving the mouse immediately after repositioning the viewport camera.
+		// NOTE: It is related to hit proxies, specifically: HHitProxy* FViewport::GetHitProxy(int32 X,int32 Y)
+		static_cast<FViewportClientExposer*>(Client)->bWidgetAxisControlledByDrag = bAxisControlledByDrag;
 	}
 };
 
@@ -68,9 +71,16 @@ namespace BlenderControls
 
 		NumericInputProcessor = MakeUnique<FNumericInputProcessor>();
 
-		if (GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable)
+		const bool bAutoSaveEnable = GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable;
+		FViewportClientExposer::SetViewportState(ActiveViewportClient, /*bInTracking=*/bAutoSaveEnable,
+		                                         /*bAxisControlledByDrag=*/true);
+
+		// Necessary to prevent hit proxies from triggering in blueprint viewport. For Level viewport, 
+		// setting bAxisControlledByDrag = true is enough to prevent this. However, for blueprint level viewport,
+		// due to custom overrides, this does nothing to prevent calculating hit proxies which results in lag. 
+		if (ActiveViewportClient && ActiveViewportClient->GetEditorViewportWidget().IsValid())
 		{
-			FViewportClientExposer::SetTracking(ActiveViewportClient, true);
+			ActiveViewportClient->GetEditorViewportWidget()->SetVisibility(EVisibility::HitTestInvisible);
 		}
 	}
 
@@ -265,7 +275,6 @@ namespace BlenderControls
 
 	void FTransformSession::InitializeMouseState()
 	{
-
 		FIntPoint MousePosInt;
 		ActiveViewportClient->Viewport->GetMousePos(MousePosInt);
 
@@ -420,6 +429,11 @@ namespace BlenderControls
 				VirtualPivot->RevertToStartState();
 			}
 
+			// bIsTracking gets reset somewhere internally. Need to re-enable it 
+			const bool bAutoSaveEnable = GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable;
+			FViewportClientExposer::SetViewportState(ActiveViewportClient, /*bInTracking=*/bAutoSaveEnable,
+			                                         /*bAxisControlledByDrag=*/true);
+
 			CurrentTool->OnSwitch();
 			if (NumericInputProcessor.IsValid())
 			{
@@ -510,7 +524,14 @@ namespace BlenderControls
 		CurrentTool.Reset();
 		bHasSessionTerminated = true;
 
-		FViewportClientExposer::SetTracking(ActiveViewportClient, false);
+		FViewportClientExposer::SetViewportState(ActiveViewportClient, /*bInTracking=*/false, /*bAxisControlledByDrag=*/
+		                                         false);
+
+		// Restore hit proxy calculation. 
+		if (ActiveViewportClient && ActiveViewportClient->GetEditorViewportWidget().IsValid())
+		{
+			ActiveViewportClient->GetEditorViewportWidget()->SetVisibility(EVisibility::Visible);
+		}
 
 		NumericInputProcessor.Reset();
 
