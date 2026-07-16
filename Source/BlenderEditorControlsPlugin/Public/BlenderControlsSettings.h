@@ -74,13 +74,4 @@ public:
 	/** Sensitivity for Trackball rotation mode */
 	UPROPERTY(EditAnywhere, config, Category = "Interaction", meta = (ClampMin = "0.001", ClampMax = "0.1"))
 	float TrackballSensitivity = 0.01f;
-
-	/**
-	 * If true, the selection of Control Rig elements will remain active during a drag.
-	 * If false (default), the selection is temporarily dropped during the drag and restored after.
-	 * Disabling this (false) significantly improves viewport performance during a drag, 
-	 * but temporarily hides the details panel and visual selection, which some users may find annoying.
-	 */
-	UPROPERTY(EditAnywhere, config, Category = "Interaction")
-	bool bKeepControlRigSelectionActive = false;
 };

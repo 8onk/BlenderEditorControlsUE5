@@ -73,9 +73,6 @@ namespace BlenderControls
 		/** Returns the world-space transform of the element. */
 		static FTransform GetElementGlobalTransform(UControlRig* ControlRig, const FRigElementKey& ElementKey);
 
-		/** Restores the selection state natively after it was dropped */
-		static void RestoreSelection(const TArray<FControlRigElementInfo>& ElementsToSelect);
-
 		/**
 		 * Marks the Control Rig as modified for undo. Call within an FScopedTransaction.
 		 */

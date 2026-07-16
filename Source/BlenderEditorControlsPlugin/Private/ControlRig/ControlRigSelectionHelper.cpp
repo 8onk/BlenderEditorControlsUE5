@@ -272,8 +272,6 @@ namespace BlenderControls
 			Context.KeyMask = static_cast<uint32>(EControlRigContextChannelToKey::AllTransform);
 
 			// Has to be true for undo transactions to work (bSetupUndo seems to have no impact)
-			// However, this does degrade the performance slightly, even if bKeepControlRigSelectionActive = false,
-			// in settings. 
 			constexpr bool bNotify = true;
 			constexpr bool bSetupUndo = false; // Undo handled by FScopedTransaction in calling code
 			constexpr bool bPrintPythonCommands = false;
@@ -417,28 +415,5 @@ namespace BlenderControls
 		// FScopedTransaction in calling code handles commit/cancel
 	}
 
-	void FControlRigSelectionHelper::RestoreSelection(const TArray<FControlRigElementInfo>& ElementsToSelect)
-	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
-		for (const FControlRigElementInfo& Element : ElementsToSelect)
-		{
-			if (UControlRig* ControlRig = Element.OwningControlRig.Get())
-			{
-				ControlRig->SelectControl(Element.ElementKey.Name, true);
-			}
-		}
-#else
-		if (FControlRigEditMode* EditMode = GetControlRigEditMode())
-		{
-			for (const FControlRigElementInfo& Element : ElementsToSelect)
-			{
-				if (UControlRig* ControlRig = Element.OwningControlRig.Get())
-				{
-					EditMode->SetRigElementSelection(ControlRig, Element.ElementKey.Type, Element.ElementKey.Name,
-					                                 true);
-				}
-			}
-		}
-#endif
-	}
+
 } // namespace BlenderControls
