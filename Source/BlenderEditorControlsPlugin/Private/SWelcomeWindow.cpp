@@ -32,7 +32,7 @@ namespace WelcomeText
 	const FText SupportBody3 = FText::FromString(" on Fab to help support this free tool!");
 
 	const FText DiscordLinkText = FText::FromString("Join the Discord");
-	const FString DiscordUrl = TEXT("DISCORD_LINK");
+	const FString DiscordUrl = TEXT("https://discord.com/invite/utc2HwSGxK");
 
 	const FText GithubLinkText = FText::FromString("GitHub Repository");
 	const FString GithubUrl = TEXT("https://github.com/jefimh/BlenderControlsUEPlugin");
