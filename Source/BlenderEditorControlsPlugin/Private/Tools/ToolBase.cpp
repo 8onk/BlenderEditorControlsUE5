@@ -384,7 +384,8 @@ namespace BlenderControls
 		UAxisLockGizmoComponent* Comp = NewObject<UAxisLockGizmoComponent>(GetTransientPackage());
 
 		const EViewModeIndex ViewMode = ViewportClient->GetViewMode();
-		Comp->bIsWireframeView = (ViewMode == VMI_Wireframe || ViewMode == VMI_BrushWireframe);
+		Comp->bIsWireframeView = (ViewMode == VMI_Wireframe || ViewMode == VMI_BrushWireframe) || ViewportClient->
+			IsOrtho();
 
 		Comp->SetMobility(EComponentMobility::Movable);
 		Comp->bHiddenInGame = false;
