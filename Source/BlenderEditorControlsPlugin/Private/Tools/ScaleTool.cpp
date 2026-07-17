@@ -205,11 +205,6 @@ namespace BlenderControls
 		}
 	}
 
-	void FScaleTool::HandleMouseMovement(const FVector2D& CurrentViewportMousePosition)
-	{
-		FToolBase::HandleMouseMovement(CurrentViewportMousePosition);
-	}
-
 	void FScaleTool::Tick()
 	{
 

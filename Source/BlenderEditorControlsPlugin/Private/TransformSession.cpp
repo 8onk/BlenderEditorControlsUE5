@@ -352,8 +352,7 @@ namespace BlenderControls
 
 	void FTransformSession::InitializeTransaction(const FString& InTransactionName)
 	{
-		// SCSTreeNodes are transformed using internal InputWidgetDelta() thus transaction is handled automatically. 
-		if (ScopedTransaction || SelectionType == ESelectionType::SCSTreeNodes)
+		if (ScopedTransaction)
 		{
 			return;
 		}
@@ -453,6 +452,11 @@ namespace BlenderControls
 
 		if (CurrentTool.IsValid() && NumericInputProcessor.IsValid())
 		{
+			if (!ScopedTransaction)
+			{
+				InitializeTransaction(CurrentTool->GetDisplayName());
+			}
+			
 			if (!CurrentTool->OnBegin())
 			{
 				CurrentTool.Reset();
@@ -475,11 +479,6 @@ namespace BlenderControls
 			}
 
 			CurrentTool->UpdateHud();
-
-			if (!ScopedTransaction)
-			{
-				InitializeTransaction(CurrentTool->GetDisplayName());
-			}
 
 			CurrentTool->OnActive(WrappedMousePosition);
 		}
@@ -614,8 +613,11 @@ namespace BlenderControls
 			{
 				if (!KeyEvent.IsRepeat())
 				{
-					const bool bTrackballRotationState = CurrentTool->GetTrackballRotationMode();
-					CurrentTool->SetTrackballRotationMode(!bTrackballRotationState);
+					if (const TSharedPtr<FRotateTool> RotateTool = StaticCastSharedPtr<FRotateTool>(CurrentTool))
+					{
+						const bool bTrackballRotationState = RotateTool->GetTrackballRotationMode();
+						RotateTool->SetTrackballRotationMode(!bTrackballRotationState);
+					}
 				}
 			}
 			else

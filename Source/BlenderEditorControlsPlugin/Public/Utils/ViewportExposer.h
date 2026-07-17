@@ -37,5 +37,14 @@ namespace BlenderControls
 			static_cast<FViewportClientExposer*>(Client)->bIsTracking = bInTracking;
 			static_cast<FViewportClientExposer*>(Client)->bWidgetAxisControlledByDrag = bAxisControlledByDrag;
 		}
+
+		/** 
+		 * Manually triggers the engine's tracking stop routine.
+		 * This properly cleans up the MouseDeltaTracker and resets the widget axis visuals.
+		 */
+		static void CallStopTracking(FEditorViewportClient* Client)
+		{
+			static_cast<FViewportClientExposer*>(Client)->StopTracking();
+		}
 	};
 }

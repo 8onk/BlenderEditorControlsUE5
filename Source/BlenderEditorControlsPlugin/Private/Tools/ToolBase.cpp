@@ -39,11 +39,7 @@ namespace BlenderControls
 			return false;
 		}
 
-		if (!InitializeEditorState())
-		{
-			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: InitializeEditorState failed!"), __FUNCTION__);
-			return false;
-		}
+		InitializeEditorState();
 
 		if (!CacheViewVectors())
 		{
@@ -70,7 +66,7 @@ namespace BlenderControls
 			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: InitializeUI failed!"), __FUNCTION__);
 			return false;
 		}
-		RestorePreviousState();
+		RestoreAxisLock();
 
 		if (Session->NumericInputProcessor.IsValid())
 		{
@@ -84,18 +80,20 @@ namespace BlenderControls
 			FSlateApplication::Get().GetPlatformApplication()->SetHighPrecisionMouseMode(
 				true, SlateWindow->GetNativeWindow());
 		}
-
-		Viewport->CaptureMouse(true);
-		Viewport->LockMouseToViewport(true);
-
-		ViewportClient->SetWidgetMode(GetDesiredWidgetMode());
 		
-		// StartTrackingDueToInput properly configures the engine's internal tracking state and MouseDeltaTracker.
+		// This is necessary to sync blueprint preview in content browser, just like native engine behaviour. However,
+		// the axis argument does not matter. 
+		ViewportClient->SetCurrentWidgetAxis(EAxisList::XYZ);
+
+		// This can be anything but "None" for CallStartTracking() to work. 
+		ViewportClient->SetCurrentWidgetAxis(EAxisList::XYZ);
+
+		// StartTrackingDueToInput properly configures the engine's internal tracking state.
 		// We bypass protected access to call it directly so our tool behaves exactly like a native editor drag, 
 		// avoiding widget desync issues. (Passing an empty SceneView reference is safe as it's unused internally).
 		FViewportClientExposer::CallStartTracking(
-			ViewportClient, 
-			FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed), 
+			ViewportClient,
+			FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed),
 			*static_cast<FSceneView*>(nullptr));
 		return true;
 	}
@@ -133,12 +131,8 @@ namespace BlenderControls
 		HudWidget->Detach();
 		ClearDrawnAxisLines();
 
-		ViewportClient->Viewport->CaptureMouse(false);
-		ViewportClient->Viewport->LockMouseToViewport(false);
-		ViewportClient->SetWidgetMode(InitialWidgetMode);
-		ViewportClient->ShowWidget(true);
-		ViewportClient->SetRequiredCursorOverride(false, EMouseCursor::Default);
-		ViewportClient->Invalidate();
+		constexpr bool bIsToolEnding = true;
+		SetViewportState(bIsToolEnding);
 
 		if (FSlateApplication::IsInitialized())
 		{
@@ -161,8 +155,6 @@ namespace BlenderControls
 			                   static_cast<int32>(Session->GetWrappedCursorPos().Y));
 		}
 
-		ViewportClient->TrackingStopped();
-
 		if (!bApply && VirtualPivot.IsValid())
 		{
 			VirtualPivot->RevertToStartState();
@@ -182,12 +174,43 @@ namespace BlenderControls
 			       TEXT("[%hs]: GEditor not valid!"),
 			       __FUNCTION__);
 		}
-		Viewport->Invalidate();
 
 		if (VirtualPivot.IsValid())
 		{
 			VirtualPivot->EndTransformSequence();
 		}
+		
+		FViewportClientExposer::CallStopTracking(ViewportClient);
+		Viewport->Invalidate();
+	}
+
+	void FToolBase::InitializeEditorState()
+	{
+		if (Session->bIsFirstTool)
+		{
+			Session->InitialWidgetMode = static_cast<int32>(ViewportClient->GetWidgetMode());
+		}
+
+		constexpr bool bIsToolEnding = false;
+		SetViewportState(bIsToolEnding);
+		bLocalSpaceDefault = GLevelEditorModeTools().GetCoordSystem() == COORD_Local;
+		GEditor->SetSelectionOutlineColor(FLinearColor::White);
+	}
+
+	void FToolBase::SetViewportState(bool bIsToolEnding) const
+	{
+		const UE::Widget::EWidgetMode InitialMode = static_cast<UE::Widget::EWidgetMode>(Session->InitialWidgetMode);
+
+		ViewportClient->SetWidgetMode(bIsToolEnding ? InitialMode : GetDesiredWidgetMode());
+		if (ViewportClient->GetModeTools())
+		{
+			ViewportClient->GetModeTools()->SetWidgetMode(bIsToolEnding ? InitialMode : GetDesiredWidgetMode());
+		}
+		ViewportClient->ShowWidget(bIsToolEnding);
+
+		Viewport->CaptureMouse(!bIsToolEnding);
+		Viewport->LockMouseToViewport(!bIsToolEnding);
+		ViewportClient->SetRequiredCursorOverride(!bIsToolEnding, EMouseCursor::None);
 	}
 
 	void FToolBase::UpdateAxisLock()
@@ -422,24 +445,6 @@ namespace BlenderControls
 		return AxisVector.GetSafeNormal();
 	}
 
-	bool FToolBase::InitializeEditorState()
-	{
-		if (!GEditor)
-		{
-			UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: GEditor is null."), __FUNCTION__);
-			return false;
-		}
-
-		InitialWidgetMode = ViewportClient->GetWidgetMode();
-		ViewportClient->ShowWidget(false);
-		ViewportClient->Invalidate();
-
-		GEditor->SetSelectionOutlineColor(FLinearColor::White);
-		bLocalSpaceDefault = GLevelEditorModeTools().GetCoordSystem() == COORD_Local;
-
-		return true;
-	}
-
 	bool FToolBase::InitializePivot()
 	{
 		VirtualPivot = Session->GetPivot();
@@ -559,7 +564,6 @@ namespace BlenderControls
 		UpdateHud();
 		UpdateNumActiveSlots();
 
-		ViewportClient->SetRequiredCursorOverride(true, EMouseCursor::None);
 		FSlateApplication::Get().GetPlatformApplication()->Cursor->Show(false);
 		HudWidget->SetVirtualCursorPos(Session->GetWrappedCursorPos());
 
@@ -572,7 +576,7 @@ namespace BlenderControls
 		return true;
 	}
 
-	void FToolBase::RestorePreviousState()
+	void FToolBase::RestoreAxisLock()
 	{
 		SetGrabContextAxisLock(Session->GetLockedAxis());
 		if (Session->GetLockedAxis() != EAxisLock::All)

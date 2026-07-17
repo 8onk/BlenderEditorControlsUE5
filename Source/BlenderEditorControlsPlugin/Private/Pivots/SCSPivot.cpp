@@ -122,16 +122,6 @@ namespace BlenderControls
 				LivePreview->SetWorldTransform(Info.StartTransform);
 			}
 		}
-
-		if (GEditor)
-		{
-			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
-				->GetClient()))
-			{
-				ViewportClient->Invalidate();
-			}
-		}
 	}
 
 	void FSCSPivot::ComputeMedianPivot()
@@ -241,16 +231,6 @@ namespace BlenderControls
 				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 		}
-
-		if (GEditor)
-		{
-			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
-				->GetClient()))
-			{
-				ViewportClient->Invalidate();
-			}
-		}
 	}
 
 	void FSCSPivot::ApplyScale(const FVector& ScaleMultiplier, bool bUsingLocalSpace)
@@ -311,16 +291,6 @@ namespace BlenderControls
 			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
 				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
 			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
-		}
-
-		if (GEditor)
-		{
-			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
-				->GetClient()))
-			{
-				ViewportClient->Invalidate();
-			}
 		}
 	}
 
@@ -419,16 +389,6 @@ namespace BlenderControls
 				if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
 			}
 		}
-
-		if (GEditor)
-		{
-			GEditor->RedrawLevelEditingViewports();
-			if (FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(GEditor->GetActiveViewport()
-				->GetClient()))
-			{
-				ViewportClient->Invalidate();
-			}
-		}
 	}
 
 	bool FSCSPivot::ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale)
@@ -484,10 +444,13 @@ namespace BlenderControls
 		if (!BlueprintEditorPtr) return;
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 
+		Blueprint->Modify();
+
 		for (FSCSNodeInfo& Info : Nodes) // Removed const so we can store old values
 		{
 			if (!Info.CachedData) continue;
 
+			// This triggers update of the blueprint preview in content browser. 
 			if (USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint)))
 			{
@@ -499,6 +462,15 @@ namespace BlenderControls
 				Info.OldRelativeLocation = LiveTemplate->GetRelativeLocation();
 				Info.OldRelativeRotation = LiveTemplate->GetRelativeRotation();
 				Info.OldRelativeScale3D = LiveTemplate->GetRelativeScale3D();
+			}
+
+			// "Undo" does not work without this.
+			const AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
+			if (USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
+				Info.CachedData->FindComponentInstanceInActor(PreviewActor))))
+			{
+				LivePreview->SetFlags(RF_Transactional);
+				LivePreview->Modify();
 			}
 		}
 	}
@@ -551,7 +523,7 @@ namespace BlenderControls
 			const FSCSNodeInfo& Info = Nodes[ObjectIndex];
 			if (!Info.CachedData) continue;
 
-			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
+			const USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint));
 			if (!LiveTemplate) continue;
 

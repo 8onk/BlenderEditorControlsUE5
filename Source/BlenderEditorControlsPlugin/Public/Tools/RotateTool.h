@@ -22,9 +22,17 @@ namespace BlenderControls
 		virtual FText GetNumericHudText() const override;
 		virtual void Tick() override;
 		virtual void HandleAxisLock(EAxisLock AxisPressed) override;
+		/** Toggles trackball rotation mode. */
+		void SetTrackballRotationMode(const bool bEnabled);
+		
+		/** @return True if trackball mode is active. */
+		bool GetTrackballRotationMode() const;
 
 	protected:
 		//~ FToolBase Interface
+		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
+		virtual void UpdateNumActiveSlots() override;
+		virtual FText GetLiveHudText() const override;
 		virtual UE::Widget::EWidgetMode GetDesiredWidgetMode() const override { return UE::Widget::WM_Rotate; }
 
 	private:
@@ -33,13 +41,6 @@ namespace BlenderControls
 		FVector PivotStartPosition;
 		FVector2D PivotViewportPosition;
 		FTransform StartPivotTransform;
-		
-		//~ FToolBase Interface
-		virtual void SetGrabContextAxisLock(EAxisLock AxisLock) override;
-		virtual void SetTrackballRotationMode(const bool bEnabled) override;
-		virtual bool GetTrackballRotationMode() override;
-		virtual void UpdateNumActiveSlots() override;
-		virtual FText GetLiveHudText() const override;
 
 		bool bTrackballModeEnabled;
 		EAxisLock PreviousAxisLock = EAxisLock::All;

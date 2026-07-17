@@ -307,6 +307,9 @@ namespace BlenderControls
 		/** True if we haven't switched tools yet (used for initializing numeric inputs). */
 		bool bIsFirstTool = true;
 
+		/** The widget mode of the viewport before any tool was launched. */
+		int32 InitialWidgetMode = -1;
+
 		/** True when actively transitioning between Move/Rotate/Scale to pause certain logic. */
 		bool bIsSwitchingTools = false;
 

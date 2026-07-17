@@ -1,7 +1,5 @@
 #include "Tools/RotateTool.h"
-#include "LevelEditorViewport.h"
 #include "TransformSession.h"
-#include "BaseGizmos/TransformProxy.h"
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Input/Numeric/NumericInputStructs.h"
 #include "BlenderControlsSettings.h"
@@ -27,7 +25,6 @@ namespace BlenderControls
 
 		if (VirtualPivot.IsValid())
 		{
-			//StartPivotTransform = VirtualPivot->GetStartTransform();
 			PivotStartPosition = VirtualPivot->GetStartLocation();
 		}
 
@@ -431,7 +428,7 @@ namespace BlenderControls
 		UpdateHud();
 	}
 
-	bool FRotateTool::GetTrackballRotationMode()
+	bool FRotateTool::GetTrackballRotationMode() const
 	{
 		return bTrackballModeEnabled;
 	}
