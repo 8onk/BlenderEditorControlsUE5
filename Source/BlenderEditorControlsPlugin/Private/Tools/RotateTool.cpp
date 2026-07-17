@@ -140,7 +140,9 @@ namespace BlenderControls
 
 			LastDragVector = CurrentDragVector;
 		}
+		
 		UpdateHud();
+		ViewportClient->Invalidate();
 	}
 
 
@@ -204,7 +206,9 @@ namespace BlenderControls
 				                            Session->GetLockedAxis());
 			}
 		}
+		
 		UpdateHud();
+		ViewportClient->Invalidate();
 	}
 
 	void FRotateTool::OnEnd(const bool bApply)

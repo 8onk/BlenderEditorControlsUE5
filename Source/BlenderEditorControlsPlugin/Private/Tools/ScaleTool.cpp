@@ -124,8 +124,10 @@ namespace BlenderControls
 		{
 			VirtualPivot->ApplyScale(SnappedScaleMultiplier, Session->IsUsingLocalSpace());
 		}
+		
 		CurrentScaleMultiplier = SnappedScaleMultiplier;
 		UpdateHud();
+		ViewportClient->Invalidate();
 	}
 
 	void FScaleTool::ApplyNumeric(double Value)
@@ -191,6 +193,7 @@ namespace BlenderControls
 		}
 		CurrentScaleMultiplier = ScaleMultiplier;
 		UpdateHud();
+		ViewportClient->Invalidate();
 	}
 
 	void FScaleTool::OnEnd(const bool bApply)

@@ -128,6 +128,7 @@ namespace BlenderControls
 		}
 
 		ApplyTranslationInternal(LiveDelta, false);
+		ViewportClient->Invalidate();
 	}
 
 	void FMoveTool::ApplyNumeric(double Value)
@@ -190,12 +191,13 @@ namespace BlenderControls
 			NumericDelta.Z = Slot2;
 			break;
 		}
+		
 		ApplyTranslationInternal(NumericDelta, true);
+		ViewportClient->Invalidate();
 	}
 
 	void FMoveTool::ApplyTranslationInternal(const FVector& TotalDelta, bool bIsNumeric)
 	{
-
 		// For no axis lock, we want to try to use InputWidgetDelta() where possible as it supports additional snapping settings,
 		// out of the box, but only does so as long as no axis lock is active and solely in level viewport. 
 		if (Session->GetLockedAxis() == EAxisLock::All)
@@ -306,7 +308,6 @@ namespace BlenderControls
 
 	FVector FMoveTool::GetSnapOffset(const FVector LiveDelta) const
 	{
-
 		if (!GEditor)
 		{
 			return FVector::ZeroVector;
