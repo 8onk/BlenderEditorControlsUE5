@@ -101,8 +101,7 @@ namespace BlenderControls
 				}
 			}
 		}
-
-		UE_LOG(LogBlenderEditorControls, Error, TEXT("[%hs]: WidgetPath NULL"), __FUNCTION__);
+		
 		return nullptr;
 	}
 
@@ -169,8 +168,6 @@ namespace BlenderControls
 		ActiveViewportClient = GetHoveredViewportClient();
 		if (!ActiveViewportClient)
 		{
-			UE_LOG(LogTransformSession, Error, TEXT("[%hs]: No active or hovered viewport client found."),
-			       __FUNCTION__);
 			return false;
 		}
 
@@ -178,7 +175,7 @@ namespace BlenderControls
 		{
 			const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
 			const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
-
+			
 			if (bControlRigModeActive && bHasRigElements)
 			{
 				SelectionType = ESelectionType::ControlRig;
@@ -191,8 +188,7 @@ namespace BlenderControls
 				return true;
 			}
 
-			const int32 ActorCount = GEditor->GetSelectedActorCount();
-			if (ActorCount > 0)
+			if (GEditor->GetSelectedActorCount() > 0)
 			{
 				SelectionType = ESelectionType::Actors;
 				return true;
