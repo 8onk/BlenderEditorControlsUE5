@@ -101,7 +101,7 @@ namespace BlenderControls
 				}
 			}
 		}
-		
+
 		return nullptr;
 	}
 
@@ -175,7 +175,7 @@ namespace BlenderControls
 		{
 			const bool bControlRigModeActive = FControlRigSelectionHelper::IsControlRigEditModeActive();
 			const bool bHasRigElements = FControlRigSelectionHelper::HasSelectedRigElements();
-			
+
 			if (bControlRigModeActive && bHasRigElements)
 			{
 				SelectionType = ESelectionType::ControlRig;
@@ -393,6 +393,10 @@ namespace BlenderControls
 					if (Actor.IsValid())
 					{
 						Actor->Modify();
+						if (USceneComponent* RootComp = Actor->GetRootComponent())
+						{
+							RootComp->Modify();
+						}
 					}
 				}
 			}
@@ -513,7 +517,7 @@ namespace BlenderControls
 			{
 				bHasModifications = true;
 			}
-			
+
 			if (!bHasModifications)
 			{
 				bApply = false;
@@ -523,6 +527,45 @@ namespace BlenderControls
 		if (bApply)
 		{
 			CurrentTool->Accept();
+
+			for (auto ActorPtr : SelectedActors)
+			{
+				if (AActor* Actor = ActorPtr.Get())
+				{
+					// Without the following code, transform StaticMeshActors in level viewport, attached to a sequencer
+					// resets the transform on save. We need to notify the engine's property system that the relative
+					// transform properties have changed.
+					if (USceneComponent* RootComp = Actor->GetRootComponent())
+					{
+						// Fetch transform properties
+						FProperty* RelLocProp = USceneComponent::StaticClass()->FindPropertyByName(
+							TEXT("RelativeLocation"));
+						FProperty* RelRotProp = USceneComponent::StaticClass()->FindPropertyByName(
+							TEXT("RelativeRotation"));
+						FProperty* RelScaleProp = USceneComponent::StaticClass()->FindPropertyByName(
+							TEXT("RelativeScale3D"));
+
+						// Notify pre-edit
+						RootComp->Modify();
+						RootComp->PreEditChange(RelLocProp);
+						RootComp->PreEditChange(RelRotProp);
+						RootComp->PreEditChange(RelScaleProp);
+
+						// Notify post-edit
+						FPropertyChangedEvent LocEvent(RelLocProp, EPropertyChangeType::ValueSet);
+						RootComp->PostEditChangeProperty(LocEvent);
+
+						FPropertyChangedEvent RotEvent(RelRotProp, EPropertyChangeType::ValueSet);
+						RootComp->PostEditChangeProperty(RotEvent);
+
+						FPropertyChangedEvent ScaleEvent(RelScaleProp, EPropertyChangeType::ValueSet);
+						RootComp->PostEditChangeProperty(ScaleEvent);
+					}
+
+					Actor->PostEditMove(true);
+					Actor->PostEditChange();
+				}
+			}
 		}
 		else
 		{
