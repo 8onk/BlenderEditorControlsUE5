@@ -136,8 +136,10 @@ namespace BlenderControls
 		FToolBase::ApplyNumeric(Value);
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
-		if (!Processor) return;
-
+		if (!Processor)
+		{
+			return;
+		}
 		FBlenderNumericState& State = Processor->CurrentState;
 
 		float Slot0 = 0.f;
@@ -382,10 +384,18 @@ namespace BlenderControls
 				const FText D = FText::FromString(TEXT("D: ") + SlotString);
 
 				FText AxisName;
-				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
-				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
-				else AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
-
+				if (Session->GetLockedAxis() == EAxisLock::X)
+				{
+					AxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
+				}
+				else if (Session->GetLockedAxis() == EAxisLock::Y)
+				{
+					AxisName = NSLOCTEXT("MoveHUD", "AxisY", "Y");
+				}
+				else
+				{
+					AxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
+				}
 				const FText Along = FText::Format(
 					NSLOCTEXT("MoveHUD", "AlongFmt", "along {0} {1}"),
 					Context, AxisName);
@@ -407,12 +417,19 @@ namespace BlenderControls
 				const FText D2 = FText::FromString(TEXT("D: ") + Slot1);
 
 				FText LockingAxisName;
-				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
+				if (Session->GetLockedAxis() == EAxisLock::XY)
+				{
+					LockingAxisName = NSLOCTEXT("MoveHUD", "AxisZ", "Z");
+				}
 				else if (Session->GetLockedAxis() == EAxisLock::XZ)
+				{
 					LockingAxisName =
 						NSLOCTEXT("MoveHUD", "AxisY", "Y");
-				else LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
-
+				}
+				else
+				{
+					LockingAxisName = NSLOCTEXT("MoveHUD", "AxisX", "X");
+				}
 				const FText Locking = FText::Format(
 					NSLOCTEXT("MoveHUD", "LockingFmt", "locking {0} {1}"),
 					Context, LockingAxisName);
@@ -526,10 +543,18 @@ namespace BlenderControls
 			FText::AsNumber(SignedDelta, &NumFmt));
 
 		FText AxisName;
-		if (Session->GetLockedAxis() == EAxisLock::X) AxisName = FText::FromString("X");
-		else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = FText::FromString("Y");
-		else AxisName = FText::FromString("Z");
-
+		if (Session->GetLockedAxis() == EAxisLock::X)
+		{
+			AxisName = FText::FromString("X");
+		}
+		else if (Session->GetLockedAxis() == EAxisLock::Y)
+		{
+			AxisName = FText::FromString("Y");
+		}
+		else
+		{
+			AxisName = FText::FromString("Z");
+		}
 		const FText Space = Session->IsUsingLocalSpace()
 			                    ? FText::FromString("local")
 			                    : FText::FromString("global");

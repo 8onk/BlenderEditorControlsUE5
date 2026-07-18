@@ -135,8 +135,10 @@ namespace BlenderControls
 		FToolBase::ApplyNumeric(Value);
 
 		FNumericInputProcessor* Processor = Session->GetNumericInputProcessor();
-		if (!Processor) return;
-
+		if (!Processor)
+		{
+			return;
+		}
 		FBlenderNumericState& State = Processor->CurrentState;
 
 		FVector ScaleMultiplier = FVector::OneVector;
@@ -282,16 +284,26 @@ namespace BlenderControls
 		case EAxisLock::Y:
 		case EAxisLock::Z:
 			{
-				if (!Processor->CurrentState.Slots.IsValidIndex(0)) return FText::GetEmpty();
-
+				if (!Processor->CurrentState.Slots.IsValidIndex(0))
+				{
+					return FText::GetEmpty();
+				}
 				FString SlotString = Processor->BuildSlotDisplayString(0);
 				HudArgs.Add(FText::FromString(TEXT("Scale: ") + SlotString));
 
 				FText AxisName;
-				if (Session->GetLockedAxis() == EAxisLock::X) AxisName = FText::FromString("X");
-				else if (Session->GetLockedAxis() == EAxisLock::Y) AxisName = FText::FromString("Y");
-				else AxisName = FText::FromString("Z");
-
+				if (Session->GetLockedAxis() == EAxisLock::X)
+				{
+					AxisName = FText::FromString("X");
+				}
+				else if (Session->GetLockedAxis() == EAxisLock::Y)
+				{
+					AxisName = FText::FromString("Y");
+				}
+				else
+				{
+					AxisName = FText::FromString("Z");
+				}
 				const FText Context = Session->IsUsingLocalSpace()
 					                      ? FText::FromString("local")
 					                      : FText::FromString("global");
@@ -308,8 +320,10 @@ namespace BlenderControls
 		case EAxisLock::XZ:
 		case EAxisLock::YZ:
 			{
-				if (!Processor->CurrentState.Slots.IsValidIndex(1)) return FText::GetEmpty();
-
+				if (!Processor->CurrentState.Slots.IsValidIndex(1))
+				{
+					return FText::GetEmpty();
+				}
 				FString Slot0 = Processor->BuildSlotDisplayString(0);
 				FString Slot1 = Processor->BuildSlotDisplayString(1);
 
@@ -317,11 +331,18 @@ namespace BlenderControls
 				HudArgs.Add(FText::FromString(TEXT("Scale: ") + Slot1));
 
 				FText LockingAxisName;
-				if (Session->GetLockedAxis() == EAxisLock::XY) LockingAxisName = FText::FromString("Z");
+				if (Session->GetLockedAxis() == EAxisLock::XY)
+				{
+					LockingAxisName = FText::FromString("Z");
+				}
 				else if (Session->GetLockedAxis() == EAxisLock::XZ)
+				{
 					LockingAxisName = FText::FromString("Y");
-				else LockingAxisName = FText::FromString("X");
-
+				}
+				else
+				{
+					LockingAxisName = FText::FromString("X");
+				}
 				const FText Context = Session->IsUsingLocalSpace()
 					                      ? FText::FromString("local")
 					                      : FText::FromString("global");
@@ -337,8 +358,10 @@ namespace BlenderControls
 		case EAxisLock::All:
 		default:
 			{
-				if (!Processor->CurrentState.Slots.IsValidIndex(2)) return FText::GetEmpty();
-
+				if (!Processor->CurrentState.Slots.IsValidIndex(2))
+				{
+					return FText::GetEmpty();
+				}
 				FString ScaleX_Str = Processor->BuildSlotDisplayString(0);
 				FString ScaleY_Str = Processor->BuildSlotDisplayString(1);
 				FString ScaleZ_Str = Processor->BuildSlotDisplayString(2);

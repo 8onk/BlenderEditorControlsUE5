@@ -69,7 +69,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FControlRigPivot::RevertToStartState()
+	void FControlRigPivot::RevertTransformToStartState()
 	{
 		for (const FControlRigElementInfo& Element : Elements)
 		{
@@ -79,8 +79,10 @@ namespace BlenderControls
 
 	bool FControlRigPivot::ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale)
 	{
-		if (Elements.Num() == 0) return false;
-
+		if (Elements.Num() == 0)
+		{
+			return false;
+		}
 		for (const FControlRigElementInfo& Element : Elements)
 		{
 			FTransform CurrentTransform = FControlRigSelectionHelper::GetElementGlobalTransform(Element.OwningControlRig.Get(), Element.ElementKey);
@@ -203,10 +205,18 @@ namespace BlenderControls
 
 				// GetScaleVector returns absolute values; restore original signs from ScaleMultiplier
 				FVector LocalScaleToAddSigned = LocalScaleToAdd;
-				if (ScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
-				if (ScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
-				if (ScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
-
+				if (ScaleMultiplier.X < 0)
+				{
+					LocalScaleToAddSigned.X *= -1.f;
+				}
+				if (ScaleMultiplier.Y < 0)
+				{
+					LocalScaleToAddSigned.Y *= -1.f;
+				}
+				if (ScaleMultiplier.Z < 0)
+				{
+					LocalScaleToAddSigned.Z *= -1.f;
+				}
 				NewScale = ElementInitialTransform.GetScale3D() * LocalScaleToAddSigned;
 
 				const FVector ScaledRelativePosition = PivotToElementVec * ScaleMultiplier;

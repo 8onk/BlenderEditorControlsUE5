@@ -156,7 +156,7 @@ namespace BlenderControls
 
 		if (!bApply && VirtualPivot.IsValid())
 		{
-			VirtualPivot->RevertToStartState();
+			VirtualPivot->RevertTransformToStartState();
 		}
 
 		if (GEditor)
@@ -178,7 +178,7 @@ namespace BlenderControls
 		{
 			VirtualPivot->EndTransformSequence();
 		}
-		
+
 		FViewportClientExposer::CallStopTracking(ViewportClient);
 		Viewport->Invalidate();
 	}
@@ -366,7 +366,10 @@ namespace BlenderControls
 	{
 		for (auto& Giz : AxisGizmos)
 		{
-			if (Giz.IsValid()) Giz->DestroyComponent();
+			if (Giz.IsValid())
+			{
+				Giz->DestroyComponent();
+			}
 		}
 		AxisGizmos.Empty();
 	}

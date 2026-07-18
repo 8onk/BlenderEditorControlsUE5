@@ -199,8 +199,10 @@ namespace BlenderControls
 		for (const FSelection& Child : Children)
 		{
 			USceneComponent* Comp = ResolveComponent(Child);
-			if (!Comp) continue;
-
+			if (!Comp)
+			{
+				continue;
+			}
 			const FTransform ActorInitialTransform = Child.StartTransform;
 			const FQuat ActorRotation = ActorInitialTransform.GetRotation();
 			const FVector PivotToActorVec = ActorInitialTransform.GetLocation() - GetStartLocation();
@@ -227,10 +229,18 @@ namespace BlenderControls
 				const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
 
 				FVector LocalScaleToAddSigned = LocalScaleToAdd;
-				if (ScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
-				if (ScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
-				if (ScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
-
+				if (ScaleMultiplier.X < 0)
+				{
+					LocalScaleToAddSigned.X *= -1.f;
+				}
+				if (ScaleMultiplier.Y < 0)
+				{
+					LocalScaleToAddSigned.Y *= -1.f;
+				}
+				if (ScaleMultiplier.Z < 0)
+				{
+					LocalScaleToAddSigned.Z *= -1.f;
+				}
 				NewScale = ActorInitialTransform.GetScale3D() * LocalScaleToAddSigned;
 
 				const FVector ScaledRelativePosition = PivotToActorVec * ScaleMultiplier;
@@ -351,7 +361,7 @@ namespace BlenderControls
 		}
 	}
 
-	void FActorPivot::RevertToStartState()
+	void FActorPivot::RevertTransformToStartState()
 	{
 		for (const FSelection& Child : Children)
 		{

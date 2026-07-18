@@ -90,8 +90,10 @@ namespace BlenderControls
 		{
 			for (FEditorViewportClient* ViewportClient : GEditor->GetAllViewportClients())
 			{
-				if (!ViewportClient) continue;
-
+				if (!ViewportClient)
+				{
+					continue;
+				}
 				TSharedPtr<SEditorViewport> ViewportWidget = ViewportClient->GetEditorViewportWidget();
 				if (ViewportWidget.IsValid() && WidgetPath.ContainsWidget(ViewportWidget.Get()))
 				{
@@ -414,7 +416,7 @@ namespace BlenderControls
 		{
 			if (VirtualPivot.IsValid())
 			{
-				VirtualPivot->RevertToStartState();
+				VirtualPivot->RevertTransformToStartState();
 			}
 
 			// Clear existing HUD and axis lines. 
@@ -468,7 +470,7 @@ namespace BlenderControls
 			{
 				InitializeTransaction(CurrentTool->GetDisplayName());
 			}
-			
+
 			if (!CurrentTool->OnBegin())
 			{
 				CurrentTool.Reset();
@@ -611,24 +613,28 @@ namespace BlenderControls
 			}
 			bHasPendingMouseMovement = false;
 		}
-		
+
 		const bool bAutoSaveEnable = GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable;
 		FViewportClientExposer::SetViewportState(ActiveViewportClient, /*bInTracking=*/bAutoSaveEnable,
-												 /*bAxisControlledByDrag=*/true);
+		                                         /*bAxisControlledByDrag=*/true);
 	}
 
 	bool FTransformSession::HandleKeyDownEvent(const FKeyEvent& KeyEvent)
 	{
-		if (!CurrentTool.IsValid()) return false;
-
+		if (!CurrentTool.IsValid())
+		{
+			return false;
+		}
 		const auto& Cmd = FBlenderControlsCommands::Get();
 		const FKey PressedKey = KeyEvent.GetKey();
 
 		// Helper lambda to check if the pressed key matches either the primary or secondary binding of a command.
 		auto KeyMatchesCommand = [&](const TSharedPtr<FUICommandInfo>& Command) -> bool
 		{
-			if (!Command.IsValid()) return false;
-
+			if (!Command.IsValid())
+			{
+				return false;
+			}
 			const FInputChord PrimaryChord = Command->GetActiveChord(EMultipleKeyBindingIndex::Primary).Get();
 			const FInputChord SecondaryChord = Command->GetActiveChord(EMultipleKeyBindingIndex::Secondary).Get();
 
@@ -693,8 +699,10 @@ namespace BlenderControls
 			return true;
 		}
 
-		if (!NumericInputProcessor.IsValid()) return false;
-
+		if (!NumericInputProcessor.IsValid())
+		{
+			return false;
+		}
 		if (NumericInputProcessor->HandleInput(KeyEvent))
 		{
 			if (NumericInputProcessor->IsInNumericMode())

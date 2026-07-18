@@ -29,7 +29,7 @@ namespace BlenderControls
 		virtual FVector GetActiveElementCurrentLocation() const = 0;
 
 		/** Resets the objects back to their cached starting positions. */
-		virtual void RevertToStartState() = 0;
+		virtual void RevertTransformToStartState() = 0;
 
 		/** @return True if there are elements selected. */
 		virtual bool IsValid() const = 0;

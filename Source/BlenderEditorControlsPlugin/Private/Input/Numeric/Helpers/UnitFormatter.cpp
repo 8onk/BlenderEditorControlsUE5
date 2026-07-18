@@ -6,8 +6,10 @@ namespace BlenderControls
 	float FUnitFormatter::ConvertOnToolSwitch(float Value, EBlenderNumericContext From,
 	                                          EBlenderNumericContext To)
 	{
-		if (From == To) return Value;
-
+		if (From == To)
+		{
+			return Value;
+		}
 		if ((From == EBlenderNumericContext::Distance || From == EBlenderNumericContext::Scale) && To ==
 			EBlenderNumericContext::Angle_Degrees)
 		{

@@ -62,7 +62,10 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 		{
-			if ((VisibilityMap & (1 << ViewIndex)) == 0) continue;
+			if ((VisibilityMap & (1 << ViewIndex)) == 0)
+			{
+				continue;
+			}
 			const FSceneView* View = Views[ViewIndex];
 
 			/* Choose different material for perspective vs orthographic.
@@ -197,9 +200,14 @@ private:
 			FVector Right1 = FVector::CrossProduct(V1, SegDir).GetSafeNormal();
 
 			// Robust fallback if degenerate
-			if (Right0.IsNearlyZero()) Right0 = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
-			if (Right1.IsNearlyZero()) Right1 = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
-
+			if (Right0.IsNearlyZero())
+			{
+				Right0 = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
+			}
+			if (Right1.IsNearlyZero())
+			{
+				Right1 = FVector::CrossProduct(FVector::UpVector, SegDir).GetSafeNormal();
+			}
 			// Build the quad with per-end widths & rights
 			const FVector v0 = P0 - Right0 * halfW0;
 			const FVector v1 = P0 + Right0 * halfW0;

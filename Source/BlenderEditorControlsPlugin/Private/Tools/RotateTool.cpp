@@ -314,12 +314,17 @@ namespace BlenderControls
 				FText AxisName;
 				EAxisLock LockedAxis = Session->GetLockedAxis();
 				if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ)
+				{
 					AxisName = FText::FromString("X");
+				}
 				else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
+				{
 					AxisName = FText::FromString("Y");
+				}
 				else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
+				{
 					AxisName = FText::FromString("Z");
-
+				}
 				const FText Context = Session->IsUsingLocalSpace()
 					                      ? FText::FromString("local")
 					                      : FText::FromString("global");
@@ -503,12 +508,18 @@ namespace BlenderControls
 		FText AxisName;
 		EAxisLock LockedAxis = Session->GetLockedAxis();
 
-		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ) AxisName = FText::FromString("X");
+		if (LockedAxis == EAxisLock::X || LockedAxis == EAxisLock::YZ)
+		{
+			AxisName = FText::FromString("X");
+		}
 		else if (LockedAxis == EAxisLock::Y || LockedAxis == EAxisLock::XZ)
+		{
 			AxisName = FText::FromString("Y");
+		}
 		else if (LockedAxis == EAxisLock::Z || LockedAxis == EAxisLock::XY)
+		{
 			AxisName = FText::FromString("Z");
-
+		}
 		const FText Context = Session->IsUsingLocalSpace()
 			                      ? FText::FromString("local")
 			                      : FText::FromString("global");

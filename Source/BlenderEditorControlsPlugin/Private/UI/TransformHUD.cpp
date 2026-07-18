@@ -123,8 +123,10 @@ namespace BlenderControls
 
 	static TSharedPtr<SOverlay> FindViewportOverlay(TSharedPtr<SWidget> RootWidget)
 	{
-		if (!RootWidget.IsValid()) return nullptr;
-
+		if (!RootWidget.IsValid())
+		{
+			return nullptr;
+		}
 		TArray<TSharedPtr<SWidget>> Queue;
 		Queue.Add(RootWidget);
 

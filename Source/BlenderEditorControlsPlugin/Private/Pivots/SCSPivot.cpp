@@ -87,7 +87,7 @@ namespace BlenderControls
 		return FVector::ZeroVector;
 	}
 
-	void FSCSPivot::RevertToStartState()
+	void FSCSPivot::RevertTransformToStartState()
 	{
 		if (!BlueprintEditorPtr)
 		{
@@ -156,8 +156,10 @@ namespace BlenderControls
 	void FSCSPivot::ApplyRotation(const FGrabContext& GC, float AngleToRotateRad, bool bUsingLocalSpace,
 	                              EAxisLock LockedAxis)
 	{
-		if (!BlueprintEditorPtr) return;
-
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
 
@@ -170,8 +172,10 @@ namespace BlenderControls
 
 		for (const FSCSNodeInfo& Info : Nodes)
 		{
-			if (!Info.CachedData) continue;
-
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 			FTransform NewTransform = Info.StartTransform;
 
 			if (bUsingLocalSpace && LockedAxis != EAxisLock::All)
@@ -225,25 +229,34 @@ namespace BlenderControls
 
 			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint));
-			if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
-
+			if (LiveTemplate)
+			{
+				LiveTemplate->SetWorldTransform(NewTransform);
+			}
 			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
 				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
-			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
+			if (LivePreview)
+			{
+				LivePreview->SetWorldTransform(NewTransform);
+			}
 		}
 	}
 
 	void FSCSPivot::ApplyScale(const FVector& ScaleMultiplier, bool bUsingLocalSpace)
 	{
-		if (!BlueprintEditorPtr) return;
-
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
 
 		for (const FSCSNodeInfo& Info : Nodes)
 		{
-			if (!Info.CachedData) continue;
-
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 			const FTransform ComponentInitialTransform = Info.StartTransform;
 			const FQuat ComponentRotation = ComponentInitialTransform.GetRotation();
 			const FVector PivotToComponentVec = ComponentInitialTransform.GetLocation() - GetStartLocation();
@@ -271,10 +284,18 @@ namespace BlenderControls
 				const FVector LocalScaleToAdd = LocalEquivalentMatrix.GetScaleVector();
 
 				FVector LocalScaleToAddSigned = LocalScaleToAdd;
-				if (ScaleMultiplier.X < 0) LocalScaleToAddSigned.X *= -1.f;
-				if (ScaleMultiplier.Y < 0) LocalScaleToAddSigned.Y *= -1.f;
-				if (ScaleMultiplier.Z < 0) LocalScaleToAddSigned.Z *= -1.f;
-
+				if (ScaleMultiplier.X < 0)
+				{
+					LocalScaleToAddSigned.X *= -1.f;
+				}
+				if (ScaleMultiplier.Y < 0)
+				{
+					LocalScaleToAddSigned.Y *= -1.f;
+				}
+				if (ScaleMultiplier.Z < 0)
+				{
+					LocalScaleToAddSigned.Z *= -1.f;
+				}
 				NewScale = ComponentInitialTransform.GetScale3D() * LocalScaleToAddSigned;
 
 				const FVector ScaledRelativePosition = PivotToComponentVec * ScaleMultiplier;
@@ -286,11 +307,16 @@ namespace BlenderControls
 
 			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint));
-			if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
-
+			if (LiveTemplate)
+			{
+				LiveTemplate->SetWorldTransform(NewTransform);
+			}
 			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
 				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
-			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
+			if (LivePreview)
+			{
+				LivePreview->SetWorldTransform(NewTransform);
+			}
 		}
 	}
 
@@ -306,14 +332,19 @@ namespace BlenderControls
 
 	void FSCSPivot::ApplyTranslation(const FVector& LocalDelta, bool bUsingLocalSpace)
 	{
-		if (!BlueprintEditorPtr) return;
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
 
 		for (const FSCSNodeInfo& Info : Nodes)
 		{
-			if (!Info.CachedData) continue;
-
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 			FVector WorldSpaceOffset = LocalDelta;
 			if (bUsingLocalSpace)
 			{
@@ -326,17 +357,25 @@ namespace BlenderControls
 
 			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint));
-			if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
-
+			if (LiveTemplate)
+			{
+				LiveTemplate->SetWorldTransform(NewTransform);
+			}
 			USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
 				Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
-			if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
+			if (LivePreview)
+			{
+				LivePreview->SetWorldTransform(NewTransform);
+			}
 		}
 	}
 
 	void FSCSPivot::ApplyTranslation(const FVector& WorldDelta, bool bUsingLocalSpace, EAxisLock LockedAxis)
 	{
-		if (!BlueprintEditorPtr) return;
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
 
@@ -347,8 +386,10 @@ namespace BlenderControls
 
 			for (const FSCSNodeInfo& Info : Nodes)
 			{
-				if (!Info.CachedData) continue;
-
+				if (!Info.CachedData)
+				{
+					continue;
+				}
 				const FTransform StartTransform = Info.StartTransform;
 				const FVector WorldOffset = StartTransform.TransformPositionNoScale(LocalSpaceDelta);
 
@@ -364,44 +405,60 @@ namespace BlenderControls
 
 				USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 					USceneComponent>(Blueprint));
-				if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
-
+				if (LiveTemplate)
+				{
+					LiveTemplate->SetWorldTransform(NewTransform);
+				}
 				USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
 					Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
-				if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
+				if (LivePreview)
+				{
+					LivePreview->SetWorldTransform(NewTransform);
+				}
 			}
 		}
 		else
 		{
 			for (const FSCSNodeInfo& Info : Nodes)
 			{
-				if (!Info.CachedData) continue;
-
+				if (!Info.CachedData)
+				{
+					continue;
+				}
 				FTransform NewTransform = Info.StartTransform;
 				NewTransform.SetLocation(Info.StartTransform.GetLocation() + WorldDelta);
 
 				USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 					USceneComponent>(Blueprint));
-				if (LiveTemplate) LiveTemplate->SetWorldTransform(NewTransform);
-
+				if (LiveTemplate)
+				{
+					LiveTemplate->SetWorldTransform(NewTransform);
+				}
 				USceneComponent* LivePreview = const_cast<USceneComponent*>(Cast<USceneComponent>(
 					Info.CachedData->FindComponentInstanceInActor(PreviewActor)));
-				if (LivePreview) LivePreview->SetWorldTransform(NewTransform);
+				if (LivePreview)
+				{
+					LivePreview->SetWorldTransform(NewTransform);
+				}
 			}
 		}
 	}
 
 	bool FSCSPivot::ApplyManualTransformDelta(const FVector& InDrag, const FRotator& InRot, const FVector& InScale)
 	{
-		if (!BlueprintEditorPtr) return false;
-
+		if (!BlueprintEditorPtr)
+		{
+			return false;
+		}
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 		AActor* PreviewActor = BlueprintEditorPtr->GetPreviewActor();
 
 		for (const FSCSNodeInfo& Info : Nodes)
 		{
-			if (!Info.CachedData) continue;
-
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 			USceneComponent* LiveTemplate = const_cast<USceneComponent*>(
 				Info.CachedData->GetObjectForBlueprint<USceneComponent>(Blueprint));
 
@@ -441,15 +498,20 @@ namespace BlenderControls
 
 	void FSCSPivot::BeginTransformSequence()
 	{
-		if (!BlueprintEditorPtr) return;
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 
 		Blueprint->Modify();
 
 		for (FSCSNodeInfo& Info : Nodes) // Removed const so we can store old values
 		{
-			if (!Info.CachedData) continue;
-
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 			// This triggers update of the blueprint preview in content browser. 
 			if (USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint)))
@@ -477,7 +539,10 @@ namespace BlenderControls
 
 	void FSCSPivot::EndTransformSequence()
 	{
-		if (!BlueprintEditorPtr) return;
+		if (!BlueprintEditorPtr)
+		{
+			return;
+		}
 		UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj();
 
 		TArray<UObject*> ArchetypeSearchObjects;
@@ -485,8 +550,10 @@ namespace BlenderControls
 
 		for (const FSCSNodeInfo& Info : Nodes)
 		{
-			if (!Info.CachedData) continue;
-
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 			if (USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint)))
 			{
@@ -521,12 +588,16 @@ namespace BlenderControls
 		for (int32 ObjectIndex = 0; ObjectIndex < Nodes.Num(); ObjectIndex++)
 		{
 			const FSCSNodeInfo& Info = Nodes[ObjectIndex];
-			if (!Info.CachedData) continue;
-
+			if (!Info.CachedData)
+			{
+				continue;
+			}
 			const USceneComponent* LiveTemplate = const_cast<USceneComponent*>(Info.CachedData->GetObjectForBlueprint<
 				USceneComponent>(Blueprint));
-			if (!LiveTemplate) continue;
-
+			if (!LiveTemplate)
+			{
+				continue;
+			}
 			TArray<UObject*>& ArchetypeInstances = ArchetypeInstancesList[ObjectIndex];
 			if (ArchetypeInstances.Num() > 0)
 			{

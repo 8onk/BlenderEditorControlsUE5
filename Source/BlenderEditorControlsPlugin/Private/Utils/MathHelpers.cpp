@@ -11,8 +11,10 @@ namespace BlenderControls::MathHelper
 	void GetMousePosToViewportPos(const FVector2D& ScreenSpacePos, FVector2D& OutViewportPos)
 	{
 		const FViewport* Viewport = GEditor->GetActiveViewport();
-		if (!Viewport) return;
-
+		if (!Viewport)
+		{
+			return;
+		}
 		const FIntPoint DesktopInt(static_cast<int32>(ScreenSpacePos.X),
 		                           static_cast<int32>(ScreenSpacePos.Y));
 

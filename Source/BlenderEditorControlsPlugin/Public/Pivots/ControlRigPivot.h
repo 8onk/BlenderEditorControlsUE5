@@ -30,7 +30,7 @@ namespace BlenderControls
 		virtual FVector GetStartLocation() const override { return StartPivotTransform.GetLocation(); }
 		virtual FTransform GetActiveElementStartTransform() const override { return ActiveElement.StartTransform; }
 		virtual FVector GetActiveElementCurrentLocation() const override;
-		virtual void RevertToStartState() override;
+		virtual void RevertTransformToStartState() override;
 		virtual bool IsValid() const override { return Elements.Num() > 0; }
 		virtual void BeginTransformSequence() override {}
 		virtual void EndTransformSequence() override {}

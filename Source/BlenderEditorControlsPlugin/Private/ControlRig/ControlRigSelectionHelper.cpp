@@ -81,8 +81,10 @@ namespace BlenderControls
 		return ControlRig ? ControlRig->CurrentControlSelection().Num() : 0;
 #else
 		FControlRigEditMode* EditMode = GetControlRigEditMode();
-		if (!EditMode) return 0;
-
+		if (!EditMode)
+		{
+			return 0;
+		}
 		TMap<UControlRig*, TArray<FRigElementKey>> SelectedControls;
 		EditMode->GetAllSelectedControls(SelectedControls);
 
@@ -312,11 +314,15 @@ namespace BlenderControls
 		const FRigElementKey& ElementKey,
 		const FRigControlValue& LocalValue)
 	{
-		if (!ControlRig) return;
-
-		URigHierarchy* Hierarchy = ControlRig->GetHierarchy();
-		if (!Hierarchy) return;
-
+		if (!ControlRig)
+		{
+			return;
+		}
+		const URigHierarchy* Hierarchy = ControlRig->GetHierarchy();
+		if (!Hierarchy)
+		{
+			return;
+		}
 		if (ElementKey.Type == ERigElementType::Control)
 		{
 			FRigControlModifiedContext Context;

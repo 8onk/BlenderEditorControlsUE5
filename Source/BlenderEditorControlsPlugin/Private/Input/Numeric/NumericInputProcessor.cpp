@@ -7,8 +7,10 @@ namespace BlenderControls
 {
 	static bool MatchesCommand(const FKeyEvent& KeyEvent, const TSharedPtr<FUICommandInfo>& Command)
 	{
-		if (!Command.IsValid()) return false;
-
+		if (!Command.IsValid())
+		{
+			return false;
+		}
 		const FInputChord KeyChord(
 			KeyEvent.GetKey(),
 			KeyEvent.IsShiftDown(),
@@ -54,16 +56,23 @@ namespace BlenderControls
 				return true;
 			}
 		}
-		if (MatchesCommand(KeyEvent, Cmd.CommandNumericCycleSlot)) return HandleTab();
-
+		if (MatchesCommand(KeyEvent, Cmd.CommandNumericCycleSlot))
+		{
+			return HandleTab();
+		}
 		if (!CurrentState.Slots.IsValidIndex(CurrentState.ActiveSlotIndex))
 		{
 			return false;
 		}
 
-		if (MatchesCommand(KeyEvent, Cmd.CommandNumericBackspace)) return HandleBackspace();
-		if (Key == EKeys::Left || Key == EKeys::Right) return HandleNavigation(Key);
-
+		if (MatchesCommand(KeyEvent, Cmd.CommandNumericBackspace))
+		{
+			return HandleBackspace();
+		}
+		if (Key == EKeys::Left || Key == EKeys::Right)
+		{
+			return HandleNavigation(Key);
+		}
 		if (HandleModifiers(KeyEvent))
 		{
 			CurrentState.bSlotUpdatedSinceSwitch = true;
@@ -159,7 +168,10 @@ namespace BlenderControls
 			bool bOtherSlotsHaveValue = false;
 			for (int32 i = 0; i < CurrentState.Slots.Num(); ++i)
 			{
-				if (i == CurrentState.ActiveSlotIndex) continue;
+				if (i == CurrentState.ActiveSlotIndex)
+				{
+					continue;
+				}
 				if (!CurrentState.Slots[i].bIsEmpty)
 				{
 					bOtherSlotsHaveValue = true;
@@ -243,8 +255,10 @@ namespace BlenderControls
 	bool FNumericInputProcessor::HandleNavigation(const FKey& Key)
 	{
 		FNumericInputSlot& ActiveSlot = CurrentState.Slots[CurrentState.ActiveSlotIndex];
-		if (ActiveSlot.bIsEmpty) return false;
-
+		if (ActiveSlot.bIsEmpty)
+		{
+			return false;
+		}
 		FlattenAdditiveSlotIfEmpty();
 
 		if (Key == EKeys::Left)
@@ -274,12 +288,17 @@ namespace BlenderControls
 
 	void FNumericInputProcessor::PropagateUniformScale(int32 SourceSlotIndex)
 	{
-		if (!CurrentState.bIsUniformScaleMode) return;
-
+		if (!CurrentState.bIsUniformScaleMode)
+		{
+			return;
+		}
 		const FNumericInputSlot& SourceSlot = CurrentState.Slots[SourceSlotIndex];
 		for (int32 i = 0; i < CurrentState.Slots.Num(); ++i)
 		{
-			if (i == SourceSlotIndex) continue;
+			if (i == SourceSlotIndex)
+			{
+				continue;
+			}
 			CurrentState.Slots[i] = SourceSlot;
 		}
 	}
@@ -339,14 +358,24 @@ namespace BlenderControls
 
 			FString OuterDisplayString = TEXT("");
 			// Modifiers: [-(1/(...
-			if (Slot.bIsNegative) OuterDisplayString += TEXT("-(");
-			if (Slot.bIsReciprocal) OuterDisplayString += TEXT("1/(");
-
+			if (Slot.bIsNegative)
+			{
+				OuterDisplayString += TEXT("-(");
+			}
+			if (Slot.bIsReciprocal)
+			{
+				OuterDisplayString += TEXT("1/(");
+			}
 			OuterDisplayString += InnerDisplayString;
 
-			if (Slot.bIsReciprocal) OuterDisplayString += TEXT(")");
-			if (Slot.bIsNegative) OuterDisplayString += TEXT(")");
-
+			if (Slot.bIsReciprocal)
+			{
+				OuterDisplayString += TEXT(")");
+			}
+			if (Slot.bIsNegative)
+			{
+				OuterDisplayString += TEXT(")");
+			}
 			// Result: ] = 50 m
 			float EvaluatedValue = 0.f;
 			FString ResultString;
@@ -433,7 +462,10 @@ namespace BlenderControls
 		// Apply Modifiers
 		if (Slot.bIsReciprocal)
 		{
-			if (FMath::IsNearlyZero(Value)) return false;
+			if (FMath::IsNearlyZero(Value))
+			{
+				return false;
+			}
 			Value = 1.0f / Value;
 		}
 		if (Slot.bIsNegative)
@@ -454,10 +486,18 @@ namespace BlenderControls
 		float Slot1 = 0.f;
 		float Slot2 = 0.f;
 
-		if (CurrentState.Slots.IsValidIndex(0)) EvaluateSlot(CurrentState.Slots[0], Slot0);
-		if (CurrentState.Slots.IsValidIndex(1)) EvaluateSlot(CurrentState.Slots[1], Slot1);
-		if (CurrentState.Slots.IsValidIndex(2)) EvaluateSlot(CurrentState.Slots[2], Slot2);
-
+		if (CurrentState.Slots.IsValidIndex(0))
+		{
+			EvaluateSlot(CurrentState.Slots[0], Slot0);
+		}
+		if (CurrentState.Slots.IsValidIndex(1))
+		{
+			EvaluateSlot(CurrentState.Slots[1], Slot1);
+		}
+		if (CurrentState.Slots.IsValidIndex(2))
+		{
+			EvaluateSlot(CurrentState.Slots[2], Slot2);
+		}
 		SumOfSquares += FMath::Square(Slot0);
 		SumOfSquares += FMath::Square(Slot1);
 		SumOfSquares += FMath::Square(Slot2);

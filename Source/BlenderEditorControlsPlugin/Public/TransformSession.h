@@ -140,8 +140,14 @@ namespace BlenderControls
 		/** @return True if the user is currently typing a numeric value. */
 		bool IsNumericInputActive() const
 		{
-			if (NumericInputProcessor.IsValid()) return NumericInputProcessor->IsInNumericMode();
-			else return false;
+			if (NumericInputProcessor.IsValid())
+			{
+				return NumericInputProcessor->IsInNumericMode();
+			}
+			else
+			{
+				return false;
+			}
 		}
 
 		/** @return True if the virtual pivot is valid and can be used for calculations. */
