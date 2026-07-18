@@ -85,16 +85,15 @@ namespace BlenderControls
 		// the axis argument does not matter. 
 		ViewportClient->SetCurrentWidgetAxis(EAxisList::XYZ);
 
-		// This can be anything but "None" for CallStartTracking() to work. 
-		ViewportClient->SetCurrentWidgetAxis(EAxisList::XYZ);
-
 		// StartTrackingDueToInput properly configures the engine's internal tracking state.
-		// We bypass protected access to call it directly so our tool behaves exactly like a native editor drag, 
-		// avoiding widget desync issues. (Passing an empty SceneView reference is safe as it's unused internally).
+		// This improves performance considerably  (only if switch widget mode, and do not re-click 
+		// the object before transforming it) and configures "pending autosave" behaviour Not sure why this improves performance
+		// though. However, for FSCSViewportClient (blueprint viewport), it starts a custom transaction which we do not want. 
 		FViewportClientExposer::CallStartTracking(
 			ViewportClient,
 			FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed),
 			*static_cast<FSceneView*>(nullptr));
+
 		return true;
 	}
 

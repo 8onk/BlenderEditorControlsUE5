@@ -424,6 +424,18 @@ namespace BlenderControls
 				OldState = NumericInputProcessor->CurrentState;
 				bIsFirstTool = false;
 			}
+
+			// Prevents the "Modify components" transaction called inside FSCSEditorViewportClient::HandleBeginTransform()
+			// from appearing in the undo history. 
+			FViewportClientExposer::CallStopTracking(ActiveViewportClient);
+
+			// If we switch tools mid-session, we want the undo history to reflect the new tool.
+			// However, if we started by duplicating, we must keep the original transaction so we don't delete the duplicate.
+			if (!bStartedWithDuplicate && ScopedTransaction.IsValid())
+			{
+				ScopedTransaction->Cancel();
+				ScopedTransaction.Reset();
+			}
 		}
 
 		ActiveMode = NewMode;
