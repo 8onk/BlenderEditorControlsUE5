@@ -498,7 +498,29 @@ namespace BlenderControls
 
 	void FTransformSession::End(bool bApply)
 	{
-		if (bHasSessionTerminated || !CurrentTool.IsValid()) return;
+		if (bHasSessionTerminated || !CurrentTool.IsValid())
+		{
+			return;
+		}
+
+		// Only keep transaction if transform actually changed, or duplicated object. 
+		if (bApply && !bStartedWithDuplicate)
+		{
+			bool bHasModifications = false;
+			if (!AccumulatedMouseDelta.IsNearlyZero())
+			{
+				bHasModifications = true;
+			}
+			else if (IsNumericInputActive())
+			{
+				bHasModifications = true;
+			}
+			
+			if (!bHasModifications)
+			{
+				bApply = false;
+			}
+		}
 
 		if (bApply)
 		{
