@@ -22,20 +22,21 @@ namespace BlenderControls
 		RegisterCommands();
 		RegisterInputProcessor();
 
-		// [DEBUG] TEMPORARY: Register console command to show the popup at will
-		IConsoleManager::Get().RegisterConsoleCommand(
-			TEXT("BlenderControls.ShowWelcome"),
-			TEXT("Shows the welcome popup for testing"),
-			FConsoleCommandDelegate::CreateRaw(this, &FBlenderEditorControlsPluginModule::OnEditorInitialized, 0.0)
-		);
+		bool bHasSeenWelcome = false;
+		if (GConfig)
+		{
+			GConfig->GetBool(TEXT("BlenderControlsPlugin"), TEXT("bHasSeenWelcome"), bHasSeenWelcome, GEditorPerProjectIni);
+		}
+
+		if (!bHasSeenWelcome)
+		{
+			FEditorDelegates::OnEditorInitialized.AddRaw(this, &FBlenderEditorControlsPluginModule::OnEditorInitialized);
+		}
 	}
 
 	void FBlenderEditorControlsPluginModule::ShutdownModule()
 	{
 		UE_LOG(LogBlenderEditorControls, Log, TEXT("BlenderEditorControlsPlugin: ShutdownModule"));
-
-		// [DEBUG] TEMPORARY
-		IConsoleManager::Get().UnregisterConsoleObject(TEXT("BlenderControls.ShowWelcome"));
 
 		UnregisterInputProcessor();
 		UnregisterCommands();
