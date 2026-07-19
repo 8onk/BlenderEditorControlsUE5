@@ -413,6 +413,10 @@ namespace BlenderControls
 		for (UControlRig* Rig : RigsToModify)
 		{
 			Rig->Modify();
+			if (URigHierarchy* Hierarchy = Rig->GetHierarchy())
+			{
+				Hierarchy->Modify();
+			}
 		}
 	}
 

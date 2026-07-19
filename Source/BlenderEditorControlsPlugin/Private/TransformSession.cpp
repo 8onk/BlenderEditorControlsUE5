@@ -5,6 +5,7 @@
 #include "Framework/Commands/UICommandInfo.h"
 #include "BlenderControlsCommands.h"
 #include "SSubobjectEditor.h"
+#include "Animation/SkeletalMeshActor.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 #include "BlenderControlsSettings.h"
 #endif
@@ -369,34 +370,33 @@ namespace BlenderControls
 		FText TransactionName = FText::FromString(InTransactionName + TEXT(" - BlenderEditorControls"));
 		ScopedTransaction = MakeUnique<FScopedTransaction>(TransactionName);
 
+		// Is handled in FTransformSession::End()
 		if (SelectionType == ESelectionType::ControlRig)
 		{
-			FControlRigSelectionHelper::BeginTransaction(SelectedRigElements, TransactionName);
+			return;
+		}
+
+		if (SelectionType == ESelectionType::Components)
+		{
+			for (auto CompPtr : SelectedComponents)
+			{
+				if (USceneComponent* Comp = CompPtr.Get())
+				{
+					Comp->Modify();
+				}
+			}
 		}
 		else
 		{
-			if (SelectionType == ESelectionType::Components)
+			// Standard actor modification - call Modify() to register with OUR transaction
+			for (auto Actor : SelectedActors)
 			{
-				for (auto CompPtr : SelectedComponents)
+				if (Actor.IsValid())
 				{
-					if (USceneComponent* Comp = CompPtr.Get())
+					Actor->Modify();
+					if (USceneComponent* RootComp = Actor->GetRootComponent())
 					{
-						Comp->Modify();
-					}
-				}
-			}
-			else
-			{
-				// Standard actor modification - call Modify() to register with OUR transaction
-				for (auto Actor : SelectedActors)
-				{
-					if (Actor.IsValid())
-					{
-						Actor->Modify();
-						if (USceneComponent* RootComp = Actor->GetRootComponent())
-						{
-							RootComp->Modify();
-						}
+						RootComp->Modify();
 					}
 				}
 			}
@@ -532,34 +532,43 @@ namespace BlenderControls
 			{
 				if (AActor* Actor = ActorPtr.Get())
 				{
-					// Without the following code, transform StaticMeshActors in level viewport, attached to a sequencer
-					// resets the transform on save. We need to notify the engine's property system that the relative
-					// transform properties have changed.
-					if (USceneComponent* RootComp = Actor->GetRootComponent())
+					// If the actor is a SkeletalMeshActor, it's highly likely to be driven by a Control Rig.
+					// If we fire PostEditChangeProperty on it, Sequencer will ForceEvaluate and wipe any un-keyframed
+					// Control Rig offsets. Thus, we skip the property spoofing for Skeletal Mesh Actors.
+					if (Actor->IsA<ASkeletalMeshActor>())
 					{
-						// Fetch transform properties
-						FProperty* RelLocProp = USceneComponent::StaticClass()->FindPropertyByName(
-							TEXT("RelativeLocation"));
-						FProperty* RelRotProp = USceneComponent::StaticClass()->FindPropertyByName(
-							TEXT("RelativeRotation"));
-						FProperty* RelScaleProp = USceneComponent::StaticClass()->FindPropertyByName(
-							TEXT("RelativeScale3D"));
+						// Without the following code, transforming StaticMeshActors in level viewport, attached to a sequencer
+						// resets the transform on save. We need to notify the engine's property system that the relative
+						// transform properties have changed.
+						if (USceneComponent* RootComp = Actor->GetRootComponent())
+						{
+							// Fetch transform properties
+							FProperty* RelLocProp = USceneComponent::StaticClass()->FindPropertyByName(
+								TEXT("RelativeLocation"));
+							FProperty* RelRotProp = USceneComponent::StaticClass()->FindPropertyByName(
+								TEXT("RelativeRotation"));
+							FProperty* RelScaleProp = USceneComponent::StaticClass()->FindPropertyByName(
+								TEXT("RelativeScale3D"));
 
-						// Notify pre-edit
-						RootComp->Modify();
-						RootComp->PreEditChange(RelLocProp);
-						RootComp->PreEditChange(RelRotProp);
-						RootComp->PreEditChange(RelScaleProp);
+							// Notify pre-edit
+							RootComp->Modify();
+							RootComp->PreEditChange(RelLocProp);
+							RootComp->PreEditChange(RelRotProp);
+							RootComp->PreEditChange(RelScaleProp);
 
-						// Notify post-edit
-						FPropertyChangedEvent LocEvent(RelLocProp, EPropertyChangeType::ValueSet);
-						RootComp->PostEditChangeProperty(LocEvent);
+							// Notify post-edit
+							FPropertyChangedEvent LocEvent(RelLocProp, EPropertyChangeType::ValueSet);
+							RootComp->PostEditChangeProperty(LocEvent);
 
-						FPropertyChangedEvent RotEvent(RelRotProp, EPropertyChangeType::ValueSet);
-						RootComp->PostEditChangeProperty(RotEvent);
+							FPropertyChangedEvent RotEvent(RelRotProp, EPropertyChangeType::ValueSet);
+							RootComp->PostEditChangeProperty(RotEvent);
 
-						FPropertyChangedEvent ScaleEvent(RelScaleProp, EPropertyChangeType::ValueSet);
-						RootComp->PostEditChangeProperty(ScaleEvent);
+							FPropertyChangedEvent ScaleEvent(RelScaleProp, EPropertyChangeType::ValueSet);
+							RootComp->PostEditChangeProperty(ScaleEvent);
+
+							Actor->PostEditMove(true);
+							Actor->PostEditChange();
+						}
 					}
 
 					Actor->PostEditMove(true);
