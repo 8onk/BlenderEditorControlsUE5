@@ -119,12 +119,21 @@ private:
 	static float WorldPerPixelAt(const FSceneView& View, const FVector& WorldPos)
 	{
 		const float ViewWidthPx = float(View.UnscaledViewRect.Width());
+
+	#if ENGINE_MAJOR_VERSION >= 6 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
+		const FMatrix& ProjMatrix = View.ViewMatrices.GetViewToClip();
+	#else
 		const FMatrix& ProjMatrix = View.ViewMatrices.GetProjectionMatrix();
+	#endif
 
 		if (View.IsPerspectiveProjection())
 		{
 			// Calculate depth in View Space
+		#if ENGINE_MAJOR_VERSION >= 6 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
+			const FVector ViewPos = View.ViewMatrices.GetWorldToView().TransformPosition(WorldPos);
+		#else
 			const FVector ViewPos = View.ViewMatrices.GetViewMatrix().TransformPosition(WorldPos);
+		#endif
 			const float Depth = FMath::Abs(ViewPos.Z);
 
 			// M[0][0] is the scaling factor for the X-axis in the Projection Matrix.
