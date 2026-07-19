@@ -80,15 +80,31 @@ namespace BlenderControls
 			FSlateApplication::Get().GetPlatformApplication()->SetHighPrecisionMouseMode(
 				true, SlateWindow->GetNativeWindow());
 		}
-		
-		// This is necessary to sync blueprint preview in content browser, just like native engine behaviour. However,
-		// the axis argument does not matter. 
-		ViewportClient->SetCurrentWidgetAxis(EAxisList::XYZ);
+
+		// This is necessary to sync blueprint preview in content browser, just like native engine behaviour. The
+		// axis argument must be All, for the content browser blueprint preview to sync with the changes. However.
+		// for ue 5.8, it must be None, otherwise transformation won't work at all. To make synchronization work for ue 5.8,
+		// set EAxisList::None for blueprint viewport (as it does not support internal snapping anyway,
+		// and InputWidgetDelta() is bypassed for blueprint viewport anyway).
+		// NOTE preview becomes out of sync when undoing a transaction, but this is how the native editor behaves as well.
+		if (Session->GetSelectionType() == ESelectionType::SCSTreeNodes)
+		{
+			ViewportClient->SetCurrentWidgetAxis(EAxisList::All);
+		}
+		else
+		{
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 6
+			ViewportClient->SetCurrentWidgetAxis(EAxisList::None);
+#else
+			ViewportClient->SetCurrentWidgetAxis(EAxisList::All);
+#endif
+		}
 
 		// StartTrackingDueToInput properly configures the engine's internal tracking state.
 		// This improves performance considerably  (only if switch widget mode, and do not re-click 
 		// the object before transforming it) and configures "pending autosave" behaviour Not sure why this improves performance
-		// though. However, for FSCSViewportClient (blueprint viewport), it starts a custom transaction which we do not want. 
+		// though. However, for FSCSViewportClient (blueprint viewport), it starts a custom transaction which we do not want.
+		// This is handled though by calling FTransformSession::SwitchTool OnSwitch. 
 		FViewportClientExposer::CallStartTracking(
 			ViewportClient,
 			FInputEventState(Viewport, EKeys::LeftMouseButton, IE_Pressed),
