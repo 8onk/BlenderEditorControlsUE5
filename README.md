@@ -105,6 +105,8 @@ You can also customize the exact keybindings (such as changing Scale back to `S`
 
 ## License
 
-This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**. 
+This software is provided for use in both non-commercial and commercial projects under the following terms:
 
-You are free to share and adapt this plugin for non-commercial purposes, provided that you give appropriate credit to **jefimh** (including a link to this repository: [https://github.com/jefimh/BlenderEditorControlsUE5](https://github.com/jefimh/BlenderEditorControlsUE5)), provide a link to the license, and indicate if changes were made. Commercial redistribution is strictly prohibited.
+1. **Development Use:** You may freely use and modify this plugin internally to create commercial products (e.g., video games, renders, media) without any attribution requirement.
+2. **Free Redistribution & Attribution:** You may redistribute this plugin or modified versions of it, provided it is distributed entirely for free. If you choose to redistribute it, you must provide exact credit to jefimh and include a link to the original repository: https://github.com/jefimh/BlenderEditorControlsUE5.
+3. **No Resale:** You may not repackage, sublicense, or resell this plugin, or any modified version of it, as a standalone tool, plugin, or asset on any marketplace or platform.
