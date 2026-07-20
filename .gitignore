@@ -1,0 +1,29 @@
+.vscode/
+/Content
+/DerivedDataCache
+/Intermediate
+/Saved
+/Binaries
+/.idea
+/Source
+*.generated.*
+*.DotSettings
+BlenderControlsPlug.sln.DotSettings.user
+*.iml
+encodings.xml
+/Config
+.vsconfig
+BlenderControlsPlug.code-workspace
+BlenderControlsPlug.uproject.DotSettings.user
+e --abort
+directory-tree.txt
+
+Plugins/BlenderEditorControlsPlugin/Binaries
+Plugins/BlenderEditorControlsPlugin/Intermediate
+
+# Unreal / VS specific
+*.sln
+*.suo
+*.vcxproj*
+*.opensdf
+*.opendb
