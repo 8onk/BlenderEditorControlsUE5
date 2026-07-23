@@ -105,6 +105,13 @@ You can also customize the exact keybindings (such as changing Scale back to `S`
 
 ## License
 
+This software is dual-licensed based on where you acquire it:
+
+* **Fab / Epic Games Marketplace:** If you acquire or download this plugin through the Fab Marketplace or Epic Games Launcher, your use is governed exclusively by the standard **Fab End User License Agreement (EULA)**.
+* **GitHub Repository:** If you clone, download, or build directly from this GitHub repository, your use is governed by the custom license terms below.
+
+---
+
 This software is provided for use in both non-commercial and commercial projects under the following terms:
 
 1. **Development Use:** You may freely use and modify this plugin internally to create commercial products (e.g., video games, renders, media) without any attribution requirement.
