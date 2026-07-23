@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "Tools/MoveTool.h"
 #include "Style.h"
 #include "TransformSession.h"

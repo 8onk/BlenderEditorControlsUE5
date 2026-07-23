@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "TransformSession.h"
 #include "Editor.h"
 #include "Selection.h"

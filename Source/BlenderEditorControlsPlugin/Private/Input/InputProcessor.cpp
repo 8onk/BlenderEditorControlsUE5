@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "Input/InputProcessor.h"
 #include "TransformSession.h"
 #include "BlenderControlsCommands.h"

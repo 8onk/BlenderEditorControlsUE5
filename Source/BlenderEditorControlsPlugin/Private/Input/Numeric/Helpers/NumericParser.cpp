@@ -1,4 +1,6 @@
-﻿#include "Input/Numeric/Helpers/NumericParser.h"
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
+#include "Input/Numeric/Helpers/NumericParser.h"
 
 #include "Input/Numeric/NumericInputProcessor.h"
 #include "Misc/DefaultValueHelper.h"

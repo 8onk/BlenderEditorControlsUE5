@@ -1,4 +1,6 @@
-﻿#include "Input/Numeric/NumericInputProcessor.h"
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
+#include "Input/Numeric/NumericInputProcessor.h"
 #include "BlenderControlsCommands.h"
 #include "Input/Numeric/Helpers/NumericParser.h"
 #include "Input/Numeric/Helpers/UnitFormatter.h"

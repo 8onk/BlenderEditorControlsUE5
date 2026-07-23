@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "Utils/MathHelpers.h"
 #include "Math/Vector.h"
 #include "Engine/Engine.h"

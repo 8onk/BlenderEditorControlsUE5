@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #pragma once
 #include "ToolBase.h"
 #include "Enums.h"

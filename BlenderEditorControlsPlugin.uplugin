@@ -1,34 +1,41 @@
 {
-	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0",
-	"FriendlyName": "Blender Editor Controls",
-	"Description": "Brings Blender's transformation workflow directly into the Unreal Editor viewport.",
-	"Category": "Editor",
-	"CreatedBy": "Axiom Toolworks",
-	"CreatedByURL": "https://github.com/jefimh",
-	"DocsURL": "https://github.com/jefimh/BlenderControlsUEPlugin#readme",
-	"MarketplaceURL": "",
-	"SupportURL": "",
-	"CanContainContent": true,
-	"IsBetaVersion": false,
-	"IsExperimentalVersion": false,
-	"Installed": false,
-	"Modules": [
-		{
-			"Name": "BlenderEditorControlsPlugin",
-			"Type": "Editor",
-			"LoadingPhase": "Default"
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "ControlRig",
-			"Enabled": true
-		},
-		{
-			"Name": "RigVM",
-			"Enabled": true
-		}
-	]
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "Blender Editor Controls",
+  "Description": "Brings Blender's transformation workflow directly into the Unreal Editor viewport.",
+  "Category": "Editor",
+  "CreatedBy": "Axiom Toolworks",
+  "CreatedByURL": "https://www.fab.com/sellers/Axiom%20Toolworks",
+  "DocsURL": "https://github.com/jefimh/BlenderEditorControlsUE5/blob/release/Documentation.md",
+  "MarketplaceURL": "https://www.fab.com/portal/listings/61c3fb62-c7c1-4838-a9d9-e9393fcb3b49",
+  "SupportURL": "",
+  "CanContainContent": true,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "BlenderEditorControlsPlugin",
+      "Type": "Editor",
+      "LoadingPhase": "Default",
+      "PlatformAllowList": [
+        "Win64",
+        "Mac",
+        "Linux"
+      ]
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "ControlRig",
+      "Enabled": false,
+      "Optional": true
+    },
+    {
+      "Name": "RigVM",
+      "Enabled": false,
+      "Optional": true
+    }
+  ]
 }

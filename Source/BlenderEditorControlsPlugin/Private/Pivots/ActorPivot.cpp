@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "Pivots/ActorPivot.h"
 #include "Enums.h"
 #include "BaseGizmos/TransformProxy.h"

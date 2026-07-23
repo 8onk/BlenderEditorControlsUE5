@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "BlenderControlsCommands.h"
 
 #define LOCTEXT_NAMESPACE "FBlenderControlsCommands"

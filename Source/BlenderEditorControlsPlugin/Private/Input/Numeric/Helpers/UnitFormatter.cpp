@@ -1,4 +1,6 @@
-﻿#include "Input/Numeric/Helpers/UnitFormatter.h"
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
+#include "Input/Numeric/Helpers/UnitFormatter.h"
 #include "Input/Numeric/NumericInputStructs.h"
 
 namespace BlenderControls

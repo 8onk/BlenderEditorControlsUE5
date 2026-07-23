@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "UI/TransformHUD.h"
 #include "BlenderControlsSettings.h"
 #include "SEditorViewport.h"

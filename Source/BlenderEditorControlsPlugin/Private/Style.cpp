@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 // Style.cpp
 #include "Style.h"
 #include "Brushes/SlateImageBrush.h"

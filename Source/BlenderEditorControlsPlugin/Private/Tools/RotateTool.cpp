@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "Tools/RotateTool.h"
 #include "TransformSession.h"
 #include "Input/Numeric/NumericInputProcessor.h"

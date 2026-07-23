@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "Pivots/SCSPivot.h"
 #include "Components/SceneComponent.h"
 #include "Editor.h"

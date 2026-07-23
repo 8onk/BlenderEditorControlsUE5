@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #pragma once
 #include "BlenderControlsSettings.generated.h"
 

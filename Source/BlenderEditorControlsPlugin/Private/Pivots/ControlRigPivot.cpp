@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "Pivots/ControlRigPivot.h"
 #include "Enums.h"
 #include "Tools/GrabContext.h"

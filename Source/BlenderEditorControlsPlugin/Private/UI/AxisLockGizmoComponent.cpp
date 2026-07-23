@@ -1,3 +1,5 @@
+// Copyright 2026 Axiom Toolworks. All Rights Reserved.
+
 #include "UI/AxisLockGizmoComponent.h"
 #include "PrimitiveSceneProxy.h"
 #include "DynamicMeshBuilder.h"
@@ -31,19 +33,19 @@ public:
 				? (UMaterialInterface*)Comp->AxisMID
 				: (Comp->AxisMaterial ? Comp->AxisMaterial : nullptr);
 
-		// FallbackMatPersp = LoadObject<UMaterialInterface>(
-		// 	nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
 		FallbackMatPersp = LoadObject<UMaterialInterface>(
-			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
+			nullptr, TEXT(
+				"/BlenderEditorControlsPlugin/BlenderEditorControls/Materials/M_AxisRibbon_Translucent.M_AxisRibbon_Translucent"));
 		FallbackMatOrtho = LoadObject<UMaterialInterface>(
-			nullptr, TEXT("/BlenderEditorControlsPlugin/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
+			nullptr, TEXT(
+				"/BlenderEditorControlsPlugin/BlenderEditorControls/Materials/M_AxisRibbon_Opaque.M_AxisRibbon_Opaque"));
 
 		FMaterialRelevance R;
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		if (DrawMaterialFromComponent) { R |= DrawMaterialFromComponent->GetRelevance_Concurrent(FL); }
 		if (FallbackMatPersp) { R |= FallbackMatPersp->GetRelevance_Concurrent(FL); }
 		if (FallbackMatOrtho) { R |= FallbackMatOrtho->GetRelevance_Concurrent(FL); }
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		MaterialRelevance = R;
 
 		bWillEverBeLit = false;
@@ -120,20 +122,20 @@ private:
 	{
 		const float ViewWidthPx = float(View.UnscaledViewRect.Width());
 
-	#if ENGINE_MAJOR_VERSION >= 6 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
+#if ENGINE_MAJOR_VERSION >= 6 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
 		const FMatrix& ProjMatrix = View.ViewMatrices.GetViewToClip();
-	#else
+#else
 		const FMatrix& ProjMatrix = View.ViewMatrices.GetProjectionMatrix();
-	#endif
+#endif
 
 		if (View.IsPerspectiveProjection())
 		{
 			// Calculate depth in View Space
-		#if ENGINE_MAJOR_VERSION >= 6 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
+#if ENGINE_MAJOR_VERSION >= 6 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8)
 			const FVector ViewPos = View.ViewMatrices.GetWorldToView().TransformPosition(WorldPos);
-		#else
+#else
 			const FVector ViewPos = View.ViewMatrices.GetViewMatrix().TransformPosition(WorldPos);
-		#endif
+#endif
 			const float Depth = FMath::Abs(ViewPos.Z);
 
 			// M[0][0] is the scaling factor for the X-axis in the Projection Matrix.
