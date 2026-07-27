@@ -1,15 +1,27 @@
 # Blender Editor Controls
 
-![Workflow Demonstration](placeholder.gif)
+**Bringing Blender editor controls to Unreal Engine 5!**
 
-**Blender Editor Controls** is a free, source-available plugin for Unreal Engine that brings Blender's transformation workflow (G, R, S) directly into the Unreal Editor viewport. 
+Are you tired of clicking gizmos? Whether you're transitioning from Blender to Unreal Engine, or you simply want a faster, hotkey-driven workflow, the Blender Editor Controls plugin is designed to accelerate level design, animation, and scene blocking, by letting you move, rotate, and scale assets using hotkeys, and numeric input.
 
-This plugin bypasses the standard Unreal Engine gizmo widgets, allowing you to quickly move, rotate, and scale objects using keyboard-driven modal operations, axis constraints, and numeric inputs.
 
-[**Get it for free on Fab**](#) (WAITING FOR SUBMISSION APPROVAL)
+## [GET IT FOR FREE ON FAB](https://www.fab.com/portal/listings/61c3fb62-c7c1-4838-a9d9-e9393fcb3b49)
+
+### Manipulate transforms using hotkeys (rebindable)
+<img width="470" height="479" alt="overview" src="https://github.com/user-attachments/assets/d6328d34-ee90-4478-8f87-dc962d8c88db" />
+
+### Manipulate transforms using numerical values
+<img width="470" height="479" alt="numeric" src="https://github.com/user-attachments/assets/63ee7b32-429b-4333-8522-f5ca361c7237" />
+
+### Constrain transform manipulation to axis/plane of choice
+<img width="470" height="479" alt="axis-locking" src="https://github.com/user-attachments/assets/bff946b2-aa7a-42cf-be91-8658479b1ca8" />
 
 ## Table of Contents
 - [Blender Editor Controls](#blender-editor-controls)
+  - [GET IT FOR FREE ON FAB](#get-it-for-free-on-fab)
+    - [Overview](#overview)
+    - [Numeric Input](#numeric-input)
+    - [Blueprint Viewport Sync](#blueprint-viewport-sync)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Features](#features)
@@ -26,7 +38,10 @@ This plugin bypasses the standard Unreal Engine gizmo widgets, allowing you to q
 1. Navigate to the root directory of your Unreal Engine project (where your `.uproject` file is located).
 2. If it does not exist, create a new folder named `Plugins`.
 3. Open a terminal inside the `Plugins` folder.
-4. Run the command: `git clone [https://github.com/jefimh/BlenderEditorControlsUE5.git](https://github.com/jefimh/BlenderEditorControlsUE5.git)`
+4. Run the command: 
+   ```bash
+   git clone https://github.com/jefimh/BlenderEditorControlsUE5.git
+   ```
 5. Open your Unreal Engine project. It will ask to rebuild the plugin modules; click "Yes".
 6. Note: This plugin should be enabled by default. If for any reason it is not active, navigate to **Edit > Plugins**, search for "Blender Editor Controls", and ensure the box is checked.
 
