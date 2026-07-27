@@ -1,62 +1,39 @@
-# Bringing Blender editor controls to Unreal Engine 5!
-
-Are you tired of clicking gizmos? Whether you're transitioning from Blender to Unreal Engine, or you simply want a faster, hotkey-driven workflow, the Blender Editor Controls plugin is designed to accelerate level design, animation, and scene blocking, by letting you move, rotate, and scale assets using hotkeys, and numeric input.
-
-
-## [GET IT FOR FREE ON FAB](https://www.fab.com/portal/listings/61c3fb62-c7c1-4838-a9d9-e9393fcb3b49)
-
-### Manipulate transforms using hotkeys (rebindable)
-<img width="470" height="479" alt="overview" src="https://github.com/user-attachments/assets/d6328d34-ee90-4478-8f87-dc962d8c88db" />
-
-### Manipulate transforms using numerical values
-<img width="470" height="479" alt="numeric" src="https://github.com/user-attachments/assets/63ee7b32-429b-4333-8522-f5ca361c7237" />
-
-### Constrain transform manipulation to axis/plane of choice
-<img width="470" height="479" alt="axis-locking" src="https://github.com/user-attachments/assets/bff946b2-aa7a-42cf-be91-8658479b1ca8" />
+# Blender Editor Controls Documentation
 
 ## Table of Contents
-- [Bringing Blender editor controls to Unreal Engine 5!](#bringing-blender-editor-controls-to-unreal-engine-5)
-  - [GET IT FOR FREE ON FAB](#get-it-for-free-on-fab)
-    - [Manipulate transforms using hotkeys (rebindable)](#manipulate-transforms-using-hotkeys-rebindable)
-    - [Manipulate transforms using numerical values](#manipulate-transforms-using-numerical-values)
-    - [Constrain transform manipulation to axis/plane of choice](#constrain-transform-manipulation-to-axisplane-of-choice)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Features](#features)
-  - [Architecture Overview (For Contributors)](#architecture-overview-for-contributors)
-  - [Usage Guide \& Hotkeys](#usage-guide--hotkeys)
-  - [Settings \& Customization](#settings--customization)
-  - [Compatibility](#compatibility)
-  - [License](#license)
+- [Settings & Customization](#settings--customization)
+- [Usage Guide & Hotkeys](#usage-guide--hotkeys)
+- [Features](#features)
+- [Architecture Overview (For Contributors)](#architecture-overview-for-contributors)
+- [Compatibility](#compatibility)
+- [License](#license)
 
-## Installation
+## Settings & Customization
 
-**Method 1: Git Clone (Recommended)**
+You can customize the plugin's behavior, including axis colors, precision scalars, and 3D line thickness. 
+To access the settings:
+1. Go to **Edit > Editor Preferences**.
+2. Scroll down to the **Plugins** section.
+3. Select **Blender Editor Controls**.
 
-1. Navigate to the root directory of your Unreal Engine project (where your `.uproject` file is located).
-2. If it does not exist, create a new folder named `Plugins`.
-3. Open a terminal inside the `Plugins` folder.
-4. Run the command: 
-   ```bash
-   git clone https://github.com/jefimh/BlenderEditorControlsUE5.git
-   ```
-5. Open your Unreal Engine project. It will ask to rebuild the plugin modules; click "Yes".
-6. Note: This plugin should be enabled by default. If for any reason it is not active, navigate to **Edit > Plugins**, search for "Blender Editor Controls", and ensure the box is checked.
+You can also customize the exact keybindings (such as changing Scale back to `S`) by navigating to **Edit > Editor Preferences > General > Keyboard Shortcuts** and searching for **Blender Editor Controls**.
 
-**Method 2: ZIP Download**
+## Usage Guide & Hotkeys
 
-1. Download the source code as a ZIP file.
-2. Extract the archive.
-3. Navigate to the root directory of your Unreal Engine project (where your `.uproject` file is located) and create a `Plugins` folder if it does not exist.
-4. Move the extracted folder into your `Plugins/` directory.
-5. Open your Unreal Engine project. It will ask to rebuild the plugin modules; click "Yes".
-6. Note: This plugin should be enabled by default. If for any reason it is not active, navigate to **Edit > Plugins**, search for "Blender Editor Controls", and ensure the box is checked.
-
----
-
-*(Note for C++ developers: You can also right-click your `.uproject` file, select "Generate Visual Studio project files", and compile manually via your IDE).*
-
----
+| Action | Shortcut | Description |
+| :--- | :--- | :--- |
+| **Translate (Grab)** | `G` | Moves the selection relative to the screen plane. |
+| **Rotate** | `R` | Rotates the selection relative to the view angle. |
+| **Trackball Rotate** | `R` then `R` | Rotates freely in all directions. |
+| **Scale** | `T` | Scales the selection uniformly. Set to T instead of S to not clash with native editor bindings |
+| **Duplicate** | `Shift + D` | Duplicates actors and begins moving them. |
+| **Lock Axis (Global)** | `X`, `Y`, or `Z` | Locks the transform to the X, Y, or Z world axis. |
+| **Lock Axis (Local)**| Double tap `X`, `Y`, `Z` | Locks the transform to the local coordinate axis. |
+| **Lock Plane** | `Shift + X, Y, Z` | Locks the transform to a 2D plane (e.g., Shift+Z locks to XY floor). |
+| **Confirm** | `Left Click`, `Enter`, or `Space` | Applies the transformation. |
+| **Cancel** | `Right Click` or `Esc` | Reverts the selection to its original state. |
+| **Precision Mode** | Hold `Shift` | Slows down mouse influence for fine adjustments. |
+| **Toggle Snapping** | Hold `Ctrl` | Inverts the current viewport grid-snapping state. |
 
 ## Features
 
@@ -84,33 +61,6 @@ Contributions are highly welcomed! To help you get up to speed, here is a high-l
 - [**`Pivots/`**](Source/BlenderEditorControlsPlugin/Public/Pivots/): Abstractions that handle the actual application of transforms to different object types. For example, `ActorPivot` handles standard actors, while `ControlRigPivot` safely interfaces with RigVM.
 - [**`Input/Numeric/`**](Source/BlenderEditorControlsPlugin/Public/Input/Numeric/): Manages keyboard-driven value inputs during an active session, interpreting units and math formulas typed by the user.
 - [**`UI/`**](Source/BlenderEditorControlsPlugin/Public/UI/): The screen-space widget (`TransformHUD`) that displays active values, and the `AxisLockGizmoComponent` responsible for drawing the infinite colored lines.
-
-## Usage Guide & Hotkeys
-
-| Action | Shortcut | Description |
-| :--- | :--- | :--- |
-| **Translate (Grab)** | `G` | Moves the selection relative to the screen plane. |
-| **Rotate** | `R` | Rotates the selection relative to the view angle. |
-| **Trackball Rotate** | `R` then `R` | Rotates freely in all directions. |
-| **Scale** | `T` | Scales the selection uniformly. Set to T instead of S to not clash with native editor bindings |
-| **Duplicate** | `Shift + D` | Duplicates actors and begins moving them. |
-| **Lock Axis (Global)** | `X`, `Y`, or `Z` | Locks the transform to the X, Y, or Z world axis. |
-| **Lock Axis (Local)**| Double tap `X`, `Y`, `Z` | Locks the transform to the local coordinate axis. |
-| **Lock Plane** | `Shift + X, Y, Z` | Locks the transform to a 2D plane (e.g., Shift+Z locks to XY floor). |
-| **Confirm** | `Left Click`, `Enter`, or `Space` | Applies the transformation. |
-| **Cancel** | `Right Click` or `Esc` | Reverts the selection to its original state. |
-| **Precision Mode** | Hold `Shift` | Slows down mouse influence for fine adjustments. |
-| **Toggle Snapping** | Hold `Ctrl` | Inverts the current viewport grid-snapping state. |
-
-## Settings & Customization
-
-You can customize the plugin's behavior, including axis colors, precision scalars, and 3D line thickness. 
-To access the settings:
-1. Go to **Edit > Editor Preferences**.
-2. Scroll down to the **Plugins** section.
-3. Select **Blender Editor Controls**.
-
-You can also customize the exact keybindings (such as changing Scale back to `S`) by navigating to **Edit > Editor Preferences > General > Keyboard Shortcuts** and searching for **Blender Editor Controls**.
 
 ## Compatibility
 
