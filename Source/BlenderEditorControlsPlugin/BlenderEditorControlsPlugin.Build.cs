@@ -74,7 +74,12 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"MainFrame"
 			}
 		);
-
+		
+		
+        if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 6) // for 5.5 compatibility, idk maybe lower would work too
+        {
+            PrivateDependencyModuleNames.Add("SequencerWidgets");
+        }
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
