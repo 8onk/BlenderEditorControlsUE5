@@ -123,7 +123,7 @@ namespace BlenderControls
 			return nullptr;
 		}
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
 		TArray<IAssetEditorInstance*> OpenEditors;
 		TArray<UObject*> EditedAssets = AssetEditorSubsystem->GetAllEditedAssets();
 
