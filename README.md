@@ -114,7 +114,7 @@ You can also customize the exact keybindings (such as changing Scale back to `S`
 
 ## Compatibility
 
-- Supported Unreal Engine versions: **5.6 - 5.8**
+- Supported Unreal Engine versions: **5.4 - 5.8**
 
 ## License
 
