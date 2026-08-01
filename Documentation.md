@@ -1,14 +1,14 @@
 # Blender Editor Controls Documentation
 
 ## Table of Contents
-- [Settings & Customization](#settings--customization)
-- [Usage Guide & Hotkeys](#usage-guide--hotkeys)
-- [Features](#features)
-- [Architecture Overview (For Contributors)](#architecture-overview-for-contributors)
-- [Compatibility](#compatibility)
-- [License](#license)
+1. [Settings & Customization](#1-settings--customization)
+2. [Usage Guide & Hotkeys](#2-usage-guide--hotkeys)
+3. [Features](#3-features)
+4. [Architecture Overview (For Contributors)](#4-architecture-overview-for-contributors)
+5. [Compatibility](#5-compatibility)
+6. [License](#6-license)
 
-## Settings & Customization
+## 1. Settings & Customization
 
 You can customize the plugin's behavior, including axis colors, precision scalars, and 3D line thickness. 
 To access the settings:
@@ -18,7 +18,7 @@ To access the settings:
 
 You can also customize the exact keybindings (such as changing Scale back to `S`) by navigating to **Edit > Editor Preferences > General > Keyboard Shortcuts** and searching for **Blender Editor Controls**.
 
-## Usage Guide & Hotkeys
+## 2. Usage Guide & Hotkeys
 
 | Action | Shortcut | Description |
 | :--- | :--- | :--- |
@@ -35,7 +35,7 @@ You can also customize the exact keybindings (such as changing Scale back to `S`
 | **Precision Mode** | Hold `Shift` | Slows down mouse influence for fine adjustments. |
 | **Toggle Snapping** | Hold `Ctrl` | Inverts the current viewport grid-snapping state. |
 
-## Features
+## 3. Features
 
 - **Blender-Style Hotkeys**: Use **G** (Grab/Translate), **R** (Rotate), and **T** (Scale) to immediately start transforming your selection without needing to click or drag gizmo arrows.
 - **Mid-Session Tool Switching**: Seamlessly switch between Move, Rotate, and Scale during an active transformation without needing to cancel or click out.
@@ -51,9 +51,46 @@ You can also customize the exact keybindings (such as changing Scale back to `S`
   - Control Rig Elements (Bones, Controls)
 - **Undo & Redo**: Native editor `Ctrl+Z` and `Ctrl+Y` are completely supported for all operations.
 
-## Architecture Overview (For Contributors)
+## 4. Architecture Overview (For Contributors)
 
 Contributions are highly welcomed! To help you get up to speed, here is a high-level overview of the codebase structure found in the `Source/` directory. Detailed API documentation is also available via Doxygen comments directly in the source headers.
+
+#### Source Directory Tree
+```text
+Source
+└── BlenderEditorControlsPlugin
+    ├── BlenderEditorControlsPlugin.Build.cs
+    ├── Private
+    │   ├── ControlRig
+    │   │   └── ControlRigSelectionHelper.cpp
+    │   ├── Input
+    │   │   ├── InputProcessor.cpp
+    │   │   └── Numeric
+    │   │       ├── NumericInputProcessor.cpp
+    │   │       └── Helpers
+    │   │           ├── NumericParser.cpp
+    │   │           └── UnitFormatter.cpp
+    │   ├── Pivots
+    │   │   ├── ActorPivot.cpp
+    │   │   ├── ControlRigPivot.cpp
+    │   │   └── SCSPivot.cpp
+    │   ├── Tools
+    │   │   ├── MoveTool.cpp
+    │   │   ├── RotateTool.cpp
+    │   │   ├── ScaleTool.cpp
+    │   │   └── ToolBase.cpp
+    │   ├── UI
+    │   │   ├── AxisLockGizmoComponent.cpp
+    │   │   └── TransformHUD.cpp
+    │   ├── Utils
+    │   │   └── MathHelpers.cpp
+    │   ├── BlenderControlsCommands.cpp
+    │   ├── BlenderEditorControls.cpp
+    │   ├── Style.cpp
+    │   ├── SWelcomeWindow.cpp
+    │   └── TransformSession.cpp
+    └── Public/ (Header files mirroring Private structure)
+```
 
 - [**`InputProcessor`**](Source/BlenderEditorControlsPlugin/Public/Input/InputProcessor.h): The gatekeeper. It hooks into the Slate application to intercept hotkeys (G, R, S, Shift+D) before they reach the viewport and triggers a new transform session.
 - [**`TransformSession`**](Source/BlenderEditorControlsPlugin/Public/TransformSession.h): The core state machine. It manages the active tool's lifecycle, caches initial mouse/camera states, and handles Unreal Engine's `FScopedTransaction` to ensure Undo/Redo works flawlessly.
@@ -62,11 +99,11 @@ Contributions are highly welcomed! To help you get up to speed, here is a high-l
 - [**`Input/Numeric/`**](Source/BlenderEditorControlsPlugin/Public/Input/Numeric/): Manages keyboard-driven value inputs during an active session, interpreting units and math formulas typed by the user.
 - [**`UI/`**](Source/BlenderEditorControlsPlugin/Public/UI/): The screen-space widget (`TransformHUD`) that displays active values, and the `AxisLockGizmoComponent` responsible for drawing the infinite colored lines.
 
-## Compatibility
+## 5. Compatibility
 
 - Supported Unreal Engine versions: **5.6 - 5.8**
 
-## License
+## 6. License
 
 This software is dual-licensed based on where you acquire it:
 

@@ -14,22 +14,21 @@ Are you tired of clicking gizmos? Whether you're transitioning from Blender to U
 ### Constrain transform manipulation to axis/plane of choice
 <img width="470" height="479" alt="axis-locking" src="https://github.com/user-attachments/assets/bff946b2-aa7a-42cf-be91-8658479b1ca8" />
 
+---
 ## Table of Contents
-- [Bringing Blender editor controls to Unreal Engine 5!](#bringing-blender-editor-controls-to-unreal-engine-5)
-  - [GET IT FOR FREE ON FAB (Pending approval for EU)](#get-it-for-free-on-fab-pending-approval-for-eu)
-    - [Manipulate transforms using hotkeys (rebindable)](#manipulate-transforms-using-hotkeys-rebindable)
-    - [Manipulate transforms using numerical values](#manipulate-transforms-using-numerical-values)
-    - [Constrain transform manipulation to axis/plane of choice](#constrain-transform-manipulation-to-axisplane-of-choice)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Features](#features)
-  - [Architecture Overview (For Contributors)](#architecture-overview-for-contributors)
-  - [Usage Guide \& Hotkeys](#usage-guide--hotkeys)
-  - [Settings \& Customization](#settings--customization)
-  - [Compatibility](#compatibility)
-  - [License](#license)
+  - [1. Installation](#1-installation)
+  - [2. Features](#2-features)
+  - [3. Contributing](#3-contributing)
+    - [Submission Rules](#submission-rules)
+    - [Architecture Overview](#architecture-overview)
+      - [Source Directory Tree](#source-directory-tree)
+  - [4. Usage Guide \& Hotkeys](#4-usage-guide--hotkeys)
+  - [5. Settings \& Customization](#5-settings--customization)
+  - [6. Compatibility](#6-compatibility)
+  - [7. License](#7-license)
+---
 
-## Installation
+## 1. Installation
 
 **Method 1: Git Clone (Recommended)**
 
@@ -58,7 +57,7 @@ Are you tired of clicking gizmos? Whether you're transitioning from Blender to U
 
 ---
 
-## Features
+## 2. Features
 
 - **Blender-Style Hotkeys**: Use **G** (Grab/Translate), **R** (Rotate), and **T** (Scale) to immediately start transforming your selection without needing to click or drag gizmo arrows.
 - **Mid-Session Tool Switching**: Seamlessly switch between Move, Rotate, and Scale during an active transformation without needing to cancel or click out.
@@ -74,9 +73,58 @@ Are you tired of clicking gizmos? Whether you're transitioning from Blender to U
   - Control Rig Elements (Bones, Controls)
 - **Undo & Redo**: Native editor `Ctrl+Z` and `Ctrl+Y` are completely supported for all operations.
 
-## Architecture Overview (For Contributors)
+> **Note:** If the axis gizmo lines do not appear immediately when axis/plane locking, please wait for all background shaders to finish compiling.
+---
 
-Contributions are highly welcomed! To help you get up to speed, here is a high-level overview of the codebase structure found in the `Source/` directory. Detailed API documentation is also available via Doxygen comments directly in the source headers.
+## 3. Contributing
+
+Contributions of all kinds are highly welcomed! Please adhere to the following rules when contributing:
+
+### Submission Rules
+1. **Target Branch:** All Pull Requests **must** be submitted against the `dev` branch.
+2. **Code Style:** Please align with standard Unreal Engine C++ coding conventions.
+3. **Commit Messages:** Keep commit messages clear, concise, and focused on the change.
+
+### Architecture Overview 
+
+To help you get up to speed with the project, here is a high-level overview of the main systems in the `Source/` directory. Detailed API documentation is also available via Doxygen comments directly in the header files.
+
+#### Source Directory Tree
+```text
+Source
+└── BlenderEditorControlsPlugin
+    ├── BlenderEditorControlsPlugin.Build.cs
+    ├── Private
+    │   ├── ControlRig
+    │   │   └── ControlRigSelectionHelper.cpp
+    │   ├── Input
+    │   │   ├── InputProcessor.cpp
+    │   │   └── Numeric
+    │   │       ├── NumericInputProcessor.cpp
+    │   │       └── Helpers
+    │   │           ├── NumericParser.cpp
+    │   │           └── UnitFormatter.cpp
+    │   ├── Pivots
+    │   │   ├── ActorPivot.cpp
+    │   │   ├── ControlRigPivot.cpp
+    │   │   └── SCSPivot.cpp
+    │   ├── Tools
+    │   │   ├── MoveTool.cpp
+    │   │   ├── RotateTool.cpp
+    │   │   ├── ScaleTool.cpp
+    │   │   └── ToolBase.cpp
+    │   ├── UI
+    │   │   ├── AxisLockGizmoComponent.cpp
+    │   │   └── TransformHUD.cpp
+    │   ├── Utils
+    │   │   └── MathHelpers.cpp
+    │   ├── BlenderControlsCommands.cpp
+    │   ├── BlenderEditorControls.cpp
+    │   ├── Style.cpp
+    │   ├── SWelcomeWindow.cpp
+    │   └── TransformSession.cpp
+    └── Public/ (Header files mirroring Private structure)
+```
 
 - [**`InputProcessor`**](Source/BlenderEditorControlsPlugin/Public/Input/InputProcessor.h): The gatekeeper. It hooks into the Slate application to intercept hotkeys (G, R, S, Shift+D) before they reach the viewport and triggers a new transform session.
 - [**`TransformSession`**](Source/BlenderEditorControlsPlugin/Public/TransformSession.h): The core state machine. It manages the active tool's lifecycle, caches initial mouse/camera states, and handles Unreal Engine's `FScopedTransaction` to ensure Undo/Redo works flawlessly.
@@ -85,7 +133,9 @@ Contributions are highly welcomed! To help you get up to speed, here is a high-l
 - [**`Input/Numeric/`**](Source/BlenderEditorControlsPlugin/Public/Input/Numeric/): Manages keyboard-driven value inputs during an active session, interpreting units and math formulas typed by the user.
 - [**`UI/`**](Source/BlenderEditorControlsPlugin/Public/UI/): The screen-space widget (`TransformHUD`) that displays active values, and the `AxisLockGizmoComponent` responsible for drawing the infinite colored lines.
 
-## Usage Guide & Hotkeys
+---
+
+## 4. Usage Guide & Hotkeys
 
 | Action | Shortcut | Description |
 | :--- | :--- | :--- |
@@ -102,7 +152,9 @@ Contributions are highly welcomed! To help you get up to speed, here is a high-l
 | **Precision Mode** | Hold `Shift` | Slows down mouse influence for fine adjustments. |
 | **Toggle Snapping** | Hold `Ctrl` | Inverts the current viewport grid-snapping state. |
 
-## Settings & Customization
+---
+
+## 5. Settings & Customization
 
 You can customize the plugin's behavior, including axis colors, precision scalars, and 3D line thickness. 
 To access the settings:
@@ -112,11 +164,15 @@ To access the settings:
 
 You can also customize the exact keybindings (such as changing Scale back to `S`) by navigating to **Edit > Editor Preferences > General > Keyboard Shortcuts** and searching for **Blender Editor Controls**.
 
-## Compatibility
+---
 
-- Supported Unreal Engine versions: **5.6 - 5.8**
+## 6. Compatibility
 
-## License
+- Supported Unreal Engine versions: **5.4 - 5.8**
+
+---
+
+## 7. License
 
 This software is dual-licensed based on where you acquire it:
 
