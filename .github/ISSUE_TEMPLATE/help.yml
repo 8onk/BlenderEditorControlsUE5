@@ -1,0 +1,11 @@
+name: Help / Support
+description: Request help using or troubleshooting the plugin
+labels: ["help wanted"]
+body:
+  - type: textarea
+    id: help-request
+    attributes:
+      label: Support Request
+      description: What do you need help with?
+    validations:
+      required: true
