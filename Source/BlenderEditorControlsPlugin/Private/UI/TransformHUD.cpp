@@ -267,6 +267,7 @@ namespace BlenderControls
 
 		OverlayWrapper.Reset();
 		AttachedViewport.Reset();
+		AttachedOverlay.Reset();
 	}
 
 	void STransformHUD::SetDashState(bool bEnabled, const FVector2D& InOriginPx, const FVector2D& InMousePx)
