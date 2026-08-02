@@ -16,6 +16,12 @@ Are you tired of clicking gizmos? Whether you're transitioning from Blender to U
 
 ---
 ## Table of Contents
+- [Bringing Blender editor controls to Unreal Engine 5!](#bringing-blender-editor-controls-to-unreal-engine-5)
+  - [GET IT FOR FREE ON FAB (Pending approval for EU)](#get-it-for-free-on-fab-pending-approval-for-eu)
+    - [Manipulate transforms using hotkeys (rebindable)](#manipulate-transforms-using-hotkeys-rebindable)
+    - [Manipulate transforms using numerical values](#manipulate-transforms-using-numerical-values)
+    - [Constrain transform manipulation to axis/plane of choice](#constrain-transform-manipulation-to-axisplane-of-choice)
+  - [Table of Contents](#table-of-contents)
   - [1. Installation](#1-installation)
   - [2. Features](#2-features)
   - [3. Contributing](#3-contributing)
@@ -84,6 +90,7 @@ Contributions of all kinds are highly welcomed! Please adhere to the following r
 1. **Target Branch:** All Pull Requests **must** be submitted against the `dev` branch.
 2. **Code Style:** Please align with standard Unreal Engine C++ coding conventions.
 3. **Commit Messages:** Keep commit messages clear, concise, and focused on the change.
+4. **Engine Version:** All bug reports and PRs must specify the Unreal Engine version.
 
 ### Architecture Overview 
 
@@ -168,7 +175,8 @@ You can also customize the exact keybindings (such as changing Scale back to `S`
 
 ## 6. Compatibility
 
-- Supported Unreal Engine versions: **5.4 - 5.8**
+- Supported Unreal Engine versions: **5.0 – 5.8**
+- **Supported Target Platforms:** Developed and verified on Windows. It has not been tested on macOS or Linux, so compatibility on those platforms is unknown.
 
 ---
 
