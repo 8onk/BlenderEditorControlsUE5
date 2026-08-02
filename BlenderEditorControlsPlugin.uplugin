@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
   "Version": 1,
-  "VersionName": "1.0",
+  "VersionName": "1.0.3",
   "FriendlyName": "Blender Editor Controls",
   "Description": "Brings Blender's transformation workflow directly into the Unreal Editor viewport.",
   "Category": "Editor",
@@ -20,9 +20,7 @@
       "Type": "Editor",
       "LoadingPhase": "Default",
       "PlatformAllowList": [
-        "Win64",
-        "Mac",
-        "Linux"
+        "Win64"
       ]
     }
   ],
