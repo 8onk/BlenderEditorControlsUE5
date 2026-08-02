@@ -6,12 +6,11 @@
 #include "ControlRig.h"
 #include "Rigs/RigHierarchy.h"
 #include "Rigs/RigHierarchyElements.h"
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
 #include "ControlRigEditor/Private/EditMode/ControlRigEditMode.h"
 #else
 #include "EditMode/ControlRigEditMode.h"
 #endif
-
 
 DEFINE_LOG_CATEGORY_STATIC(LogControlRigHelper, Log, All);
 
@@ -279,17 +278,9 @@ namespace BlenderControls
 			constexpr bool bNotify = true;
 			constexpr bool bSetupUndo = false; // Undo handled by FScopedTransaction in calling code
 			constexpr bool bPrintPythonCommands = false;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 4
-			ControlRig->SetControlGlobalTransform(
-				ElementKey.Name,
-				RigSpaceTransform,
-				bNotify,
-				Context,
-				bSetupUndo,
-				bPrintPythonCommands
-			);
-#else
-			// bFixEulerFlips helps with rotation continuity for EulerTransform controls
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+			// bFixEulerFlips helps with rotation continuity for EulerTransform controls. Does not exist
+			// as an argument in UE 5.0
 			constexpr bool bFixEulerFlips = true;
 
 			ControlRig->SetControlGlobalTransform(
@@ -300,6 +291,15 @@ namespace BlenderControls
 				bSetupUndo,
 				bPrintPythonCommands,
 				bFixEulerFlips
+			);
+#else
+			ControlRig->SetControlGlobalTransform(
+				ElementKey.Name,
+				RigSpaceTransform,
+				bNotify,
+				Context,
+				bSetupUndo,
+				bPrintPythonCommands
 			);
 #endif
 		}
@@ -426,6 +426,4 @@ namespace BlenderControls
 	{
 		// FScopedTransaction in calling code handles commit/cancel
 	}
-
-
 } // namespace BlenderControls

@@ -25,12 +25,23 @@ namespace BlenderControls
 		bool bHasSeenWelcome = false;
 		if (GConfig)
 		{
-			GConfig->GetBool(TEXT("BlenderControlsPlugin"), TEXT("bHasSeenWelcome"), bHasSeenWelcome, GEditorPerProjectIni);
+			GConfig->GetBool(
+				TEXT("BlenderControlsPlugin"),
+				TEXT("bHasSeenWelcome"),
+				bHasSeenWelcome,
+				GEditorPerProjectIni);
 		}
 
 		if (!bHasSeenWelcome)
 		{
-			FEditorDelegates::OnEditorInitialized.AddRaw(this, &FBlenderEditorControlsPluginModule::OnEditorInitialized);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
+			// Pass a dummy value of 0.0 since we do not save the delegate handle to unbind it later. 
+			FCoreDelegates::OnPostEngineInit.AddLambda([this]() { OnEditorInitialized(0.0); });
+#else
+			FEditorDelegates::OnEditorInitialized.AddRaw(
+				this,
+				&FBlenderEditorControlsPluginModule::OnEditorInitialized);
+#endif
 		}
 	}
 
@@ -83,13 +94,15 @@ namespace BlenderControls
 		else if (MainFrame)
 		{
 			MainFrame->OnMainFrameCreationFinished().AddRaw(
-				this, &FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
+				this,
+				&FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
 		}
 		else
 		{
 			IMainFrameModule& LoadedMainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
 			LoadedMainFrame.OnMainFrameCreationFinished().AddRaw(
-				this, &FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
+				this,
+				&FBlenderEditorControlsPluginModule::OnMainFrameCreationFinished);
 		}
 	}
 

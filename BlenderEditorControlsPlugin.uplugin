@@ -29,12 +29,12 @@
   "Plugins": [
     {
       "Name": "ControlRig",
-      "Enabled": false,
+      "Enabled": true,
       "Optional": true
     },
     {
       "Name": "RigVM",
-      "Enabled": false,
+      "Enabled": true,
       "Optional": true
     }
   ]
