@@ -9,14 +9,34 @@ public class BlenderEditorControlsPlugin : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		//Necessary to hide overlay position setting for versions older than 5.6
+		// Necessary to hide overlay position setting for versions older than 5.6
 		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 6)
 		{
 			PublicDefinitions.Add("UE_BEFORE_5_6=1");
+
+			PrivateDependencyModuleNames.Add("SequencerWidgets");
 		}
 		else
 		{
 			PublicDefinitions.Add("UE_BEFORE_5_6=0");
+		}
+
+		if (Target.Version.MajorVersion == 5)
+		{
+			if (Target.Version.MinorVersion == 3)
+			{
+				// Needed for ControlRigEditMode.h include in ControlRigSelectionHelper.cpp
+				PrivateDependencyModuleNames.Add("Persona");
+			}
+			else if (Target.Version.MinorVersion == 1 || Target.Version.MinorVersion == 2)
+			{
+				PrivateDependencyModuleNames.Add("Persona");
+				PrivateDependencyModuleNames.Add("AnimationEditMode");
+			}
+			else if (Target.Version.MinorVersion == 0)
+			{
+				// UE 5.0 requires no additional dependencies here
+			}
 		}
 
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
@@ -74,12 +94,6 @@ public class BlenderEditorControlsPlugin : ModuleRules
 				"MainFrame"
 			}
 		);
-		
-		
-        if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 6)
-        {
-            PrivateDependencyModuleNames.Add("SequencerWidgets");
-        }
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]

@@ -59,18 +59,18 @@ public:
 	bool bIsOldVersion = UE_BEFORE_5_6;
 
 	/** Overlay margin from the left edge of the viewport (in pixels). */
-	UPROPERTY(EditAnywhere, config, Category = "Visuals | Overlay", meta = (
+	UPROPERTY(EditAnywhere, config, Category = "Visuals | HUD", meta = (
 		ClampMin = "0",
 		EditCondition = "IsOldVersion()",
 		EditConditionHides))
-	float MarginLeft = 5.f;
+	float MarginLeft = 260.f;
 
 	/** Overlay margin from the top edge of the viewport (in pixels). */
-	UPROPERTY(EditAnywhere, config, Category = "Visuals | Overlay", meta = (
+	UPROPERTY(EditAnywhere, config, Category = "Visuals | HUD", meta = (
 		ClampMin = "0",
 		EditCondition = "IsOldVersion()",
 		EditConditionHides))
-	float MarginTop = 40.f;
+	float MarginTop = 4.f;
 
 	/** --- VISUALS (Cursors & HUD) --- */
 	

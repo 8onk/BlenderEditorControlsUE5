@@ -1,0 +1,82 @@
+name: Bug Report
+description: File a bug report for Blender Editor Controls
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: engine-version
+    attributes:
+      label: Unreal Engine Version
+      options:
+        - "5.8"
+        - "5.7"
+        - "5.6"
+        - "5.5"
+        - "5.4"
+        - "5.3"
+        - "5.2"
+        - "5.1"
+        - "5.0"
+        - "Other (Specify in description)"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation Method
+      options:
+        - GitHub (Git Clone)
+        - GitHub (ZIP Download)
+        - Fab / Epic Games Marketplace
+    validations:
+      required: true
+  - type: dropdown
+    id: editor-context
+    attributes:
+      label: Editor Context
+      description: Where did this bug occur?
+      options:
+        - Level Editor (Standard Actors)
+        - Blueprint Editor
+        - Control Rig Editor
+        - Other / Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What happened, and what did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can this bug be reproduced? (e.g., Select actor, press G, press X).
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots / Video
+      description: Drag and drop visual evidence here if applicable.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Crash Report
+      description: Paste crash logs here if applicable.
+    validations:
+      required: false

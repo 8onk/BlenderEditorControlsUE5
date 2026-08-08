@@ -10,6 +10,14 @@
 #include "Widgets/Input/SHyperlink.h"
 #include "ISettingsModule.h"
 #include "Modules/ModuleManager.h"
+#include "Runtime/Launch/Resources/Version.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
+#include "EditorStyleSet.h"
+#define GET_STYLE_BRUSH(Name) FEditorStyle::GetBrush(Name)
+#else
+#define GET_STYLE_BRUSH(Name) FAppStyle::GetBrush(Name)
+#endif
 
 namespace WelcomeText
 {
@@ -27,7 +35,8 @@ namespace WelcomeText
 	const FText FeaturesHeader = FText::FromString("Features");
 
 	const FText SupportHeader = FText::FromString("Feedback & Support");
-	const FText SupportBody1 = FText::FromString("If you experience any issues or have suggestions, feel free to contribute to the ");
+	const FText SupportBody1 = FText::FromString(
+		"If you experience any issues or have suggestions, feel free to contribute to the ");
 	const FText SupportBody2 = FText::FromString("If you have the time, please consider leaving a ");
 	const FText SupportBodyReview = FText::FromString("review");
 	const FText SupportBody3 = FText::FromString(" on Fab to help support this free tool!");
@@ -51,7 +60,7 @@ static TSharedRef<SWidget> MakeFeatureRow(const FString& BoldPart, const FString
 		.AutoWidth()
 		.Padding(FMargin(0, 4, 4, 4))
 		[
-			SNew(STextBlock) 
+			SNew(STextBlock)
 			.Text(FText::FromString(BoldPart))
 			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
 		]
@@ -67,12 +76,13 @@ static TSharedRef<SWidget> MakeFeatureRow(const FString& BoldPart, const FString
 
 void SWelcomeWindow::Construct(const FArguments& InArgs)
 {
-	SWindow::Construct(SWindow::FArguments()
-	                   .Title(WelcomeText::WindowTitle)
-	                   .AutoCenter(EAutoCenter::PrimaryWorkArea)
-	                   .SupportsMaximize(false)
-	                   .SupportsMinimize(false)
-	                   .SizingRule(ESizingRule::Autosized)
+	SWindow::Construct(
+		SWindow::FArguments()
+		.Title(WelcomeText::WindowTitle)
+		.AutoCenter(EAutoCenter::PrimaryWorkArea)
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		.SizingRule(ESizingRule::Autosized)
 	);
 
 	SetContent(
@@ -81,7 +91,7 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 		[
 			SNew(SBorder)
 			.Padding(FMargin(20.0f))
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(GET_STYLE_BRUSH("ToolPanel.GroupBorder"))
 			[
 				SNew(SVerticalBox)
 
@@ -103,7 +113,7 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 				[
 					SNew(SBorder)
 					.Padding(FMargin(10.0f))
-					.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(GET_STYLE_BRUSH("ToolPanel.GroupBorder"))
 					[
 						SNew(SVerticalBox)
 
@@ -132,11 +142,14 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 						[
 							SNew(SHyperlink)
 							.Text(WelcomeText::BindingsLinkText)
-							.OnNavigate_Lambda([]()
-							{
-								FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(
-									FName("Editor"), FName("General"), FName("InputBindings"));
-							})
+							.OnNavigate_Lambda(
+								[]()
+								{
+									FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(
+										FName("Editor"),
+										FName("General"),
+										FName("InputBindings"));
+								})
 						]
 
 						+ SVerticalBox::Slot()
@@ -154,11 +167,14 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 						[
 							SNew(SHyperlink)
 							.Text(WelcomeText::SettingsLinkText)
-							.OnNavigate_Lambda([]()
-							{
-								FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(
-									FName("Editor"), FName("Plugins"), FName("BlenderEditorControls"));
-							})
+							.OnNavigate_Lambda(
+								[]()
+								{
+									FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(
+										FName("Editor"),
+										FName("Plugins"),
+										FName("BlenderEditorControls"));
+								})
 						]
 					]
 				]
@@ -170,7 +186,7 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 				[
 					SNew(SBorder)
 					.Padding(FMargin(10.0f))
-					.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(GET_STYLE_BRUSH("ToolPanel.GroupBorder"))
 					[
 						SNew(SVerticalBox)
 
@@ -200,10 +216,11 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 							[
 								SNew(SHyperlink)
 								.Text(WelcomeText::GithubLinkText)
-								.OnNavigate_Lambda([]()
-								{
-									FPlatformProcess::LaunchURL(*WelcomeText::GithubUrl, nullptr, nullptr);
-								})
+								.OnNavigate_Lambda(
+									[]()
+									{
+										FPlatformProcess::LaunchURL(*WelcomeText::GithubUrl, nullptr, nullptr);
+									})
 							]
 						]
 
@@ -245,7 +262,7 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 				[
 					SNew(SBorder)
 					.Padding(FMargin(10.0f))
-					.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(GET_STYLE_BRUSH("ToolPanel.GroupBorder"))
 					[
 						SNew(SVerticalBox)
 
@@ -348,11 +365,12 @@ void SWelcomeWindow::Construct(const FArguments& InArgs)
 					SNew(SButton)
 					.ContentPadding(FMargin(15, 5))
 					.Text(WelcomeText::Button)
-					.OnClicked_Lambda([this]() -> FReply
-					{
-						RequestDestroyWindow();
-						return FReply::Handled();
-					})
+					.OnClicked_Lambda(
+						[this]() -> FReply
+						{
+							RequestDestroyWindow();
+							return FReply::Handled();
+						})
 				]
 			]
 		]

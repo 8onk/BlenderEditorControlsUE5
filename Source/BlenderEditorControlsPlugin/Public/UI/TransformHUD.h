@@ -44,10 +44,10 @@ namespace BlenderControls
 		void SetNumericEcho(const FString& In) const;
 
 		/** Attaches this HUD to the specified viewport. */
-		void Attach(TSharedPtr<SEditorViewport> TargetViewport);
+		void Attach(const TSharedPtr<SEditorViewport>& TargetViewport);
 		
 		/** Updates the text displays and ensures the HUD is attached to the target viewport. */
-		void Update(TSharedPtr<SEditorViewport> TargetViewport, const FText& Readout, const FString& NumericEcho = TEXT(""));
+		void Update(const TSharedPtr<SEditorViewport>& TargetViewport, const FText& Readout, const FString& NumericEcho = TEXT(""));
 		
 		/** Removes this HUD from the active viewport overlay. */
 		void Detach();
@@ -109,6 +109,7 @@ namespace BlenderControls
 		TSharedPtr<STextBlock> NumericText;
 
 		TWeakPtr<SEditorViewport> AttachedViewport;
+		TWeakPtr<SOverlay> AttachedOverlay;
 		TSharedPtr<SWidget> OverlayWrapper;
 
 		bool bShowDash = false;

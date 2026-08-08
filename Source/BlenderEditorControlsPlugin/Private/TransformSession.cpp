@@ -78,6 +78,16 @@ namespace BlenderControls
 
 	FTransformSession::~FTransformSession()
 	{
+		if (CurrentTool.IsValid())
+		{
+			CurrentTool->Cancel();
+			CurrentTool.Reset();
+		}
+		if (ScopedTransaction.IsValid())
+		{
+			ScopedTransaction->Cancel();
+			ScopedTransaction.Reset();
+		}
 	}
 
 	FEditorViewportClient* GetHoveredViewportClient()
@@ -407,6 +417,12 @@ namespace BlenderControls
 
 	void FTransformSession::SwitchTool(ETransformMode NewMode)
 	{
+		if (bIsSwitchingTools)
+		{
+			return;
+		}
+		TGuardValue<bool> SwitchGuard(bIsSwitchingTools, true);
+
 		if (ActiveMode == NewMode && CurrentTool.IsValid())
 		{
 			return;
@@ -439,6 +455,12 @@ namespace BlenderControls
 			{
 				ScopedTransaction->Cancel();
 				ScopedTransaction.Reset();
+			}
+
+			// If a recursive event (e.g. from Cancel()) terminated the session, abort tool switch.
+			if (bHasSessionTerminated)
+			{
+				return;
 			}
 		}
 
@@ -475,6 +497,7 @@ namespace BlenderControls
 
 			if (!CurrentTool->OnBegin())
 			{
+				CurrentTool->OnEnd(false);
 				CurrentTool.Reset();
 				bHasSessionTerminated = true;
 				return;
@@ -506,6 +529,7 @@ namespace BlenderControls
 		{
 			return;
 		}
+		bHasSessionTerminated = true;
 
 		// Only keep transaction if transform actually changed, or duplicated object. 
 		if (bApply && !bStartedWithDuplicate)
@@ -592,7 +616,6 @@ namespace BlenderControls
 
 		ScopedTransaction.Reset();
 		CurrentTool.Reset();
-		bHasSessionTerminated = true;
 
 		FViewportClientExposer::SetViewportState(ActiveViewportClient, /*bInTracking=*/false, /*bAxisControlledByDrag=*/
 		                                         false);
@@ -671,7 +694,7 @@ namespace BlenderControls
 
 	bool FTransformSession::HandleKeyDownEvent(const FKeyEvent& KeyEvent)
 	{
-		if (!CurrentTool.IsValid())
+		if (bHasSessionTerminated || !CurrentTool.IsValid())
 		{
 			return false;
 		}
@@ -768,7 +791,7 @@ namespace BlenderControls
 
 	bool FTransformSession::HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent)
 	{
-		if (!CurrentTool.IsValid())
+		if (bHasSessionTerminated || !CurrentTool.IsValid())
 		{
 			return false;
 		}
@@ -807,6 +830,11 @@ namespace BlenderControls
 
 	bool FTransformSession::HandleMouseButtonDownEvent(const FPointerEvent& MouseEvent)
 	{
+		if (bHasSessionTerminated || !CurrentTool.IsValid())
+		{
+			return false;
+		}
+
 		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 		{
 			End(/*bApply=*/true);

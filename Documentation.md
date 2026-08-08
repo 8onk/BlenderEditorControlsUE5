@@ -1,12 +1,15 @@
 # Blender Editor Controls Documentation
 
 ## Table of Contents
-1. [Settings & Customization](#1-settings--customization)
-2. [Usage Guide & Hotkeys](#2-usage-guide--hotkeys)
-3. [Features](#3-features)
-4. [Architecture Overview (For Contributors)](#4-architecture-overview-for-contributors)
-5. [Compatibility](#5-compatibility)
-6. [License](#6-license)
+- [Blender Editor Controls Documentation](#blender-editor-controls-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [1. Settings \& Customization](#1-settings--customization)
+  - [2. Usage Guide \& Hotkeys](#2-usage-guide--hotkeys)
+  - [3. Features](#3-features)
+  - [4. Architecture Overview (For Contributors)](#4-architecture-overview-for-contributors)
+      - [Source Directory Tree](#source-directory-tree)
+  - [5. Compatibility](#5-compatibility)
+  - [6. License](#6-license)
 
 ## 1. Settings & Customization
 
@@ -101,7 +104,8 @@ Source
 
 ## 5. Compatibility
 
-- Supported Unreal Engine versions: **5.6 - 5.8**
+- Supported Unreal Engine versions: **5.0 - 5.8**
+- **Supported Target Platforms:** Developed and verified on Windows. It has not been tested on macOS or Linux, so compatibility on those platforms is unknown.
 
 ## 6. License
 

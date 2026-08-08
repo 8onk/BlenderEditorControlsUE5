@@ -584,7 +584,18 @@ namespace BlenderControls
 
 		// Get the list of active archetype instances for each moved object, in bulk for efficiency
 		TArray<TArray<UObject*>> ArchetypeInstancesList;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
+		ArchetypeInstancesList.SetNum(ArchetypeSearchObjects.Num());
+		for (int32 Index = 0; Index < ArchetypeSearchObjects.Num(); ++Index)
+		{
+			if (ArchetypeSearchObjects[Index])
+			{
+				ArchetypeSearchObjects[Index]->GetArchetypeInstances(ArchetypeInstancesList[Index]);
+			}
+		}
+#else
 		ObjectTools::BatchGetArchetypeInstances(ArchetypeSearchObjects, ArchetypeInstancesList);
+#endif
 
 		// Propagate the change(s) to the matching component instance
 		for (int32 ObjectIndex = 0; ObjectIndex < Nodes.Num(); ObjectIndex++)
@@ -611,13 +622,19 @@ namespace BlenderControls
 						if (SceneComp != nullptr)
 						{
 							FComponentEditorUtils::ApplyDefaultValueChange(
-								SceneComp, SceneComp->GetRelativeLocation_DirectMutable(), Info.OldRelativeLocation,
+								SceneComp,
+								SceneComp->GetRelativeLocation_DirectMutable(),
+								Info.OldRelativeLocation,
 								LiveTemplate->GetRelativeLocation());
 							FComponentEditorUtils::ApplyDefaultValueChange(
-								SceneComp, SceneComp->GetRelativeRotation_DirectMutable(), Info.OldRelativeRotation,
+								SceneComp,
+								SceneComp->GetRelativeRotation_DirectMutable(),
+								Info.OldRelativeRotation,
 								LiveTemplate->GetRelativeRotation());
 							FComponentEditorUtils::ApplyDefaultValueChange(
-								SceneComp, SceneComp->GetRelativeScale3D_DirectMutable(), Info.OldRelativeScale3D,
+								SceneComp,
+								SceneComp->GetRelativeScale3D_DirectMutable(),
+								Info.OldRelativeScale3D,
 								LiveTemplate->GetRelativeScale3D());
 						}
 					}
@@ -627,17 +644,25 @@ namespace BlenderControls
 					for (int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
 					{
 						USceneComponent* SceneComp = static_cast<USceneComponent*>(FindObjectWithOuter(
-							ArchetypeInstances[InstanceIndex], LiveTemplate->GetClass(), LiveTemplate->GetFName()));
+							ArchetypeInstances[InstanceIndex],
+							LiveTemplate->GetClass(),
+							LiveTemplate->GetFName()));
 						if (SceneComp)
 						{
 							FComponentEditorUtils::ApplyDefaultValueChange(
-								SceneComp, SceneComp->GetRelativeLocation_DirectMutable(), Info.OldRelativeLocation,
+								SceneComp,
+								SceneComp->GetRelativeLocation_DirectMutable(),
+								Info.OldRelativeLocation,
 								LiveTemplate->GetRelativeLocation());
 							FComponentEditorUtils::ApplyDefaultValueChange(
-								SceneComp, SceneComp->GetRelativeRotation_DirectMutable(), Info.OldRelativeRotation,
+								SceneComp,
+								SceneComp->GetRelativeRotation_DirectMutable(),
+								Info.OldRelativeRotation,
 								LiveTemplate->GetRelativeRotation());
 							FComponentEditorUtils::ApplyDefaultValueChange(
-								SceneComp, SceneComp->GetRelativeScale3D_DirectMutable(), Info.OldRelativeScale3D,
+								SceneComp,
+								SceneComp->GetRelativeScale3D_DirectMutable(),
+								Info.OldRelativeScale3D,
 								LiveTemplate->GetRelativeScale3D());
 						}
 					}

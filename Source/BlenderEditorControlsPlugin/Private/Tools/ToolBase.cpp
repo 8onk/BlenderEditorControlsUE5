@@ -144,8 +144,11 @@ namespace BlenderControls
 			       TEXT("[%hs]: Invalid HudWidget! Likely due to missed OnBegin() call"),
 			       __FUNCTION__);
 		}
+		else
+		{
+			HudWidget->Detach();
+		}
 
-		HudWidget->Detach();
 		ClearDrawnAxisLines();
 
 		constexpr bool bIsToolEnding = true;
@@ -745,11 +748,6 @@ namespace BlenderControls
 
 	void FToolBase::Cancel()
 	{
-		if (!GEditor || !Session->HasValidPivot())
-		{
-			return;
-		}
-
 		OnEnd(/*bApply=*/false);
 	}
 

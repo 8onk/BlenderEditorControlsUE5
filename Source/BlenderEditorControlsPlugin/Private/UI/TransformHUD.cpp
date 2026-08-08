@@ -11,6 +11,7 @@
 #include "Slate/SceneViewport.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 2
+#include "Styling/StyleColors.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #endif
 
@@ -57,7 +58,8 @@ namespace BlenderControls
 	FMargin STransformHUD::GetDynamicPaddingLegacy() const
 	{
 		const float Scale = GetCappedHudScale();
-		return FMargin(12.f * Scale, 5.5f * Scale);
+		// Vertical scale of 4.5 seems to match the height of existing viewport buttons (though it probably isn't matching 1:1)
+		return FMargin(12.f * Scale, 4.0f * Scale);
 	}
 
 	void STransformHUD::Construct(const FArguments&)
@@ -81,11 +83,15 @@ namespace BlenderControls
 			]
 		];
 #else
+		FLinearColor ToolbarBackgroundColor = FStyleColors::Dropdown.GetSpecifiedColor();
+		ToolbarBackgroundColor.A = 0.80f;
+
+		// Match native editor button look (Like the "Show" button)
 		static FSlateRoundedBoxBrush PillBrush(
-			FLinearColor(0.02f, 0.02f, 0.02f, 0.75f), // Background Color
-			5.0f, // Radius (Half of height = Pill)
-			FLinearColor(0.1f, 0.1f, 0.1f, 1.0f), // Outline Color
-			1.0f // Outline Width
+			ToolbarBackgroundColor,
+			12.0f,
+			FLinearColor(0.0f, 0.0f, 0.0f, 0.8f),
+			1.0f
 		);
 
 		ChildSlot
@@ -101,7 +107,7 @@ namespace BlenderControls
 			[
 				SAssignNew(ReadoutText, STextBlock)
 				.Font(this, &STransformHUD::GetDynamicFont)
-				.ColorAndOpacity(FLinearColor::White)
+				.ColorAndOpacity(FStyleColors::Foreground) // Color must be "Foreground" to match native editor buttons
 			]
 		];
 #endif
@@ -123,7 +129,7 @@ namespace BlenderControls
 		}
 	}
 
-	static TSharedPtr<SOverlay> FindViewportOverlay(TSharedPtr<SWidget> RootWidget)
+	static TSharedPtr<SOverlay> FindViewportOverlay(const TSharedPtr<SWidget>& RootWidget)
 	{
 		if (!RootWidget.IsValid())
 		{
@@ -155,7 +161,7 @@ namespace BlenderControls
 		return nullptr;
 	}
 
-	void STransformHUD::Attach(TSharedPtr<SEditorViewport> TargetViewport)
+	void STransformHUD::Attach(const TSharedPtr<SEditorViewport>& TargetViewport)
 	{
 		if (!TargetViewport.IsValid())
 		{
@@ -193,7 +199,7 @@ namespace BlenderControls
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 			.HAlign(HAlign_Fill)
 #else
-.HAlign(HAlign_Left)
+			.HAlign(HAlign_Left)
 				.Padding(Settings->MarginLeft, Settings->MarginTop, 0.f, 0.f)
 #endif
 			[
@@ -212,10 +218,12 @@ namespace BlenderControls
 				OverlayWrapper.ToSharedRef()
 			];
 			AttachedViewport = TargetViewport;
+			AttachedOverlay = HackedOverlay;
 		}
 	}
 
-	void STransformHUD::Update(TSharedPtr<SEditorViewport> TargetViewport, const FText& Readout, const FString& NumericEcho)
+	void STransformHUD::Update(const TSharedPtr<SEditorViewport>& TargetViewport, const FText& Readout,
+	                           const FString& NumericEcho)
 	{
 		// Ensure we're attached to whatever viewport is active right now
 		{
@@ -250,8 +258,7 @@ namespace BlenderControls
 		{
 			if (OverlayWrapper.IsValid())
 			{
-				TSharedPtr<SOverlay> HackedOverlay = FindViewportOverlay(VP);
-				if (HackedOverlay.IsValid())
+				if (TSharedPtr<SOverlay> HackedOverlay = AttachedOverlay.Pin())
 				{
 					HackedOverlay->RemoveSlot(OverlayWrapper.ToSharedRef());
 				}
@@ -260,6 +267,7 @@ namespace BlenderControls
 
 		OverlayWrapper.Reset();
 		AttachedViewport.Reset();
+		AttachedOverlay.Reset();
 	}
 
 	void STransformHUD::SetDashState(bool bEnabled, const FVector2D& InOriginPx, const FVector2D& InMousePx)
@@ -276,8 +284,14 @@ namespace BlenderControls
 	                             int32 LayerId,
 	                             const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 	{
-		LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId,
-		                                   InWidgetStyle, bParentEnabled);
+		LayerId = SCompoundWidget::OnPaint(
+			Args,
+			AllottedGeometry,
+			MyCullingRect,
+			OutDrawElements,
+			LayerId,
+			InWidgetStyle,
+			bParentEnabled);
 
 		const FVector2f LineStart(MouseViewportPx - FVector2D(ClampedLeft, ClampedTop));
 		const FVector2f LineEnd(OriginViewportPx - FVector2D(ClampedLeft, ClampedTop));
@@ -310,15 +324,22 @@ namespace BlenderControls
 #endif
 
 
-				//Using anti alias in some older UE versions makes dashes render joined together. 
+				//Using anti-alias in some older UE versions makes dashes render joined together. 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
-				const bool bUseAA = false;
+				constexpr bool bUseAA = false;
 #else
-				const bool bUseAA = true;
+				constexpr bool bUseAA = true;
 #endif
 
-				FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), Pts,
-				                             ESlateDrawEffect::None, FLinearColor::White, bUseAA, ScaledDashThickness);
+				FSlateDrawElement::MakeLines(
+					OutDrawElements,
+					LayerId,
+					AllottedGeometry.ToPaintGeometry(),
+					Pts,
+					ESlateDrawEffect::None,
+					FLinearColor::White,
+					bUseAA,
+					ScaledDashThickness);
 
 				DashStart = DashEnd + (Direction * ScaledDashDistance);
 				float DistToOrigin = (LineEnd - DashStart).Size();
@@ -363,7 +384,8 @@ namespace BlenderControls
 			LastAngle = BaseAngle;
 
 			const FPaintGeometry PG = AllottedGeometry.ToPaintGeometry(
-				CursorSize, FSlateLayoutTransform(Pos));
+				CursorSize,
+				FSlateLayoutTransform(Pos));
 
 			FSlateDrawElement::MakeRotatedBox(
 				OutDrawElements,
